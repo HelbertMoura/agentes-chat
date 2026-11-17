@@ -284,7 +284,8 @@ function Viewer({
         {/* A shade behind the bar, fading into the picture past it: the name and × read over any picture, and the
             picture's edge melts into the black above it instead of meeting it in a line. */}
         <LinearGradient pointerEvents="none" colors={SHADE_DOWN} locations={SHADE_STOPS} style={styles.shadeTop} />
-        {/* × on the left: the file's actions are the row at the bottom, never repeated in a "…" here. */}
+        {/* × on the left; for who may delete the file, its trash on the right: the file's other actions are the row at
+            the bottom (four, so their words fit a 320-point screen), never repeated in a "…" here. */}
         <Round icon="x" label={t("mobile.common.close")} onPress={close} />
         {/* The name and its line in the bar's middle, as a pushed screen's title and subtitle: one line each, a long
             name shortened in its middle so its end (the kind of file) stays. */}
@@ -298,9 +299,13 @@ function Viewer({
             </Text>
           ) : null}
         </View>
-        {/* A space as wide as the ×, so the title stands in the screen's middle: the conversation's one way in is its
-            line at the bottom (ADR 0208). */}
-        <View pointerEvents="none" style={styles.round} />
+        {/* The trash, or a space as wide as the ×, so the title stands in the screen's middle: the conversation's one way
+            in is its line at the bottom (ADR 0208). */}
+        {actions.mayTrash ? (
+          <Round icon="trash" label={t("artifacts.delete")} onPress={() => actions.trash(close)} />
+        ) : (
+          <View pointerEvents="none" style={styles.round} />
+        )}
       </Chrome>
 
       {/* Gone while zoomed, as the swipe is: the fingers move the picture then. */}
@@ -347,9 +352,6 @@ function Viewer({
             onPress={actions.savePhotos}
           />
           <Action icon="drive" label={t("mobile.files.drive")} disabled={!detail} onPress={actions.drive} />
-          {actions.mayTrash ? (
-            <Action icon="trash" label={t("artifacts.delete")} onPress={() => actions.trash(close)} />
-          ) : null}
         </View>
       </Chrome>
     </View>
@@ -774,7 +776,8 @@ const styles = StyleSheet.create({
   side: { position: "absolute", top: 0 },
   bottom: { position: "absolute", left: 0, right: 0, bottom: 0, paddingTop: 6 },
   actions: { flexDirection: "row", gap: 8, paddingHorizontal: SCREEN_X, paddingTop: 10 },
-  // Four actions share the row evenly, a long label on two lines under its circle (a 320-point screen included).
+  // Four actions share the row evenly, a long label on two lines under its circle (a 320-point screen included); the
+  // trash is a round button at the top, beside ×.
   action: { flex: 1 },
   actionIn: { alignItems: "center", gap: 6 },
   actionLabel: { textAlign: "center" },

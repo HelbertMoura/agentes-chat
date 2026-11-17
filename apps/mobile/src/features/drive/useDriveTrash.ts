@@ -1,6 +1,7 @@
 import { ApiError, type Artifact, keys, useApi } from "@agenteschat/client";
 import { errorText } from "@agenteschat/client/lib/errors";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNavigation } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/ui";
 import { router } from "@/ui/navigation";
@@ -25,6 +26,7 @@ export function useDriveTrash() {
   const qc = useQueryClient();
   const toast = useToast();
   const orgId = useOrgId();
+  const navigation = useNavigation();
   // The trash's own list is under the Drive's key, so one refresh covers both.
   const refresh = () => void qc.invalidateQueries({ queryKey: keys.artifacts(orgId) });
 
@@ -59,7 +61,8 @@ export function useDriveTrash() {
               icon: "trash",
               action: { label: t("artifacts.undo"), onPress: () => void restore(target.id) },
             });
-            after?.();
+            // Only from where it was asked: a person who already left the screen isn't taken back a step.
+            if (navigation.isFocused()) after?.();
           },
           (err: unknown) =>
             toast({
