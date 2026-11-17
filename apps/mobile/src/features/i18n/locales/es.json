@@ -1272,6 +1272,7 @@
     "type": {
       "image": "Imagen",
       "video": "Vídeo",
+      "audio": "Audio",
       "pdf": "PDF",
       "document": "Documento",
       "table": "Tabla",
