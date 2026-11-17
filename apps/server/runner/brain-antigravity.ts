@@ -61,6 +61,9 @@ import { agentSecrets } from "./secrets";
  *   canonical status, HTTP or gRPC code, retryability): quota and rate limits are `plan_limit`, a refused sign-in
  *   `not_logged_in`.
  * - No live steering: `-p` takes nothing mid-turn (`brain.steer` answers `unsupported`).
+ * - A turn that used tools and ended `SUCCESS` with no reply at all (Gemini sometimes stops right after its last tool
+ *   result) gets one follow-up run on the same conversation (`AGY_FOLLOW_UP`), inside this turn: its text is the reply,
+ *   its usage added to the turn's. Never a second one; if it fails, the turn ends as it would have, with no text.
  */
 
 const KILL_GRACE_MS = 5000;
@@ -81,6 +84,10 @@ export interface AntigravityBrainTurnRequest {
   permissions?: { mode?: "plan" | "work" | "chat" };
   keepAlive?: boolean;
 }
+
+/** The follow-up prompt for a turn that worked but wrote nothing (ADR 0143 addendum 2026-11-17). */
+export const AGY_FOLLOW_UP =
+  "Write your final reply to the person now: what you found or did, item by item, and anything that failed. Don't call tools.";
 
 /** Where our session → conversation ids live in the runner home. */
 export const antigravityChatsFile = (runnerHome: string) => path.join(runnerHome, "brain", "antigravity-chats.json");
@@ -285,11 +292,14 @@ export async function runAntigravityTurn(input: AntigravityTurnInput, opts: Anti
   const clean = (text: string) => (opts.redact ? opts.redact(text) : text);
   const hold = opts.redact ? (opts.redactHold ?? 0) : 0;
 
+  // The follow-up run's (`AGY_FOLLOW_UP`): set once the first run ends without a reply, with that run's usage.
+  let followUp = false;
+  const carried = { input: 0, output: 0, cacheRead: 0 };
   // One retry, as a new chat, when the CLI doesn't have the conversation it was to resume.
   for (let attempt = 0; ; attempt++) {
     const chat = opts.chats.get(chatKey);
     const args = antigravityTurnArgs({
-      prompt: cursorPrompt(input.system, input.prompt, !chat),
+      prompt: followUp ? AGY_FOLLOW_UP : cursorPrompt(input.system, input.prompt, !chat),
       ...(chat ? { chat } : {}),
       ...(input.model ? { model: input.model } : {}),
       ...(input.effort ? { effort: input.effort } : {}),
@@ -351,7 +361,7 @@ export async function runAntigravityTurn(input: AntigravityTurnInput, opts: Anti
         const id = typeof ev.conversation_id === "string" ? ev.conversation_id : undefined;
         if (isRecord(ev.init) && typeof ev.init.model === "string") model = ev.init.model;
         // A resume the CLI didn't have comes back as a new conversation, without the context.
-        if (chat && id && id !== chat && attempt === 0) {
+        if (chat && id && id !== chat && (attempt === 0 || followUp)) {
           lost = true;
           killTree(child, "SIGKILL");
           return;
@@ -435,8 +445,14 @@ export async function runAntigravityTurn(input: AntigravityTurnInput, opts: Anti
     }
     flush("", true);
     const r = result ?? {};
-    const u = used.steps === 0 && !chat && isRecord(r.usage) ? usageOf(r.usage) : used;
-    if (u.input || u.output) {
+    const run = used.steps === 0 && !chat && isRecord(r.usage) ? usageOf(r.usage) : used;
+    const u = {
+      input: carried.input + run.input,
+      output: carried.output + run.output,
+      cacheRead: carried.cacheRead + run.cacheRead,
+    };
+    const emitUsage = () => {
+      if (!u.input && !u.output) return;
       opts.emit({
         type: "usage",
         input: u.input,
@@ -445,12 +461,26 @@ export async function runAntigravityTurn(input: AntigravityTurnInput, opts: Anti
         ...(model ? { model } : {}),
         ...(u.cacheRead ? { cacheRead: u.cacheRead } : {}),
       });
-    }
+    };
     const response = typeof r.response === "string" ? r.response : "";
-    if (r.status === "SUCCESS" && exit.code === 0) {
+    const succeeded = r.status === "SUCCESS" && exit.code === 0 && !lost;
+    if (succeeded) {
       const text = clean(response.trimEnd());
+      // Tools ran and nothing was written: once, ask for the reply on the same conversation.
+      if (!text && !streamed && worked && !followUp && opts.chats.get(chatKey)) {
+        followUp = true;
+        Object.assign(carried, u);
+        continue;
+      }
+      emitUsage();
       if (text && !streamed) opts.emit({ type: "text_delta", text });
       opts.emit({ type: "done", text, session: { id: input.sessionId } });
+      return;
+    }
+    emitUsage();
+    // A follow-up that failed: the turn ends as it would have without it, its work done and no text.
+    if (followUp) {
+      opts.emit({ type: "done", text: "", session: { id: input.sessionId } });
       return;
     }
     const agyError = parseAgyError(stderr);
