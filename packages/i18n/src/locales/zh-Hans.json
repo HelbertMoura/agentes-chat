@@ -5050,6 +5050,7 @@
       "joinRequest_other": "{{name}} 等人申请加入",
       "joinRequestNames": "{{names}} 申请加入",
       "joinSuggestion": "{{by}} 推荐了 {{name}}",
+      "joinOutside": "{{name}} 申请以 {{outsideOf}} 外部协作者身份加入，不占用席位",
       "doing": {
         "merge": "合并",
         "deploy": "部署",
@@ -5106,6 +5107,7 @@
       "joinRequest": "<b>{{name}}</b> 申请加入",
       "joinRequestMany": "<b>{{names}}</b> 申请加入",
       "joinSuggestion": "<b>{{by}}</b> 推荐了 <b>{{name}}</b>",
+      "joinOutside": "<b>{{name}}</b> 申请以 <b>{{outsideOf}}</b> 外部协作者身份加入，不占用席位",
       "changeRequest": "<b>{{name}}</b> 请求更改 <b>{{agent}}</b>",
       "proposalWaiting": "来自 <b>{{names}}</b> 的改进提议",
       "changeRequestAgent": "<b>{{name}}</b> 请求新的智能体：<b>{{agent}}</b>",
@@ -7130,6 +7132,10 @@
     "rolesAdd": "添加角色",
     "rolesChange": "更改角色",
     "moreOf": "{{name}} 的更多操作",
+    "outside": {
+      "chip": "外部",
+      "title": "外部协作者"
+    },
     "passwordLink": {
       "item": "生成新密码链接",
       "hint": "在对方忘记密码时使用",
@@ -7327,6 +7333,8 @@
       "viaLink": "{{when}}通过链接申请",
       "suggested": "由 {{name}} 于{{when}}推荐",
       "suggestedLabel": "{{by}} 推荐了 {{name}}",
+      "outside": "{{when}}申请以 {{outsideOf}} 外部协作者身份加入",
+      "outsideSeat": "外部协作者不计入你套餐的人数，你可以随时移除他们。",
       "asked": "{{ago}}申请",
       "askedNow": "刚刚申请",
       "askedOn": "于 {{date}} 申请",
@@ -14542,7 +14550,8 @@
       "aboveYou": "只有比这个角色级别更高的人才能修改它。",
       "base": "每个工作区都保留“所有人”角色。",
       "unknown": "这个角色已不存在。",
-      "orderIncomplete": "你移动时角色发生了变化。请刷新后重试。"
+      "orderIncomplete": "你移动时角色发生了变化。请刷新后重试。",
+      "outsideOwner": "外部协作者不能成为所有者。"
     },
     "teamProposal": {
       "undoExpired": "这个团队创建已超过一天，无法在这里撤销。请在各智能体的页面上归档它们。"
@@ -16050,6 +16059,11 @@
         "left": "离开了工作区",
         "role_changed": "更改了一位成员的角色",
         "password_link": "为成员生成了新密码链接"
+      },
+      "outside": {
+        "approved": "让 {{outsideOf}} 的外部协作者加入了",
+        "removed": "移除了 {{outsideOf}} 的外部协作者",
+        "left": "以 {{outsideOf}} 外部协作者身份离开了工作区"
       },
       "role": {
         "permission_set": "更改了谁可以{{short}}",
@@ -18459,6 +18473,10 @@
     "seatsPaid_other": "已付费 {{count}} 个席位",
     "noLimit": "无限制",
     "ownBucket": "在你自己的存储桶上，我们不设限制"
+  },
+  "referrals": {
+    "open": "推荐有奖",
+    "failed": "暂时无法打开，请稍后再试。"
   },
   "limits": {
     "members": {

@@ -606,6 +606,8 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
     },
     account: {
       authConfig: () => request<AuthConfig>("/api/app/auth-config"),
+      referralsLink: (returnTo) =>
+        request<{ url: string; expiresAt: string }>("/api/app/referrals-link", { json: { returnTo } }),
       signInOptions: (input, humanCheck) =>
         request<SignInOptions>("/api/app/sign-in-options", { json: input, headers: humanCheckHeaders(humanCheck) }),
       me: () => nullOn(401, () => request<Me>("/api/app/me")),

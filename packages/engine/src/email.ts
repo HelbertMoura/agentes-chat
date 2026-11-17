@@ -125,6 +125,8 @@ export type EmailTemplate =
       email: string;
       url: string;
       denyUrl: string;
+      /** An outside collaborator's request (ADR 0191): who they work for, said in place of the link they came by. */
+      outsideOf?: string;
       personal?: true;
     }
   /**
@@ -295,7 +297,7 @@ export type EmailTemplate =
    * the people who run the server. `url`: the server's own address, for the pictures.
    */
   /**
-   * The account's two-step sign-in changed (ADR 0191): turned on (every other device signed out), turned off, or new
+   * The account's two-step sign-in changed (ADR 0193): turned on (every other device signed out), turned off, or new
    * recovery codes. `support`: where to write if it wasn't them.
    */
   | {
@@ -449,6 +451,8 @@ const INVITE_NOTE_SHOWN = 300;
 const INVITE_NAMES_SHOWN = 5;
 /** A name typed on an invitation link's page, as the admins' email shows it (ADR 0068). */
 const JOIN_NAME_SHOWN = 60;
+/** Who an outside collaborator works for, shown whole: the server keeps at most 80 characters (`OUTSIDE_OF_MAX`). */
+const OUTSIDE_OF_SHOWN = 80;
 /** An admin's reason for denying a request to join, as long as it is kept. */
 const JOIN_REASON_SHOWN = 300;
 
@@ -741,7 +745,7 @@ function docOf(t: EmailTemplate, sender: string | null): EmailDoc {
         c.headline,
         [
           { people: [{ name: inertText(t.name, JOIN_NAME_SHOWN), detail: address }] },
-          { p: c.body(org) },
+          { p: t.outsideOf ? c.outside(inertText(t.outsideOf, OUTSIDE_OF_SHOWN)) : c.body(org) },
           { note: c.note },
           { button: c.approve, url: t.url, also: { label: c.deny, url: t.denyUrl, danger: true } },
           { small: c.more },

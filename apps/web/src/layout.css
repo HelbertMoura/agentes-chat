@@ -8477,7 +8477,7 @@ html:not([data-pointer]) .izoom__stage:focus-visible {
   width: 100%;
   height: 100%;
 }
-/* Two-step sign-in (ADR 0191): the key to type by hand, and the recovery codes, two per row. */
+/* Two-step sign-in (ADR 0193): the key to type by hand, and the recovery codes, two per row. */
 .two-factor__key {
   font-family: var(--font-mono);
   font-size: 13px;

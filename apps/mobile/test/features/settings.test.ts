@@ -656,7 +656,8 @@ test("Sobre o agentes.chat in Você: on every self-hosted server, old ones too; 
   // Nor before the server says which it is: the Cloud never shows it for a moment.
   expect(showsAbout(undefined)).toBe(false);
   const me = readFileSync(join(import.meta.dir, "..", "..", "src", "features", "me", "MeScreen.tsx"), "utf8");
-  expect(me).toContain("const about = showsAbout(useAuthConfig().data);");
+  expect(me).toContain("const server = useAuthConfig().data;");
+  expect(me).toContain("const about = showsAbout(server);");
   expect(me).toContain("{about ? (");
   expect(me).toContain('onPress={() => open("/me/about")}');
 });

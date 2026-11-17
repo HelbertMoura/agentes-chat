@@ -12817,6 +12817,9 @@
   "notifications.wait.joinSuggestion": {
     "value": "{{by}} suggested {{name}}"
   },
+  "notifications.wait.joinOutside": {
+    "value": "{{name}} asks to join as an outside collaborator for {{outsideOf}}, taking no seat"
+  },
   "notifications.wait.doing.merge": {
     "value": "merge"
   },
@@ -12990,6 +12993,9 @@
   },
   "notifications.what.joinSuggestion": {
     "value": "<b>{{by}}</b> suggested <b>{{name}}</b>"
+  },
+  "notifications.what.joinOutside": {
+    "value": "<b>{{name}}</b> asks to join as an outside collaborator for <b>{{outsideOf}}</b>, taking no seat"
   },
   "notifications.what.changeRequest": {
     "value": "<b>{{name}}</b> asks for a change to <b>{{agent}}</b>"
@@ -17984,6 +17990,12 @@
   "members.moreOf": {
     "value": "More for {{name}}"
   },
+  "members.outside.chip": {
+    "value": "Outside"
+  },
+  "members.outside.title": {
+    "value": "Outside collaborator"
+  },
   "members.passwordLink.item": {
     "value": "Make a new-password link"
   },
@@ -18535,6 +18547,12 @@
   },
   "members.requests.suggestedLabel": {
     "value": "{{by}} suggested {{name}}"
+  },
+  "members.requests.outside": {
+    "value": "Asked {{when}} to join as an outside collaborator for {{outsideOf}}"
+  },
+  "members.requests.outsideSeat": {
+    "value": "Outside collaborators don't count toward your plan's people, and you can remove them at any time."
   },
   "members.requests.asked": {
     "value": "Asked {{ago}}"
@@ -36969,6 +36987,9 @@
   "errors.role.orderIncomplete": {
     "value": "The roles changed while you were moving them. Reload and try again."
   },
+  "errors.role.outsideOwner": {
+    "value": "An outside collaborator can't be an owner."
+  },
   "errors.teamProposal.undoExpired": {
     "value": "It is more than a day since this team was created, so it can't be undone here. Archive its agents on their pages."
   },
@@ -40765,6 +40786,15 @@
   },
   "audit.change.member.password_link": {
     "value": "Made a new-password link for a member"
+  },
+  "audit.change.outside.approved": {
+    "value": "Let in an outside collaborator for {{outsideOf}}"
+  },
+  "audit.change.outside.removed": {
+    "value": "Removed an outside collaborator for {{outsideOf}}"
+  },
+  "audit.change.outside.left": {
+    "value": "Left the workspace, an outside collaborator for {{outsideOf}}"
   },
   "audit.change.role.permission_set": {
     "value": "Changed who can {{short}}"
@@ -46567,6 +46597,12 @@
   },
   "billing.ownBucket": {
     "value": "On your own bucket, with no limit from us"
+  },
+  "referrals.open": {
+    "value": "Refer and earn"
+  },
+  "referrals.failed": {
+    "value": "Couldn't open it now. Try again in a moment."
   },
   "limits.members.full": {
     "value": "This workspace has {{members}} of {{limit}} people."

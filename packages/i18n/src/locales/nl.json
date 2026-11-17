@@ -5249,6 +5249,7 @@
       "joinRequest_other": "{{name}} en anderen vragen om mee te doen",
       "joinRequestNames": "{{names}} vragen om mee te doen",
       "joinSuggestion": "{{by}} stelde {{name}} voor",
+      "joinOutside": "{{name}} vraagt om lid te worden als externe medewerker voor {{outsideOf}}, zonder een plek in te nemen",
       "doing": {
         "merge": "mergen",
         "deploy": "deployen",
@@ -5312,6 +5313,7 @@
       "joinRequest": "<b>{{name}}</b> vraagt om mee te doen",
       "joinRequestMany": "<b>{{names}}</b> vragen om mee te doen",
       "joinSuggestion": "<b>{{by}}</b> stelde <b>{{name}}</b> voor",
+      "joinOutside": "<b>{{name}}</b> vraagt om lid te worden als externe medewerker voor <b>{{outsideOf}}</b>, zonder een plek in te nemen",
       "changeRequest": "<b>{{name}}</b> vraagt een wijziging voor <b>{{agent}}</b>",
       "proposalWaiting": "Verbetervoorstellen van <b>{{names}}</b>",
       "changeRequestAgent": "<b>{{name}}</b> vraagt een nieuwe agent: <b>{{agent}}</b>",
@@ -7406,6 +7408,10 @@
     "rolesAdd": "Rol toevoegen",
     "rolesChange": "Rollen wijzigen",
     "moreOf": "Meer voor {{name}}",
+    "outside": {
+      "chip": "Extern",
+      "title": "Externe medewerker"
+    },
     "passwordLink": {
       "item": "Link voor nieuw wachtwoord maken",
       "hint": "Voor als iemand het wachtwoord vergat",
@@ -7619,6 +7625,8 @@
       "viaLink": "Aangevraagd via de link {{when}}",
       "suggested": "Voorgesteld door {{name}} {{when}}",
       "suggestedLabel": "{{by}} stelde {{name}} voor",
+      "outside": "Vroeg {{when}} om lid te worden als externe medewerker voor {{outsideOf}}",
+      "outsideSeat": "Externe medewerkers tellen niet mee voor de mensen in je abonnement, en je kunt ze altijd verwijderen.",
       "asked": "Aangevraagd {{ago}}",
       "askedNow": "Zojuist aangevraagd",
       "askedOn": "Aangevraagd op {{date}}",
@@ -15102,7 +15110,8 @@
       "aboveYou": "Alleen iemand boven deze rol kan hem wijzigen.",
       "base": "Elke werkruimte houdt de rol Iedereen.",
       "unknown": "Die rol bestaat niet meer.",
-      "orderIncomplete": "De rollen zijn veranderd terwijl je ze verplaatste. Laad opnieuw en probeer het nog eens."
+      "orderIncomplete": "De rollen zijn veranderd terwijl je ze verplaatste. Laad opnieuw en probeer het nog eens.",
+      "outsideOwner": "Een externe medewerker kan geen eigenaar zijn."
     },
     "teamProposal": {
       "undoExpired": "Er is meer dan een dag verstreken sinds dit team is gemaakt, dus het kan hier niet ongedaan worden gemaakt. Archiveer de agents op hun pagina's."
@@ -16629,6 +16638,11 @@
         "left": "De werkruimte verlaten",
         "role_changed": "De rol van een lid gewijzigd",
         "password_link": "Maakte een link voor een nieuw wachtwoord voor een lid"
+      },
+      "outside": {
+        "approved": "Een externe medewerker voor {{outsideOf}} toegelaten",
+        "removed": "Een externe medewerker voor {{outsideOf}} verwijderd",
+        "left": "De werkruimte verlaten, externe medewerker voor {{outsideOf}}"
       },
       "role": {
         "permission_set": "Gewijzigd wie {{short}} mag",
@@ -19070,6 +19084,10 @@
     "seatsPaid_other": "{{count}} betaalde plekken",
     "noLimit": "Geen limiet",
     "ownBucket": "Op je eigen bucket, zonder limiet van ons"
+  },
+  "referrals": {
+    "open": "Aanbevelen en verdienen",
+    "failed": "Kon het nu niet openen. Probeer het zo opnieuw."
   },
   "limits": {
     "members": {

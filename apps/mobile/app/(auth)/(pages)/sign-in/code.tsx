@@ -1,6 +1,6 @@
 import { TwoFactorStep } from "@/features/auth/SignInSteps";
 
-/** The second step of a sign-in (ADR 0191): the authenticator app's code, over the screen that signed in. */
+/** The second step of a sign-in (ADR 0193): the authenticator app's code, over the screen that signed in. */
 export default function SignInCode() {
   return <TwoFactorStep />;
 }

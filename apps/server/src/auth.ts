@@ -201,7 +201,7 @@ export function createAuth(deps: {
       phoneBrowserSignIn(),
       desktopSignIn(),
       ownerSignIn({ db, config, log, mint: (adapter, userId) => mintSignIn(adapter, `${FOR_USER}${userId}`) }),
-      // A code from an authenticator app as a second step (ADR 0191): `twoFactorGate` holds every way in to it.
+      // A code from an authenticator app as a second step (ADR 0193): `twoFactorGate` holds every way in to it.
       twoFactorPlugin(
         isAgentesCloud(config.PUBLIC_URL) ? "agentes.chat" : `agentes.chat (${new URL(config.PUBLIC_URL).host})`,
       ),
@@ -364,7 +364,7 @@ export function createAuth(deps: {
         "/phone/redeem": { window: 60, max: 10 },
         "/owner-claim": { window: 60, max: 10 },
         "/owner-key": { window: 60, max: 10 },
-        // Per address, beside the plugin's 5 tries per challenge and its lock on the account (ADR 0191).
+        // Per address, beside the plugin's 5 tries per challenge and its lock on the account (ADR 0193).
         "/two-factor/verify-totp": { window: 60, max: 10 },
         "/two-factor/verify-backup-code": { window: 60, max: 10 },
         "/two-factor/enable": { window: 60, max: 5 },
@@ -534,7 +534,7 @@ export function createAuth(deps: {
                 ...block,
               });
             }
-            // After the block, which says the real reason: every new session waits for the second step (ADR 0191).
+            // After the block, which says the real reason: every new session waits for the second step (ADR 0193).
             return twoFactorGate(db, session, context);
           },
           // Here, not in `before`: the insert may wait for the undo's commit, and only after it can it see the undo.
@@ -1207,7 +1207,7 @@ const phoneSignIn = {
         }
         if (!user) throw new APIError("UNAUTHORIZED", { message: "This code expired or was already used" });
         // Minted from a session, it signed in when that one did: it proves no fresher sign-in (`signedInLately`).
-        // Minted from a session, it is that session's copy and asks for no second code (ADR 0191); for a person by
+        // Minted from a session, it is that session's copy and asks for no second code (ADR 0193); for a person by
         // id (the owner key's, an approved request's), it does.
         const userId = user.id;
         const session = signedIn

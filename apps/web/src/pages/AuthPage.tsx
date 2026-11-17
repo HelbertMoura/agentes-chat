@@ -60,7 +60,7 @@ import { STORAGE_KEYS, sessionStore, storage } from "@/lib/storage";
  * In the Mac app, Google/GitHub/Apple open in the browser and the window
  * waits for the sign-in to come back ("browser", ADR 0036). On the server the
  * app runs on this computer, its owner has no password: "Continue on this Mac"
- * asks the app, which signs them in (ADR 0060 §6). An account with two-step sign-in (ADR 0191) then asks for the
+ * asks the app, which signs them in (ADR 0060 §6). An account with two-step sign-in (ADR 0193) then asks for the
  * authenticator app's code, whichever way it signed in: a provider's return lands here with `TWO_FACTOR_REQUIRED`.
  */
 type Step =
@@ -78,7 +78,7 @@ type Step =
   | "sent"
   | "browser"
   | "ownerWaits"
-  /** The second step (ADR 0191): the authenticator app's code, or a recovery code. */
+  /** The second step (ADR 0193): the authenticator app's code, or a recovery code. */
   | "code";
 
 /** The steps that send something a bot could flood, and what their bot check is for (ADR 0075). */
@@ -165,7 +165,7 @@ export function AuthPage({
   const navigate = useNavigate();
   const qc = useQueryClient();
   const config = useAuthConfig();
-  // Back from a provider with the account's second step to go (ADR 0191): its code is what is left.
+  // Back from a provider with the account's second step to go (ADR 0193): its code is what is left.
   const needsCode = refused === TWO_FACTOR_REQUIRED;
   const [step, setStep] = useState<Step>(needsCode ? "code" : "email");
   const [email, setEmail] = useState(initialEmail ?? "");
@@ -268,7 +268,7 @@ export function AuthPage({
     });
   }, [ownerAgain, t]);
 
-  // "Add account" (ADR 0183): a provider's refusal, or its account's code (ADR 0191), comes back to the same mode.
+  // "Add account" (ADR 0183): a provider's refusal, or its account's code (ADR 0193), comes back to the same mode.
   const addingBack = adding ? `/login?${new URLSearchParams({ redirect: redirect ?? "/", add: "1" })}` : undefined;
 
   // "Add account": whoever is signed in stays so, one click back.

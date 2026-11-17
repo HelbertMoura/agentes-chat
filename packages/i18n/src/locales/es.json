@@ -5416,6 +5416,7 @@
       "joinRequest_other": "{{name}} y otras personas piden unirse",
       "joinRequestNames": "{{names}} piden unirse",
       "joinSuggestion": "{{by}} sugirió a {{name}}",
+      "joinOutside": "{{name}} pide unirse como colaborador externo de {{outsideOf}}, sin ocupar plaza",
       "doing": {
         "merge": "hacer merge",
         "deploy": "hacer deploy",
@@ -5484,6 +5485,7 @@
       "joinRequest": "<b>{{name}}</b> pide unirse",
       "joinRequestMany": "<b>{{names}}</b> piden unirse",
       "joinSuggestion": "<b>{{by}}</b> sugirió a <b>{{name}}</b>",
+      "joinOutside": "<b>{{name}}</b> pide unirse como colaborador externo de <b>{{outsideOf}}</b>, sin ocupar plaza",
       "changeRequest": "<b>{{name}}</b> pide un cambio en <b>{{agent}}</b>",
       "proposalWaiting": "Propuestas de mejora de <b>{{names}}</b>",
       "changeRequestAgent": "<b>{{name}}</b> pide un agente nuevo: <b>{{agent}}</b>",
@@ -7582,6 +7584,10 @@
     "rolesAdd": "Añadir rol",
     "rolesChange": "Cambiar roles",
     "moreOf": "Más de {{name}}",
+    "outside": {
+      "chip": "Externo",
+      "title": "Colaborador externo"
+    },
     "passwordLink": {
       "item": "Generar enlace de contraseña nueva",
       "hint": "Para cuando olvidó la contraseña",
@@ -7811,6 +7817,8 @@
       "viaLink": "Lo pidió con el enlace {{when}}",
       "suggested": "Sugerido por {{name}} {{when}}",
       "suggestedLabel": "{{by}} sugirió a {{name}}",
+      "outside": "Pidió {{when}} unirse como colaborador externo de {{outsideOf}}",
+      "outsideSeat": "Los colaboradores externos no cuentan en las personas de tu plan, y puedes quitarlos cuando quieras.",
       "asked": "Lo pidió {{ago}}",
       "askedNow": "Lo pidió hace un momento",
       "askedOn": "Lo pidió el {{date}}",
@@ -15491,7 +15499,8 @@
       "aboveYou": "Solo alguien por encima de este rol puede cambiarlo.",
       "base": "Todo espacio de trabajo conserva el rol Todos.",
       "unknown": "Ese rol ya no existe.",
-      "orderIncomplete": "Los roles cambiaron mientras los movías. Recarga e inténtalo de nuevo."
+      "orderIncomplete": "Los roles cambiaron mientras los movías. Recarga e inténtalo de nuevo.",
+      "outsideOwner": "Un colaborador externo no puede ser propietario."
     },
     "teamProposal": {
       "undoExpired": "Ya pasó más de un día desde que se creó este equipo, así que no se puede deshacer aquí. Archiva los agentes en sus páginas."
@@ -17037,6 +17046,11 @@
         "left": "Salió del espacio de trabajo",
         "role_changed": "Cambió el rol de un miembro",
         "password_link": "Generó un enlace de contraseña nueva para un miembro"
+      },
+      "outside": {
+        "approved": "Dejó entrar a un colaborador externo de {{outsideOf}}",
+        "removed": "Quitó a un colaborador externo de {{outsideOf}}",
+        "left": "Salió del espacio de trabajo, colaborador externo de {{outsideOf}}"
       },
       "role": {
         "permission_set": "Cambió quién puede {{short}}",
@@ -19457,6 +19471,10 @@
     "seatsPaid_other": "{{count}} lugares pagados",
     "noLimit": "Sin límite",
     "ownBucket": "En tu propio bucket, sin límite de nuestra parte"
+  },
+  "referrals": {
+    "open": "Recomienda y gana",
+    "failed": "No se pudo abrir ahora. Inténtalo de nuevo en un momento."
   },
   "limits": {
     "members": {

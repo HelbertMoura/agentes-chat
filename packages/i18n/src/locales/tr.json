@@ -5231,6 +5231,7 @@
       "joinRequest_other": "{{name}} ve diğerleri katılmak istiyor",
       "joinRequestNames": "{{names}} katılmak istiyor",
       "joinSuggestion": "{{by}}, {{name}} kişisini önerdi",
+      "joinOutside": "{{name}}, {{outsideOf}} adına harici çalışan olarak katılmak istiyor ve yer kaplamıyor",
       "doing": {
         "merge": "birleştirme",
         "deploy": "dağıtım",
@@ -5293,6 +5294,7 @@
       "joinRequest": "<b>{{name}}</b> katılmak istiyor",
       "joinRequestMany": "<b>{{names}}</b> katılmak istiyor",
       "joinSuggestion": "<b>{{by}}</b>, <b>{{name}}</b> kişisini önerdi",
+      "joinOutside": "<b>{{name}}</b>, <b>{{outsideOf}}</b> adına harici çalışan olarak katılmak istiyor ve yer kaplamıyor",
       "changeRequest": "<b>{{name}}</b>, <b>{{agent}}</b> için bir değişiklik istiyor",
       "proposalWaiting": "<b>{{names}}</b> tarafından iyileştirme önerileri",
       "changeRequestAgent": "<b>{{name}}</b> yeni bir ajan istiyor: <b>{{agent}}</b>",
@@ -7328,6 +7330,10 @@
     "rolesAdd": "Rol ekle",
     "rolesChange": "Rolleri değiştir",
     "moreOf": "{{name}} için daha fazlası",
+    "outside": {
+      "chip": "Harici",
+      "title": "Harici çalışan"
+    },
     "passwordLink": {
       "item": "Yeni şifre bağlantısı oluştur",
       "hint": "Şifresini unuttuğunda",
@@ -7541,6 +7547,8 @@
       "viaLink": "Bağlantı üzerinden istedi: {{when}}",
       "suggested": "Öneren: {{name}}, {{when}}",
       "suggestedLabel": "{{by}}, {{name}} kişisini önerdi",
+      "outside": "{{outsideOf}} adına harici çalışan olarak katılmak istedi: {{when}}",
+      "outsideSeat": "Harici çalışanlar planınızdaki kişi sayısına dahil edilmez ve onları istediğiniz zaman çıkarabilirsiniz.",
       "asked": "İstek: {{ago}}",
       "askedNow": "Az önce istedi",
       "askedOn": "İstek tarihi: {{date}}",
@@ -14976,7 +14984,8 @@
       "aboveYou": "Bu rolü yalnızca ondan üstteki biri değiştirir.",
       "base": "Her çalışma alanı Herkes rolünü korur.",
       "unknown": "O rol artık yok.",
-      "orderIncomplete": "Siz taşırken roller değişti. Yenileyip tekrar deneyin."
+      "orderIncomplete": "Siz taşırken roller değişti. Yenileyip tekrar deneyin.",
+      "outsideOwner": "Harici bir çalışan sahip olamaz."
     },
     "teamProposal": {
       "undoExpired": "Bu ekip oluşturulalı bir günden fazla oldu, bu yüzden burada geri alınamaz. Ajanları kendi sayfalarından arşivle."
@@ -16503,6 +16512,11 @@
         "left": "Çalışma alanından ayrıldı",
         "role_changed": "Bir üyenin rolünü değiştirdi",
         "password_link": "Bir üye için yeni şifre bağlantısı oluşturdu"
+      },
+      "outside": {
+        "approved": "{{outsideOf}} adına bir harici çalışanı içeri aldı",
+        "removed": "{{outsideOf}} adına bir harici çalışanı çıkardı",
+        "left": "Çalışma alanından ayrıldı, {{outsideOf}} adına harici çalışan"
       },
       "role": {
         "permission_set": "{{short}} iznine kimin sahip olduğunu değiştirdi",
@@ -18885,6 +18899,10 @@
     "seatsPaid_other": "{{count}} ücreti ödenmiş yer",
     "noLimit": "Sınırsız",
     "ownBucket": "Kendi depolama alanınızda, bizden bir sınır olmadan"
+  },
+  "referrals": {
+    "open": "Önerin ve kazanın",
+    "failed": "Şu anda açılamadı. Birazdan tekrar deneyin."
   },
   "limits": {
     "members": {

@@ -15,7 +15,7 @@ type Stage = "password" | "scan" | "codes";
 const secretOf = (uri: string) => (URL.canParse(uri) ? (new URL(uri).searchParams.get("secret") ?? "") : "");
 
 /**
- * "Verificação em duas etapas" (Configurações › Sua conta, ADR 0191): turning it on takes the password, then the
+ * "Verificação em duas etapas" (Configurações › Sua conta, ADR 0193): turning it on takes the password, then the
  * authenticator app scans the QR code (or takes the key) and its first code confirms it; the recovery codes show once.
  * Turned on, the same password gives new recovery codes or turns it off. Every change takes a sign-in in the last 10
  * minutes: an older session signs in again first, as adding a password does. An account with no password adds one

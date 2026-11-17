@@ -101,6 +101,10 @@ const Rank = z.number().int().nullable().openapi({
   description: "Their highest role's position (0 the top), null with none. They manage roles and people below it.",
 });
 const RoleIds = z.array(z.string()).openapi({ description: "Their roles (`org_roles` ids), not `everyone`." });
+export const OutsideOf = z.string().nullable().optional().openapi({
+  description:
+    "Who the person works for, when they come from outside the workspace (ADR 0191): shown beside their name, and they never count toward its limit of people. Null for everyone else.",
+});
 
 export const ProviderId = z.enum(PROVIDER_IDS).openapi("ProviderId");
 
@@ -256,6 +260,7 @@ export const Member = z
     role: Role,
     roleIds: RoleIds,
     joinedAt: z.string(),
+    outsideOf: OutsideOf,
     handle: z.string(),
     timezone: z.string(),
   })

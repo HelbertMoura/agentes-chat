@@ -16,7 +16,7 @@ export function createFakeAuth(
     claim?: AuthResult;
     verification?: AuthResult;
     updateName?: AuthResult;
-    /** The second step's answer (ADR 0191), and what turning it on or new recovery codes give. */
+    /** The second step's answer (ADR 0193), and what turning it on or new recovery codes give. */
     verifyTwoFactor?: AuthResult;
     twoFactorSetup?: TwoFactorSetup;
     onSignIn?: () => void;

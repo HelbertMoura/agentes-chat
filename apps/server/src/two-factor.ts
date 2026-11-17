@@ -10,7 +10,7 @@ import { twoFactor } from "better-auth/plugins/two-factor";
 import { FRESH_SIGN_IN_MS } from "./desktop-sign-in";
 
 /**
- * Two-step sign-in with an authenticator app (ADR 0191), on Better Auth's two-factor plugin: TOTP, and recovery codes
+ * Two-step sign-in with an authenticator app (ADR 0193), on Better Auth's two-factor plugin: TOTP, and recovery codes
  * for a lost phone. The plugin itself only stops the password sign-in; here every session for an account with the
  * second step on is refused where it is made (`twoFactorGate`, Better Auth's `session.create.before`), whatever made
  * it: a provider's return, the phone's Apple sign-in or browser sign-in, a one-time code, a confirmation link. The
@@ -242,7 +242,7 @@ async function tellChange(notices: TwoFactorNotices, userId: string, change: "on
 }
 
 /**
- * Turns the second step off for the account `email` (`main.ts two-factor-off`, ADR 0191 §4): for a person who lost both
+ * Turns the second step off for the account `email` (`main.ts two-factor-off`, ADR 0193 §4): for a person who lost both
  * their authenticator and their recovery codes, or a server whose `AGENTES_SECRET` changed, which leaves every stored
  * authenticator unreadable. Only whoever runs the server can; the account is told by email. False when no account
  * here has that address.

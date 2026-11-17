@@ -389,6 +389,8 @@ test("a provider refused this server's own OAuth app: what's wrong and who fixes
  * hit goes in `KNOWN` instead.
  */
 const PLAIN_LINE = new Set([
+  // Only the operator API ends an outside collaborator's access (ADR 0191): no person in the apps meets its refusal.
+  "outside_access.member",
   // Only an agent names a project by a name that isn't one, and the pickers offer only projects that exist.
   "issue_project.unknown",
   "issue_project.not_found",

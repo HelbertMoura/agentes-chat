@@ -185,6 +185,7 @@ const KNOWN = {
   "role.name_required": "errors.role.nameRequired",
   "role.name_long": "errors.role.nameLong",
   "role.too_many": "errors.role.tooMany",
+  "member.outside_owner": "errors.role.outsideOwner",
   "role.grant_forbidden": "errors.role.grantForbidden",
   "role.above_you": "errors.role.aboveYou",
   "role.base": "errors.role.base",
@@ -269,7 +270,7 @@ const KNOWN = {
   PASSWORD_TOO_SHORT: "auth.passwordHelp",
   PASSWORD_TOO_LONG: "auth.passwordTooLong",
   INVALID_PASSWORD: "errors.reauth.password",
-  // The second step of a sign-in (ADR 0191), Better Auth's two-factor plugin's codes.
+  // The second step of a sign-in (ADR 0193), Better Auth's two-factor plugin's codes.
   INVALID_CODE: "auth.twoFactor.wrongCode",
   INVALID_BACKUP_CODE: "auth.twoFactor.wrongRecovery",
   TOO_MANY_ATTEMPTS_REQUEST_NEW_CODE: "auth.twoFactor.expired",
@@ -596,7 +597,7 @@ const KNOWN = {
 export const ACCOUNT_BLOCKED = "ACCOUNT_BLOCKED";
 
 /**
- * A sign-in that waits for a code from the account's authenticator app (ADR 0191; mirrors apps/server two-factor.ts):
+ * A sign-in that waits for a code from the account's authenticator app (ADR 0193; mirrors apps/server two-factor.ts):
  * the answer of every way of signing in, and the code a provider's return brings back to the sign-in page.
  */
 export const TWO_FACTOR_REQUIRED = "TWO_FACTOR_REQUIRED";
