@@ -1,6 +1,6 @@
 import type { Href } from "expo-router";
 import { openOwnPage } from "@/features/ai/parts";
-import { appLinkFromUrl } from "@/features/links/app-links";
+import { appLinkFromUrl, appPathOf } from "@/features/links/app-links";
 import { workspaceOnScreen } from "@/features/links/on-screen";
 import { rememberLink } from "@/features/links/pending";
 import { appLockHolds, whenUnlocked } from "@/features/lock/store";
@@ -25,8 +25,11 @@ export function redirectSystemPath({ path, initial }: { path: string; initial: b
     if (path.includes("dataUrl=")) return holding ? stay : SHARE_ROUTE;
     const link = appLinkFromUrl(path, workspaceOnScreen());
     if (!link) {
-      if (!holding || path === "/") return path;
-      whenUnlocked(() => router.navigate(path as Href));
+      // The app's own path, never the URL: navigating to `agenteschat://…` would open the app with it again, and the
+      // lock covers the app as it does, so the link would wait and be opened again, round and round.
+      const own = appPathOf(path);
+      if (!holding || own === "/") return path;
+      whenUnlocked(() => router.navigate(own as Href));
       return stay;
     }
     if ("web" in link) {
