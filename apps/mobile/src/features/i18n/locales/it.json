@@ -1095,7 +1095,8 @@
       "newConversation": "Nuova chat",
       "newTask": "Chiedi un'attività",
       "newAgent": "Crea agente"
-    }
+    },
+    "usageKeywords": "quota quote limite limiti utilizzo consumo token costo spesa"
   },
   "channelRef": {
     "list": "Canali",
