@@ -5,7 +5,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, Platform, StyleSheet, View } from "react-native";
 import { earlyAccessRequests, socialRefusalText, socialReturnText } from "@/features/auth/human-check";
-import { TWO_FACTOR_STEP_PATH } from "@/features/auth/sign-in-flow";
+import { twoFactorStepHref } from "@/features/auth/sign-in-flow";
 import { authClient, signInWithBrowser, waitsForCode } from "@/lib/auth";
 import { readValueSync, writeValue } from "@/lib/storage";
 import { router } from "@/ui/navigation";
@@ -137,8 +137,7 @@ export function SocialButtons({
       });
       // The account's second step (ADR 0191): its code is asked on a screen of its own.
       if (res.twoFactor) {
-        rememberSignIn(provider);
-        router.push(TWO_FACTOR_STEP_PATH as never);
+        router.push(twoFactorStepHref(provider) as never);
         return;
       }
       const signedIn = !res.error && Boolean((await authClient().getSession()).data);
@@ -170,10 +169,8 @@ export function SocialButtons({
       if (!credential.identityToken) return onError(t("mobile.auth.social.failed"));
       const res = await authClient().signIn.social(requests.apple(credential.identityToken));
       if (res.error) onError(socialRefusalText(t, res.error, emails), jwtEmail(credential.identityToken));
-      else if (waitsForCode(res.data)) {
-        rememberSignIn("apple");
-        router.push(TWO_FACTOR_STEP_PATH as never);
-      } else {
+      else if (waitsForCode(res.data)) router.push(twoFactorStepHref("apple") as never);
+      else {
         rememberSignIn("apple");
         onSignedIn?.();
       }
