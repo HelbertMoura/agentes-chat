@@ -435,7 +435,7 @@ export function createAuth(deps: {
           );
           if (refused) throw new APIError("FORBIDDEN", refused);
         }
-        if (ctx.path.startsWith("/two-factor/")) return twoFactorBefore(ctx, rateLimiter);
+        if (ctx.path.startsWith("/two-factor/")) return twoFactorBefore(ctx, { db, rateLimiter });
         if (ctx.path !== "/sign-up/email") return;
         const { email, name, password } = (ctx.body ?? {}) as { email?: unknown; name?: unknown; password?: unknown };
         if (typeof name === "string" && typeof password === "string" && nameIsPassword(name, password)) {

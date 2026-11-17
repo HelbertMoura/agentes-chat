@@ -178,6 +178,18 @@ describe("signing in with it on", () => {
     expect(await emailOf(again)).toBeNull();
   });
 
+  test("a signed-in session with it on has no code to verify: no guessing there, no recovery code spent", async () => {
+    t = await createTestServer();
+    const b = browser(t);
+    const { uri, backupCodes } = await withTwoFactor(b, "ana@example.com");
+    expect((await verify(b, totp(uri))).status).toBe(400);
+    expect((await b("/api/auth/two-factor/verify-backup-code", { json: { code: backupCodes[0] } })).status).toBe(400);
+    const again = await passwordSignIn("ana@example.com");
+    expect((await again("/api/auth/two-factor/verify-backup-code", { json: { code: backupCodes[0] } })).status).toBe(
+      200,
+    );
+  });
+
   test("no trusted device, and no code spent without a session", async () => {
     t = await createTestServer();
     const { uri, backupCodes } = await withTwoFactor(browser(t), "ana@example.com");
@@ -303,7 +315,7 @@ describe("signing in with it on", () => {
     const b = browser(t);
     await signUp(b, "ana@example.com");
     await t.drain();
-    const mail = t.email.sent.findLast((m) => m.to.includes("ana@example.com"))?.text ?? "";
+    const mail = t.email.sent.filter((m) => m.to.includes("ana@example.com")).at(-1)?.text ?? "";
     const link = new URL(/https?:\/\/\S+\/api\/auth\/verify-email\S*/.exec(mail)?.[0] ?? "http://x/");
     const on = await b("/api/auth/two-factor/enable", { json: { password: PASSWORD } });
     const { totpURI } = (await on.json()) as { totpURI: string };

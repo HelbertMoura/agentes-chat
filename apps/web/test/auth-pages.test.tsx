@@ -194,6 +194,19 @@ describe("Entrar (e-mail primeiro)", () => {
     expect(router.state.location.pathname).toBe(`/org/${ORG_ID}/drive`);
   });
 
+  test("adding an account with a provider: a refusal or its code comes back to the same Add account", async () => {
+    const { auth, calls } = createFakeAuth();
+    const { api } = authApi(ACCOUNT, { state: seedState() });
+    await renderApp("/login?add=1", { api, auth });
+    await press(/Continuar com GitHub/);
+    expect(calls.find((c) => c.method === "signInSocial")?.args).toEqual([
+      "github",
+      "/",
+      undefined,
+      "/login?redirect=%2F&add=1",
+    ]);
+  });
+
   test("back from a provider with the account's code to go: the code step, not a refusal", async () => {
     const { auth } = createFakeAuth();
     const { api } = authApi(ACCOUNT);

@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { RateLimiter } from "@agenteschat/adapters";
 import { and, type Database, eq, ne, schema } from "@agenteschat/db";
-import { emailLocale, queueEmail } from "@agenteschat/engine";
+import { emailLocale, queueEmail, revokeUserApps } from "@agenteschat/engine";
 import type { GenericEndpointContext, HookEndpointContext } from "better-auth";
 import { APIError, isAPIError } from "better-auth/api";
 import { parseCookies } from "better-auth/cookies";
@@ -77,11 +77,7 @@ export async function twoFactorGate(
     return { data: { createdAt: current.session.createdAt } };
   }
   if (copied.getStore()) return;
-  const [user] = await db
-    .select({ on: schema.users.twoFactorEnabled })
-    .from(schema.users)
-    .where(eq(schema.users.id, session.userId));
-  if (!user?.on) return;
+  if (!(await twoFactorOn(db, session.userId))) return;
   if (ctx && !current && VERIFY_PATHS.has(ctx.path)) return;
   if (!ctx) throw new APIError("FORBIDDEN", { code: TWO_FACTOR_REQUIRED, message: CODE_NEEDED });
   // The plugin's own challenge, as its sign-in hook writes it, for its verify endpoints to read.
@@ -96,6 +92,15 @@ export async function twoFactorGate(
 }
 
 const CODE_NEEDED = "Type the code from your authenticator app.";
+
+/** Whether the account's sign-in takes the second step now. */
+async function twoFactorOn(db: Database, userId: string) {
+  const [user] = await db
+    .select({ on: schema.users.twoFactorEnabled })
+    .from(schema.users)
+    .where(eq(schema.users.id, userId));
+  return user?.on === true;
+}
 
 /** The account whose challenge this request carries, or null. */
 async function challengeUserOf(ctx: GenericEndpointContext) {
@@ -118,21 +123,28 @@ async function sessionOfCookie(ctx: GenericEndpointContext) {
 
 /**
  * `hooks.before` for the plugin's paths. Verifying: no trusted device (it would skip the code on later sign-ins) and no
- * code spent without a session; and the challenge of an account signing in beside another (ADR 0183) is checked as a
- * challenge, not against the session already in the browser, which the plugin would otherwise prefer. Turning it on or
+ * code spent without a session; the challenge of an account signing in beside another (ADR 0183) is checked as a
+ * challenge, not against the session already in the browser, which the plugin would otherwise prefer; and a session
+ * with no challenge verifies only the code that turns it on (the plugin's session branch has no limit on tries). Turning it on or
  * off and new recovery codes take a sign-in in the last 10 minutes (a session that passed the second step just now)
  * and the password, counted per account first, so a stolen session guesses no password here. Returns the request's
  * headers to use instead, when they change.
  */
-export async function twoFactorBefore(ctx: GenericEndpointContext, rateLimiter: RateLimiter) {
+export async function twoFactorBefore(ctx: GenericEndpointContext, deps: { db: Database; rateLimiter: RateLimiter }) {
   if (VERIFY_PATHS.has(ctx.path)) {
     const body = (ctx.body ?? {}) as { trustDevice?: unknown; disableSession?: unknown };
     if (body.trustDevice !== undefined || body.disableSession !== undefined) {
       throw new APIError("BAD_REQUEST", { message: "Not available on this server" });
     }
     const challenger = await challengeUserOf(ctx);
-    const holder = challenger ? await sessionOfCookie(ctx) : null;
-    if (!challenger || !holder || holder.userId === challenger) return;
+    const holder = await sessionOfCookie(ctx);
+    if (!challenger) {
+      if (holder && (await twoFactorOn(deps.db, holder.userId))) {
+        throw new APIError("BAD_REQUEST", { message: "Nothing to verify" });
+      }
+      return;
+    }
+    if (!holder || holder.userId === challenger) return;
     const sessionCookie = ctx.context.authCookies.sessionToken.name;
     const kept = [...parseCookies(ctx.headers?.get("cookie") ?? "")].filter(([name]) => name !== sessionCookie);
     const headers = new Headers(ctx.headers);
@@ -145,7 +157,7 @@ export async function twoFactorBefore(ctx: GenericEndpointContext, rateLimiter: 
     if (Date.now() - held.createdAt.getTime() >= FRESH_SIGN_IN_MS) {
       throw new APIError("FORBIDDEN", { code: REAUTH_SIGN_IN, message: "Sign in again to change this" });
     }
-    if (!(await rateLimiter.consume(`two-factor-proof:${held.userId}`, PROOF_TRIES)).allowed) {
+    if (!(await deps.rateLimiter.consume(`two-factor-proof:${held.userId}`, PROOF_TRIES)).allowed) {
       throw new APIError("TOO_MANY_REQUESTS", { message: "Too many tries. Try again in a few minutes." });
     }
   }
@@ -164,7 +176,8 @@ export interface TwoFactorNotices {
  * `twoFactorRedirect` and the challenge's cookie (the phone app keeps cookies only from a 2xx); a link opened in the
  * browser (a confirmation link) lands on the sign-in page instead. A provider's return already went there: its callback
  * sends the refusal's code to the page it was given. A change that went through is told by email; turning it on also
- * signs the account out of every other device, whose sessions never gave the code.
+ * signs the account out of every other device, whose sessions never gave the code, and cuts off every AI app and
+ * personal token the password alone let in, as a new password does (ADR 0119).
  */
 export async function twoFactorAfter(ctx: HookEndpointContext, signInPage: string, notices: TwoFactorNotices) {
   const returned = ctx.context.returned;
@@ -185,6 +198,7 @@ export async function twoFactorAfter(ctx: HookEndpointContext, signInPage: strin
     await notices.db
       .delete(schema.sessions)
       .where(and(eq(schema.sessions.userId, userId), ne(schema.sessions.token, keep)));
+    await revokeUserApps(notices.db, userId, "two_factor_on");
   }
   await tellChange(notices, userId, change.change);
 }
@@ -228,20 +242,22 @@ async function tellChange(notices: TwoFactorNotices, userId: string, change: "on
 }
 
 /**
- * Turns the second step off for the account `email` (`main.ts two-factor-off`, ADR 0191 §6): for a person who lost both
+ * Turns the second step off for the account `email` (`main.ts two-factor-off`, ADR 0191 §4): for a person who lost both
  * their authenticator and their recovery codes, or a server whose `AGENTES_SECRET` changed, which leaves every stored
  * authenticator unreadable. Only whoever runs the server can; the account is told by email. False when no account
  * here has that address.
  */
 export async function turnOffTwoFactor(notices: TwoFactorNotices, email: string) {
-  const { db } = notices;
-  const [user] = await db
-    .update(schema.users)
-    .set({ twoFactorEnabled: false })
-    .where(eq(schema.users.email, email.trim().toLowerCase()))
-    .returning({ id: schema.users.id });
-  if (!user) return false;
-  await db.delete(schema.twoFactors).where(eq(schema.twoFactors.userId, user.id));
-  await tellChange(notices, user.id, "off");
+  const userId = await notices.db.transaction(async (tx) => {
+    const [user] = await tx
+      .update(schema.users)
+      .set({ twoFactorEnabled: false })
+      .where(eq(schema.users.email, email.trim().toLowerCase()))
+      .returning({ id: schema.users.id });
+    if (user) await tx.delete(schema.twoFactors).where(eq(schema.twoFactors.userId, user.id));
+    return user?.id ?? null;
+  });
+  if (!userId) return false;
+  await tellChange(notices, userId, "off");
   return true;
 }

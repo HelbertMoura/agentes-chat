@@ -58,7 +58,8 @@ answer it refuses outright. A way of signing in added later is held by default.
   back to them.
 
 The code step takes the six digits the app shows, or a recovery code. A trusted device (skip the code next time) is
-refused, and so is spending a recovery code without signing in.
+refused, and so is spending a recovery code without signing in. A session with no challenge verifies only the code that
+turns the second step on: the plugin counts no tries there.
 
 ### 3. Turning it on and off
 
@@ -67,7 +68,8 @@ password and a sign-in in the last 10 minutes, as adding a password does (ADR 00
 account, 5 tries in 15 minutes, before it is checked, so a stolen session guesses no password there. An account with no
 password adds one first. Turning it on shows a QR code (and its key, to type by hand), and the app's first code
 confirms it; the 10 recovery codes show once. Confirming it signs the account out of every other device, whose
-sessions never gave the code. Each change is told to the account's address on a server that sends email, with where to
+sessions never gave the code, and cuts off every AI app and personal token the password alone let in, as a new password
+does (ADR 0119). Each change is told to the account's address on a server that sends email, with where to
 write if it wasn't them.
 
 Secrets and recovery codes are stored encrypted with the sessions' key (derived from `AGENTES_SECRET`) and never
@@ -92,3 +94,5 @@ the lockout's count and time; one per account, deleted with it). It belongs to a
 - Someone with the password and no second step yet could turn it on and keep the owner out: the email says so, and
   the command above undoes it.
 - TOTP codes are accepted again within their 30-second window (the plugin keeps no list of used ones).
+- A sign-in that read the switch as off a moment before the code turned it on can still finish: the window is the
+  time between the two writes, and only someone with the credentials can be in it.

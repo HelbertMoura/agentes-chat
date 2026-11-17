@@ -4,7 +4,7 @@ import { Alert, Button, Dialog, DialogBody, DialogFooter, Field, Input, Locked, 
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { AuthResult } from "@/auth/client";
+import type { AuthResult, TwoFactorSetup } from "@/auth/client";
 import { useAuth } from "@/auth/context";
 import { useSignInAgain } from "@/hooks/useSignInAgain";
 import { useToast } from "@/lib/toast";
@@ -61,13 +61,16 @@ export function TwoFactorDialog({
     setError(stale ? t("shell.twoFactor.reauth") : authErrorText(t, result));
   };
   /** Runs one change: pending while it goes, its refusal said under the form. */
-  const run = async <R extends { ok: boolean }>(call: () => Promise<R>, then: (r: R) => void) => {
+  const run = async (
+    call: () => Promise<AuthResult | TwoFactorSetup>,
+    then: (r: AuthResult | TwoFactorSetup) => void,
+  ) => {
     setPending(true);
     setError(null);
     const result = await call();
     setPending(false);
     if (result.ok) then(result);
-    else refused(result as unknown as Extract<AuthResult, { ok: false }>);
+    else refused(result);
   };
   const changed = () => void qc.invalidateQueries({ queryKey: keys.me });
 
@@ -75,7 +78,7 @@ export function TwoFactorDialog({
     run(
       () => auth.enableTwoFactor(password),
       (r) => {
-        if (!r.ok) return;
+        if (!r.ok || !("totpURI" in r)) return;
         setSetup({ totpURI: r.totpURI, backupCodes: r.backupCodes });
         setStage("scan");
       },
@@ -93,7 +96,7 @@ export function TwoFactorDialog({
     run(
       () => auth.newRecoveryCodes(password),
       (r) => {
-        if (!r.ok) return;
+        if (!r.ok || !("backupCodes" in r)) return;
         setSetup({ totpURI: "", backupCodes: r.backupCodes });
         setStage("codes");
       },
@@ -147,15 +150,22 @@ export function TwoFactorDialog({
               (noPassword ? (
                 <Alert>{t("shell.twoFactor.needsPassword")}</Alert>
               ) : (
-                <Field label={t("shell.twoFactor.password")} id="two-factor-password">
-                  <Input
-                    type="password"
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    autoFocus
-                  />
-                </Field>
+                <>
+                  <Field label={t("shell.twoFactor.password")} id="two-factor-password">
+                    <Input
+                      type="password"
+                      autoComplete="current-password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoFocus
+                    />
+                  </Field>
+                  {on && (
+                    <p className="small muted">
+                      {t("shell.twoFactor.newCodesLead")} {t("shell.twoFactor.offLead")}
+                    </p>
+                  )}
+                </>
               ))}
             {stage === "scan" && setup && (
               <div className="phone-code">

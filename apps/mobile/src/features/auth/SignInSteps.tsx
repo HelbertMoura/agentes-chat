@@ -124,6 +124,8 @@ export function PasswordStep() {
       );
       // The account's second step (ADR 0191): its code, on a screen of its own.
       if (!refused && code) {
+        rememberSignIn("email");
+        void writeValue(LAST_EMAIL, email);
         router.push(TWO_FACTOR_STEP_PATH as never);
         return;
       }
