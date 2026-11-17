@@ -41,7 +41,9 @@ import {
   planProgress,
   planRows,
   recommendedOption,
+  settledTicks,
   takenDecisions,
+  tickOf,
   trackCells,
   waitingCards,
   waitingCount,
@@ -357,6 +359,19 @@ describe("missions", () => {
       { id: "f1", title: "", deleted: false },
       { id: "f2", title: "", deleted: false },
     ]);
+  });
+
+  test("a checklist tap shows at once and stays until the delivery carries it; then the server's again", () => {
+    const list = [
+      { id: "1", checkedBy: ["ana"] },
+      { id: "2", checkedBy: ["me"] },
+    ];
+    expect(tickOf(true, ["ana"], "me")).toBe(true);
+    expect(tickOf(undefined, ["me"], "me")).toBe(true);
+    // Item 1 tapped on, not back yet: kept. Item 2 tapped on, the server has it: dropped. A gone item: dropped.
+    expect(settledTicks({ "1": true, "2": true, "9": false }, list, "me")).toEqual({ "1": true });
+    const same = { "1": true };
+    expect(settledTicks(same, list, "me")).toBe(same);
   });
 
   test("refused commands: what they read as, grouped by their first word in first order; rules as people read them", () => {

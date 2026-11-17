@@ -57,6 +57,7 @@ import { CommandCardView } from "./commands";
 import { DeliveryCardView } from "./delivery";
 import {
   hoursSince,
+  isOpenMission,
   liveSessions,
   missionComputerText,
   missionTrack,
@@ -297,7 +298,7 @@ function Mission({ id }: { id: string }) {
                     </Animated.View>
                   ))}
                   {/* Every decision it went on with, approved at once (the web's header button). */}
-                  {live && provisional > 0 ? (
+                  {isOpenMission(m) && provisional > 0 ? (
                     <Button
                       variant="secondary"
                       wide

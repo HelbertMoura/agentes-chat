@@ -9,13 +9,16 @@ import {
   useMissionJoinRequests,
   useMissionParticipants,
 } from "@agenteschat/client";
+import { computerNameOf } from "@agenteschat/client/lib/computer";
 import { errorText } from "@agenteschat/client/lib/errors";
 import { agentGrammar } from "@agenteschat/client/lib/grammar";
 import { executorName } from "@agenteschat/client/lib/missions";
+import { isPersonal } from "@agenteschat/client/lib/workspace-mode";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, View } from "react-native";
+import { useOrg } from "@/providers/org";
 import { Button, GroupedHeader, Locked, Text, Toggle, useToast } from "@/ui";
 import { Face } from "../shared/Face";
 import { useDirectory, useMeId, useOrgId } from "../shared/hooks";
@@ -229,6 +232,7 @@ function HandOver({ mission: m, userId, name }: { mission: Mission; userId: stri
   const qc = useQueryClient();
   const toast = useToast();
   const sheet = useSheet();
+  const org = useOrg().org;
   const [lend, setLend] = useState(true);
   const [busy, setBusy] = useState(false);
   const executor = executorName(m.executor, dir.agentById.get(m.agentId)?.name ?? "");
@@ -261,7 +265,13 @@ function HandOver({ mission: m, userId, name }: { mission: Mission; userId: stri
       />
       {m.machine ? (
         <View>
-          <Toggle value={lend} onChange={setLend} label={t("missions.share.lend", { computer: m.machine.name })} />
+          <Toggle
+            value={lend}
+            onChange={setLend}
+            label={t("missions.share.lend", {
+              computer: computerNameOf(t, org?.name ?? "", m.machine.name, isPersonal(org)),
+            })}
+          />
           <Text variant="caption" tone="faint" style={styles.under}>
             {t("missions.share.lendText", { name })}
           </Text>
