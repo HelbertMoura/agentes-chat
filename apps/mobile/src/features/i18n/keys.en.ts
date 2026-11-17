@@ -1330,6 +1330,13 @@ export const featureKeysEn = {
     /** The system's prompt on the lock screen. */
     prompt: "Unlock agentes.chat",
     unlock: "Unlock",
+    /** Under the lock, while on: how long away before it asks again. */
+    after: "When away, lock",
+    afterNow: "Immediately",
+    after1m: "After 1 minute",
+    after5m: "After 5 minutes",
+    after30m: "After 30 minutes",
+    after1h: "After 1 hour",
   },
   delete: {
     intro: "There's no undo.",
