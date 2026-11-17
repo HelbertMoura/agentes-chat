@@ -39,9 +39,20 @@ export const OPEN = "open";
 /** Locked, or out of sight: what a tap or a link would open waits. */
 const holds = () => state.locked || state.covered;
 
+/** What runs as the lock engages (not as it only covers): the app's sheets close under it. */
+const onLock = new Set<() => void>();
+
+/** Hears the lock engage; the returned function stops hearing it. */
+export function onAppLocked(cb: () => void): () => void {
+  onLock.add(cb);
+  return () => void onLock.delete(cb);
+}
+
 function set(next: Partial<LockState>) {
+  const was = state.locked;
   state = { ...state, ...next };
   for (const cb of listeners) cb();
+  if (state.locked && !was) for (const cb of [...onLock]) cb();
   if (holds()) return;
   const ready = [...waiting.values()];
   waiting.clear();

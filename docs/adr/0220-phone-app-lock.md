@@ -47,6 +47,8 @@ and the proof has to come from the device.
    Out of sight (the app switcher, the background) the same screen covers the app without asking anything, so the
    system's picture of the app shows no conversation; back within the grace it goes away by itself. A phone's screen
    in control (`PhoneLive`) is a window of the system's own, above that layer on Android: locking closes it.
+   As the lock engages (not as it only covers), every open sheet closes (`TrueSheet.dismissAll`, which each sheet
+   hears as a swipe down: a route sheet goes back to its base route), so no screen reader reaches one under the lock.
 6. **What the app would open waits.** While locked, and also while out of sight with the lock on (a notification's
    answer reaches the app before it is in front again, so it can't wait for the lock to engage), what a tapped
    notification opens (its screen, or its action button's work: let someone join, allow once, stop), a link the
@@ -61,8 +63,11 @@ and the proof has to come from the device.
   `USE_BIOMETRIC` from the module's plugin. Both need a new native build.
 - On Android a permission prompt, the camera or a file picker takes the app out of the front: the cover shows for a
   moment, and a minute or more there asks for the proof on coming back.
-- The grace is measured with the wall clock (`Date.now()`): changing the phone's clock while away only makes it
-  lock sooner (back, or a minute or more forward). A monotonic clock would need a native module of its own.
+- Known limitation: the grace is measured with the wall clock (`Date.now()`). Someone who can already unlock the
+  phone itself could set its clock to less than a minute after the app left, after a long absence, and come back
+  without the app asking. A monotonic clock would need a native module of its own.
 - Open: Android takes the recents picture as the app pauses, and React may not have drawn the cover by then; the
   sure way is `FLAG_SECURE`, which also blocks screenshots, so it is left out. The lock screen asks only when
-  Desbloquear is pressed; asking on its own as it appears is a possible refinement.
+  Desbloquear is pressed; asking on its own as it appears is a possible refinement. A link the app opened with while
+  locked on a cold start is held and released once the lock opens, which may be before the session and the
+  workspace have loaded: not yet tried on a device.
