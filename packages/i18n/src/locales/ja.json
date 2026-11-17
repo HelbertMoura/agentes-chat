@@ -10779,6 +10779,17 @@
     "saved": "ロゴを更新しました。",
     "removed": "ロゴを削除しました。"
   },
+  "orgAccent": {
+    "label": "アクセントカラー",
+    "change": "色を変更",
+    "useDefault": "デフォルトに戻す",
+    "suggested": "おすすめの色",
+    "sampleMention": "@エージェント",
+    "sampleLink": "リンク",
+    "save": "色を保存",
+    "saved": "アクセントカラーを更新しました。",
+    "reset": "デフォルトの色に戻しました。"
+  },
   "look": {
     "previous": "前へ",
     "next": "次へ",
@@ -15985,6 +15996,7 @@
     "removed": "削除済み",
     "change": {
       "mergedWithoutAsking": "{{repo}}で確認なしでマージしました",
+      "accentChanged": "ワークスペースのアクセントカラーを変更",
       "pattern": "{{verb}}: {{area}}",
       "approval": {
         "approved": "リクエストを承認",

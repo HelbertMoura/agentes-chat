@@ -1259,7 +1259,7 @@ export const featureKeysEn = {
       none: "No time zone by that name",
     },
   },
-  /** The app lock, for this phone only (ADR 0194). */
+  /** The app lock, for this phone only (ADR 0195). */
   lock: {
     setting: "Lock with biometrics",
     /** Under the setting, turned off, on a phone with no fingerprint, face or screen lock set up. */

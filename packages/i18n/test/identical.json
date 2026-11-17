@@ -999,7 +999,8 @@
       "storage.connect.awsRegion.eu-north-1",
       "onboarding.import.choose.routine",
       "onboarding.import.choose.step.image",
-      "settings.account.chat.wallpaper.name.crowd"
+      "settings.account.chat.wallpaper.name.crowd",
+      "orgAccent.sampleMention"
     ],
     "de": [
       "devices.iphone.steps.account",
@@ -1464,7 +1465,8 @@
       "onboarding.import.choose.routine",
       "onboarding.import.choose.skill",
       "onboarding.import.choose.step.video",
-      "settings.account.chat.wallpaper.neutral.sand"
+      "settings.account.chat.wallpaper.neutral.sand",
+      "orgAccent.sampleMention"
     ],
     "it": [
       "shell.email.label",
@@ -2458,7 +2460,8 @@
       "onboarding.import.choose.routine",
       "onboarding.import.choose.skill",
       "onboarding.import.choose.step.video",
-      "settings.account.chat.wallpaper.name.crowd"
+      "settings.account.chat.wallpaper.name.crowd",
+      "orgAccent.sampleMention"
     ],
     "ja": [
       "channel.tooLong.fileName",
@@ -3764,7 +3767,8 @@
       "storage.connect.provider.r2",
       "storage.connect.provider.s3",
       "storage.connect.provider.b2",
-      "storage.connect.region"
+      "storage.connect.region",
+      "orgAccent.sampleMention"
     ],
     "ru": [
       "channel.tooLong.fileName",

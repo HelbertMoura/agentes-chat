@@ -49,7 +49,7 @@ export function ShareInbox() {
     if (!shared) return;
     settled.current = link.current;
     receiveShare(shared);
-    // Behind the app lock (ADR 0194), "Compartilhar com…" opens once the lock opens, never under it.
+    // Behind the app lock (ADR 0195), "Compartilhar com…" opens once the lock opens, never under it.
     whenUnlocked(() => {
       if (where.current !== SHARE_ROUTE) router.push(SHARE_ROUTE);
     });

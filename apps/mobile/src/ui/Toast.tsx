@@ -97,7 +97,7 @@ export function ToastHost({ children }: { children?: ReactNode }) {
   return (
     <ToastContext.Provider value={toast}>
       {children}
-      {/* Never over the app lock (ADR 0194): a toast waits until it opens. */}
+      {/* Never over the app lock (ADR 0195): a toast waits until it opens. */}
       {toasts.shown && !lock.locked && !lock.covered ? (
         <ToastLayer>
           <ToastView key={toasts.shown.key} item={toasts.shown} replaced={toasts.next !== null} onGone={gone} />

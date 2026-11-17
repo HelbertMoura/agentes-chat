@@ -314,6 +314,8 @@ export interface OrgSummary {
   rank?: number | null;
   /** The workspace logo (`/api/app/org-logos/…`); null or absent = the agent mark. */
   logo?: string | null;
+  /** The workspace's accent "#rrggbb" (ADR 0193): the apps paint the agent colors from it. Null or absent: the default. */
+  accent?: string | null;
   /** From `GET /me`: when it was made. Absent from older servers. */
   createdAt?: string;
   /** From `GET /me`; absent from older servers (active). Changes come as `org.standing` events. */

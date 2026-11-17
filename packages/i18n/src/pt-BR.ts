@@ -11609,6 +11609,17 @@ export const ptBR = {
     saved: "Logo atualizado.",
     removed: "Logo removido.",
   },
+  orgAccent: {
+    label: "Cor de destaque",
+    change: "Trocar cor",
+    useDefault: "Usar a padrão",
+    suggested: "Cores sugeridas",
+    sampleMention: "@Agente",
+    sampleLink: "Um link",
+    save: "Salvar cor",
+    saved: "Cor de destaque atualizada.",
+    reset: "De volta à cor padrão.",
+  },
   look: {
     previous: "Anteriores",
     next: "Próximos",
@@ -16806,6 +16817,7 @@ export const ptBR = {
     removed: "Removido",
     change: {
       mergedWithoutAsking: "Fez o merge em {{repo}} sem perguntar",
+      accentChanged: "Mudou a cor de destaque do workspace",
       pattern: "{{verb}} {{area}}",
       approval: {
         approved: "Aprovou um pedido",

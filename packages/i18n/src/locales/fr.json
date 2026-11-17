@@ -11655,6 +11655,17 @@
     "saved": "Logo mis à jour.",
     "removed": "Logo retiré."
   },
+  "orgAccent": {
+    "label": "Couleur d’accent",
+    "change": "Changer la couleur",
+    "useDefault": "Utiliser la couleur par défaut",
+    "suggested": "Couleurs suggérées",
+    "sampleMention": "@Agent",
+    "sampleLink": "Un lien",
+    "save": "Enregistrer la couleur",
+    "saved": "Couleur d’accent mise à jour.",
+    "reset": "Retour à la couleur par défaut."
+  },
   "look": {
     "previous": "Précédent",
     "next": "Suivant",
@@ -17105,6 +17116,7 @@
     "removed": "Retiré",
     "change": {
       "mergedWithoutAsking": "A mergé dans {{repo}} sans demander",
+      "accentChanged": "A changé la couleur d’accent de l’espace de travail",
       "pattern": "{{verb}} {{area}}",
       "approval": {
         "approved": "A approuvé une demande",

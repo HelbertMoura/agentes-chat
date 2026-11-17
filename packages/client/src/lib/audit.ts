@@ -74,6 +74,7 @@ export function auditPhrase(t: TFunction, row: AuditRow, locale?: string): strin
         : guessed;
     return stepLabel(t, { ...activity, tool: row.target.id ?? "" }, locale);
   }
+  if (row.action === "organization.accent_changed") return t("audit.change.accentChanged");
   if (row.action === "agent.merged_without_asking") {
     return t("audit.change.mergedWithoutAsking", { repo: row.target.id ?? "" });
   }

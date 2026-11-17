@@ -10845,6 +10845,17 @@
     "saved": "徽标已更新。",
     "removed": "徽标已移除。"
   },
+  "orgAccent": {
+    "label": "强调色",
+    "change": "更改颜色",
+    "useDefault": "使用默认颜色",
+    "suggested": "推荐颜色",
+    "sampleMention": "@智能体",
+    "sampleLink": "一个链接",
+    "save": "保存颜色",
+    "saved": "强调色已更新。",
+    "reset": "已恢复默认颜色。"
+  },
   "look": {
     "previous": "上一个",
     "next": "下一个",
@@ -16048,6 +16059,7 @@
     "removed": "已移除",
     "change": {
       "mergedWithoutAsking": "未经询问在 {{repo}} 中合并",
+      "accentChanged": "更改了工作区的强调色",
       "pattern": "{{verb}}{{area}}",
       "approval": {
         "approved": "批准了一个请求",
