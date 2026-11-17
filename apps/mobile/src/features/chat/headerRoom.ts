@@ -2,8 +2,11 @@
 const BAR_CHROME = 152;
 /** A bar button's width. */
 const BUTTON = 44;
-/** The narrowest the pill's room goes: the name still reads beside the buttons. */
-export const MIN_ROOM = 160;
+/**
+ * The narrowest the pill's room goes. 120 is the pill's own least width (its face and a name cut with "…"): a
+ * channel on a 411 phone with search and a queue button still has room for the switch button then.
+ */
+export const MIN_ROOM = 120;
 
 /** The width the pill's slot has in the bar: the screen less the bar's chrome and `extraActions` bar buttons. */
 export function pillRoom(screen: number, extraActions: number): number {

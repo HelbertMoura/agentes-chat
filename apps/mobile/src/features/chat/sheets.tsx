@@ -375,6 +375,7 @@ export function ThreadOptions({
   mission,
   onMission,
   onPins,
+  onSwitch,
 }: {
   thread: ThreadInfo;
   mission: Mission | null;
@@ -382,6 +383,8 @@ export function ThreadOptions({
   onMission?: () => void;
   /** "Fixadas" of the conversation. */
   onPins?: () => void;
+  /** "Trocar de conversa": the switcher, reachable here whatever room the bar has for its own button. */
+  onSwitch?: () => void;
 }) {
   const { t } = useTranslation();
   const orgId = useOrgId();
@@ -451,6 +454,9 @@ export function ThreadOptions({
       />
       <ActionList
         items={[
+          ...(onSwitch
+            ? [{ key: "switch", icon: "swap" as const, label: t("mobile.chat.switchTitle"), onPress: onSwitch }]
+            : []),
           {
             key: "follow",
             icon: "bell" as const,
@@ -604,6 +610,7 @@ export function ChannelOptions({
   onPins,
   onMembers,
   onSearch,
+  onSwitch,
 }: {
   channelId: string;
   title: string;
@@ -618,6 +625,8 @@ export function ChannelOptions({
   onMembers?: (() => void) | undefined;
   /** A DM: searching it (its header keeps the room for the name and the agent's own buttons). */
   onSearch?: (() => void) | undefined;
+  /** "Trocar de conversa": the switcher, reachable here whatever room the bar has for its own button. */
+  onSwitch?: (() => void) | undefined;
 }) {
   const { t } = useTranslation();
   const orgId = useOrgId();
@@ -645,6 +654,9 @@ export function ChannelOptions({
       {about}
       <ActionList
         items={[
+          ...(onSwitch
+            ? [{ key: "switch", icon: "swap" as const, label: t("mobile.chat.switchTitle"), onPress: onSwitch }]
+            : []),
           ...(onSearch
             ? [{ key: "search", icon: "search" as const, label: t("searchPage.searchHere"), onPress: onSearch }]
             : []),
