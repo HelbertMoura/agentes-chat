@@ -1138,6 +1138,7 @@
     "type": {
       "image": "Gambar",
       "video": "Video",
+      "audio": "Audio",
       "pdf": "PDF",
       "document": "Dokumen",
       "table": "Tabel",

@@ -1375,6 +1375,7 @@
     "type": {
       "image": "Obraz",
       "video": "Wideo",
+      "audio": "Dźwięk",
       "pdf": "PDF",
       "document": "Dokument",
       "table": "Tabela",

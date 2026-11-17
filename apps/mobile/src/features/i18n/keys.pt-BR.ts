@@ -1270,6 +1270,7 @@ export const featureKeysPtBR = {
     type: {
       image: "Imagem",
       video: "Vídeo",
+      audio: "Áudio",
       pdf: "PDF",
       document: "Documento",
       table: "Tabela",

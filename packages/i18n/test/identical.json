@@ -4014,7 +4014,8 @@
       "vault.field.keyNamePlaceholder",
       "vault.field.websitePlaceholder",
       "vault.scope.personal",
-      "vault.tab.personal"
+      "vault.tab.personal",
+      "files.type.audio"
     ],
     "fr": [
       "devices.os.android",
@@ -4089,7 +4090,8 @@
       "roles.reach.permissions",
       "roles.reach.agents",
       "roles.tabs.permissions",
-      "roles.tabs.agents"
+      "roles.tabs.agents",
+      "files.type.audio"
     ],
     "de": [
       "devices.status.offline",
@@ -4166,7 +4168,8 @@
       "invite.ask.step.code",
       "settings.group.org",
       "threads.title",
-      "roles.icons.person"
+      "roles.icons.person",
+      "files.type.audio"
     ],
     "it": [
       "devices.status.offline",
@@ -4220,7 +4223,8 @@
       "agents.teamSection",
       "find.filterWord.in",
       "connectors.accountTitle",
-      "roles.icons.mail"
+      "roles.icons.mail",
+      "files.type.audio"
     ],
     "nl": [
       "devices.status.offline",
@@ -4303,7 +4307,8 @@
       "threads.title",
       "connectors.accountTitle",
       "roles.reach.agents",
-      "roles.tabs.agents"
+      "roles.tabs.agents",
+      "files.type.audio"
     ],
     "ja": [
       "devices.os.android",
@@ -4376,7 +4381,8 @@
       "vault.kind.login",
       "files.type.video",
       "me.status",
-      "roles.icons.mail"
+      "roles.icons.mail",
+      "files.type.audio"
     ],
     "tr": [
       "devices.os.android",

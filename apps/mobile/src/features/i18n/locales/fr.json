@@ -1293,6 +1293,7 @@
     "type": {
       "image": "Image",
       "video": "Vidéo",
+      "audio": "Audio",
       "pdf": "PDF",
       "document": "Document",
       "table": "Tableau",
