@@ -16,6 +16,7 @@ import { eq, schema } from "@agenteschat/db";
 import { LOCALE_CODES } from "@agenteschat/i18n/locale";
 import { unplainLeaves } from "../../i18n/test/plain-marks";
 import {
+  APPROVAL_PUSH_CATEGORY,
   addChannelMember,
   approvalIsHighRisk,
   createJobHandlers,
@@ -34,6 +35,7 @@ import {
   openDm,
   PUSH_ACTIVE_DELAY_MS,
   postPersonMessage,
+  pushCategory,
   pushLocale,
   pushQuote,
   pushStrings,
@@ -224,6 +226,13 @@ describe("push text", () => {
     expect(approvalIsHighRisk({ tool: "deploy", scope: "railway:deploy" })).toBe(true);
     expect(approvalIsHighRisk({ tool: "send_email", scope: "gmail:send" })).toBe(true);
     expect(approvalIsHighRisk({ tool: "post_message", scope: "chat:send" })).toBe(false);
+  });
+
+  test("buttons on the lock screen: a device's notice by its kind, an approval only when it isn't high risk", () => {
+    expect(pushCategory("device.join_request", false)).toBe("device.join_request");
+    expect(pushCategory("approval", false)).toBe(APPROVAL_PUSH_CATEGORY);
+    expect(pushCategory("approval", true)).toBeUndefined();
+    expect(pushCategory("mention", false)).toBeUndefined();
   });
 });
 
@@ -526,6 +535,9 @@ describe("push delivery", () => {
       to: TOKEN_BIA,
       title: "Dev precisa da sua aprovação",
       body: "Rotina «Revisar PRs»: Toque para ver o pedido.",
+      // A merge isn't high risk: Aprovar and Recusar on the notification.
+      category: APPROVAL_PUSH_CATEGORY,
+      data: expect.objectContaining({ approvalId: approval.id, orgId: f.org.id }),
     });
   });
 
