@@ -37,6 +37,7 @@ import { useMovesChannel } from "../categories/CategoryScreens";
 import { categoryHrefs } from "../categories/logic";
 import { setPinDraft } from "../dashboards/logic";
 import { chatHref } from "../links/logic";
+import { MissionPeople } from "../missions/people";
 import { AgentFace, Face } from "../shared/Face";
 import { LoadFailed } from "../shared/FirstUse";
 import { useDirectory, useMeId, useOrgId } from "../shared/hooks";
@@ -467,6 +468,12 @@ export function ThreadOptions({
                     sheet.close();
                     router.push(`/mission/${mission.id}`);
                   },
+                },
+                {
+                  key: "share",
+                  icon: "members" as const,
+                  label: t("missions.share.title"),
+                  onPress: () => sheet.push(<MissionPeople mission={mission} />),
                 },
                 ...(mission.canAct && mission.status === "active"
                   ? [
