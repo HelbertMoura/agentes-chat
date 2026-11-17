@@ -8,6 +8,14 @@ const BUTTON = 44;
  */
 export const MIN_ROOM = 120;
 
+/** The room a channel pill needs for its faces beside the name: under it they are dropped and the name keeps the room. */
+export const FACES_ROOM = 160;
+
+/** Whether the pill's `room` has space for the member faces (decorative: the count line still says who is in). */
+export function facesFit(room: number): boolean {
+  return room >= FACES_ROOM;
+}
+
 /** The width the pill's slot has in the bar: the screen less the bar's chrome and `extraActions` bar buttons. */
 export function pillRoom(screen: number, extraActions: number): number {
   return Math.max(MIN_ROOM, screen - BAR_CHROME - extraActions * BUTTON);

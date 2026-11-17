@@ -223,7 +223,7 @@ import { createDockHeight, type DockHeight } from "./dock-height";
 import { EventLine } from "./EventLine";
 import { FirstDay } from "./FirstDay";
 import { HeaderPill } from "./HeaderPill";
-import { switchFits } from "./headerRoom";
+import { facesFit, pillRoom, switchFits } from "./headerRoom";
 import { IssueTakenLine } from "./issue-work";
 import { browsingRuns, WorkingLine } from "./LiveRows";
 import { useChatLive } from "./live";
@@ -2126,7 +2126,7 @@ function Chat({
         // The channel's sky in the pill, as an agent's DM: the color of the first agent in it.
         color={agentLook(dir.agentById.get(roster.data?.find((r) => r.type === "agent")?.id ?? "")).color}
         trailing={
-          roster.data && roster.data.length > 0 ? (
+          roster.data && roster.data.length > 0 && facesFit(pillRoom(screenWidth, barExtra)) ? (
             <View style={styles.faces}>
               {roster.data.slice(0, 3).map((r, i) => (
                 // Every face the same size and shape box, ringed in the pill's glass: an agent in its tile
