@@ -32,7 +32,7 @@ mock.module("expo-local-authentication", () => ({
   },
 }));
 
-const { OPEN, appLockHolds, onAppLocked, turnAppLock, unlock, watchAppLock, whenUnlocked } = await import(
+const { OPEN, appLockHolds, onAppLocked, setLockAfter, turnAppLock, unlock, watchAppLock, whenUnlocked } = await import(
   "../../src/features/lock/store"
 );
 
@@ -159,5 +159,28 @@ describe("the app lock's state (ADR 0194)", () => {
     expect(await unlock("x")).toBe(true);
     expect(appLockHolds()).toBe(false);
     expect(kept.size).toBe(0);
+  });
+
+  test("the time picked to ask again is kept and honored: at once, or an hour", async () => {
+    auth.level = 3;
+    auth.answer = true;
+    expect(await turnAppLock(true, "x")).toBe(true);
+    setLockAfter(0);
+    await Bun.sleep(0);
+    expect([...kept.entries()].some(([k, v]) => k.includes("app-lock-after") && v === "0")).toBe(true);
+    setSystemTime(T0 + 1_000_000);
+    goTo("background");
+    goTo("active");
+    expect(appLockHolds()).toBe(true);
+    await unlock("x");
+    setLockAfter(3_600_000);
+    goTo("background");
+    setSystemTime(T0 + 1_000_000 + 30 * 60_000);
+    goTo("active");
+    expect(appLockHolds()).toBe(false);
+    goTo("background");
+    setSystemTime(T0 + 1_000_000 + 30 * 60_000 + 60 * 60_000);
+    goTo("active");
+    expect(appLockHolds()).toBe(true);
   });
 });

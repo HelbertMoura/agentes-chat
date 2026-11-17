@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { GroupedRow } from "@/ui";
-import { turnAppLock, useAppLock, useLockAvailability } from "./store";
+import { pickOne } from "../shared/PickerSheet";
+import { LOCK_AFTER_CHOICES, type LockAfter } from "./logic";
+import { setLockAfter, turnAppLock, useAppLock, useLockAvailability } from "./store";
 
 /**
  * Você › Preferências: "Bloquear com biometria", for this phone only (ADR 0194). Offered where the phone has
@@ -29,4 +31,27 @@ export function AppLockRow() {
       onPress={flip}
     />
   );
+}
+
+const AFTER_KEY: Record<LockAfter, string> = {
+  0: "mobile.lock.afterNow",
+  60000: "mobile.lock.after1m",
+  300000: "mobile.lock.after5m",
+  1800000: "mobile.lock.after30m",
+  3600000: "mobile.lock.after1h",
+};
+
+/** Under the lock, while on: how long away before it asks again, so a quick trip out doesn't ask each time. */
+export function AppLockAfterRow() {
+  const { t } = useTranslation();
+  const { after } = useAppLock();
+  const pick = () =>
+    void pickOne({
+      title: t("mobile.lock.after"),
+      value: String(after),
+      options: LOCK_AFTER_CHOICES.map((choice) => ({ key: String(choice), label: t(AFTER_KEY[choice]) })),
+    }).then((key) => {
+      if (key !== null && key !== undefined) setLockAfter(Number(key) as LockAfter);
+    });
+  return <GroupedRow icon="clock" label={t("mobile.lock.after")} value={t(AFTER_KEY[after])} menu onPress={pick} />;
 }

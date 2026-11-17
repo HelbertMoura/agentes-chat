@@ -1181,7 +1181,13 @@
     "unavailable": "Richte zuerst einen Fingerabdruck, dein Gesicht oder eine Displaysperre auf diesem Handy ein.",
     "confirm": "Bestätige, dass du es bist, um die App zu sperren",
     "prompt": "agentes.chat entsperren",
-    "unlock": "Entsperren"
+    "unlock": "Entsperren",
+    "after": "Beim Verlassen sperren",
+    "afterNow": "Sofort",
+    "after1m": "Nach 1 Minute",
+    "after5m": "Nach 5 Minuten",
+    "after30m": "Nach 30 Minuten",
+    "after1h": "Nach 1 Stunde"
   },
   "delete": {
     "intro": "Das lässt sich nicht rückgängig machen.",

@@ -1102,7 +1102,13 @@
     "unavailable": "Atur dulu sidik jari, wajah, atau kunci layar di ponsel ini.",
     "confirm": "Konfirmasi bahwa ini Anda untuk mengunci aplikasi",
     "prompt": "Buka kunci agentes.chat",
-    "unlock": "Buka kunci"
+    "unlock": "Buka kunci",
+    "after": "Kunci saat keluar",
+    "afterNow": "Segera",
+    "after1m": "Setelah 1 menit",
+    "after5m": "Setelah 5 menit",
+    "after30m": "Setelah 30 menit",
+    "after1h": "Setelah 1 jam"
   },
   "delete": {
     "intro": "Ini tidak bisa dibatalkan.",

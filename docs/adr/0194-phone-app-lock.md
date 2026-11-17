@@ -3,8 +3,8 @@
 - Status: Accepted
 - Date: 2026-11-17
 - Amends: 0035 (the phone app)
-- Code: `apps/mobile/src/features/lock/logic.ts` (`LOCK_GRACE_MS`, `availabilityOf`, `locksOnReturn`), `store.ts`
-  (`useAppLock`, `watchAppLock`, `unlock`, `turnAppLock`, `whenUnlocked`, `forgetAppLock`, `useLockAvailability`),
+- Code: `apps/mobile/src/features/lock/logic.ts` (`LOCK_GRACE_MS`, `LOCK_AFTER_CHOICES`, `lockAfterOf`, `availabilityOf`, `locksOnReturn`), `store.ts`
+  (`useAppLock`, `watchAppLock`, `unlock`, `turnAppLock`, `setLockAfter`, `whenUnlocked`, `forgetAppLock`, `useLockAvailability`),
   `LockScreen.tsx`, `AppLockRow.tsx` (Você › Preferências); the root `apps/mobile/app/_layout.tsx`; what waits:
   `src/providers/push.tsx` (a tapped push), `app/+native-intent.tsx` (a link), `src/features/share/ShareInbox.tsx`
   (a share); toasts held in `src/ui/Toast.tsx`, a phone's control closed in `src/features/devices/PhoneLive.tsx`;
@@ -35,8 +35,11 @@ and the proof has to come from the device.
    longer reads, or a face the phone can't see, gives way to the phone's PIN, pattern or passcode, so a person is
    never kept out of their own app. A phone whose screen lock was removed while the lock was on can prove nothing
    any more: Desbloquear turns the lock off and opens, rather than locking the person out for good.
-4. **When it asks.** On a cold start, and on coming back from the background one minute or more after leaving
-   (`LOCK_GRACE_MS`, a constant, with no setting of its own). A clock that went backwards while away locks too. The
+4. **When it asks.** On a cold start, and on coming back from the background after the time the person picked under
+   the switch, "Bloquear ao sair": at once, after 1, 5 or 30 minutes, or after an hour (`LOCK_AFTER_CHOICES`, kept
+   per device in `STORED.appLockAfter`, one minute, `LOCK_GRACE_MS`, unless changed). Asking on every return is
+   tiring for someone who switches apps all day, and an hour is too long for someone who leaves the phone on a desk:
+   the person knows which they are. A clock that went backwards while away locks too. The
    system's own prompt takes the app out of the front (Face ID, Android's PIN screen): that time is not counted as
    leaving.
 5. **Nothing shows behind it.** The lock screen is the app's mark and Desbloquear on the app's background, drawn in
@@ -64,7 +67,7 @@ and the proof has to come from the device.
 - On Android a permission prompt, the camera or a file picker takes the app out of the front: the cover shows for a
   moment, and a minute or more there asks for the proof on coming back.
 - Known limitation: the grace is measured with the wall clock (`Date.now()`). Someone who can already unlock the
-  phone itself could set its clock to less than a minute after the app left, after a long absence, and come back
+  phone itself could set its clock to within the picked time after the app left, after a long absence, and come back
   without the app asking. A monotonic clock would need a native module of its own.
 - Open: Android takes the recents picture as the app pauses, and React may not have drawn the cover by then; the
   sure way is `FLAG_SECURE`, which also blocks screenshots, so it is left out. The lock screen asks only when
