@@ -2,8 +2,10 @@ import { describe, expect, test } from "bun:test";
 import {
   APPROVAL_BUTTONS,
   approvalButtonsOn,
-  approvalDecision,
+  approvalRefusal,
+  opensApp,
   pressedButton,
+  pushAccountMatches,
   takenOnce,
 } from "../../src/features/approvals/push-actions";
 
@@ -17,30 +19,40 @@ describe("approval buttons on a push", () => {
     expect(approvalButtonsOn(undefined)).toBe(false);
   });
 
-  test("the buttons are Aprovar and Recusar, worded like the approval card", () => {
+  test("the buttons are Aprovar and Recusar, worded like the approval card; only Aprovar opens the app", () => {
     expect(APPROVAL_BUTTONS.map(([id]) => id)).toEqual(["approve", "refuse"]);
+    expect(opensApp("approve")).toBe(true);
+    expect(opensApp("refuse")).toBe(false);
   });
 
-  test("a button decides only an approval's push with its ids", () => {
-    expect(approvalDecision(push, "approve")).toEqual({ orgId: "o1", approvalId: "a1", decision: "approve" });
-    expect(approvalDecision(push, "refuse")).toEqual({ orgId: "o1", approvalId: "a1", decision: "refuse" });
-    // A plain tap, a device's button, another kind or a push without its ids decide nothing.
-    expect(approvalDecision(push, "expo.modules.notifications.actions.DEFAULT")).toBeNull();
-    expect(approvalDecision(push, "allow")).toBeNull();
-    expect(approvalDecision({ ...push, kind: "device.join_request" }, "approve")).toBeNull();
-    expect(approvalDecision({ kind: "approval", orgId: "o1" }, "approve")).toBeNull();
+  test("only Recusar decides from the notification, and only an approval's push with its ids", () => {
+    expect(approvalRefusal(push, "refuse")).toEqual({ orgId: "o1", approvalId: "a1" });
+    // Aprovar never decides blind: it opens the card, as a tap does.
+    expect(approvalRefusal(push, "approve")).toBeNull();
+    expect(approvalRefusal(push, "expo.modules.notifications.actions.DEFAULT")).toBeNull();
+    expect(approvalRefusal(push, "no")).toBeNull();
+    expect(approvalRefusal({ ...push, kind: "device.access_request" }, "refuse")).toBeNull();
+    expect(approvalRefusal({ kind: "approval", orgId: "o1" }, "refuse")).toBeNull();
+  });
+
+  test("refused only as the account the push is for", () => {
+    const accounts = { "https://x.test#u1": { id: "u1" }, "https://x.test#u2": { id: "u2" } };
+    expect(pushAccountMatches(accounts, "https://x.test#u1", "u1")).toBe(true);
+    expect(pushAccountMatches(accounts, "https://x.test#u2", "u1")).toBe(false);
+    expect(pushAccountMatches(accounts, "https://y.test", "u1")).toBe(false);
+    expect(pushAccountMatches(accounts, "https://x.test#u1", undefined)).toBe(false);
   });
 
   test("a response reads the same from the listener and from Android's background task", () => {
     const listener = {
-      actionIdentifier: "approve",
+      actionIdentifier: "refuse",
       notification: { request: { identifier: "n1", content: { data: push } } },
     };
     const task = {
-      actionIdentifier: "approve",
+      actionIdentifier: "refuse",
       notification: { request: { identifier: "n1", content: { dataString: JSON.stringify(push) } } },
     };
-    const expected = { identifier: "n1", action: "approve", data: push };
+    const expected = { identifier: "n1", action: "refuse", data: push };
     expect(pressedButton(listener)).toEqual(expected);
     expect(pressedButton(task)).toEqual(expected);
   });
