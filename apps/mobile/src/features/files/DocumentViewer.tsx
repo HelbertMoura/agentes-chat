@@ -20,7 +20,7 @@ import { FileTalkLine } from "../live-files/talk/TalkLine";
 import { chooseAction } from "../settings/parts";
 import { LoadFailed } from "../shared/FirstUse";
 import { useColors, useDirectory, useOrgId } from "../shared/hooks";
-import { copyText, PushedHeader, successHaptic } from "../shared/parts";
+import { copyText, goBack, PushedHeader, successHaptic } from "../shared/parts";
 import { useFileActions } from "./actions";
 import { FileVoice } from "./FileVoice";
 import { extensionOf, fileInfo, fileRoute, isCodeName, textChunks } from "./logic";
@@ -33,9 +33,9 @@ import { fileText } from "./source";
 /**
  * A file opened from a message, the Drive or a link: a screen pushed with the platform's push. Its bar is the native
  * one: back, the file's name with its line under it ("Documento · 4 KB · Theo"), and two buttons: Enviar cópia (the
- * system's share sheet with the file) and the "…" with Compartilhar (who sees it and its link, ADR 0157), Copiar texto
- * and Ver no Drive (the system's own menu on iOS, the app's list of the same choices on Android). Under it the file
- * itself, the screen's whole width: Markdown and text drawn by the app, a page in a web view, a PDF page by page by
+ * system's share sheet with the file) and the "…" with Compartilhar (who sees it and its link, ADR 0157), Copiar texto,
+ * Ver no Drive and Mover para a lixeira (the system's own menu on iOS, the app's list of the same choices on
+ * Android). Under it the file itself, the screen's whole width: Markdown and text drawn by the app, a page in a web view, a PDF page by page by
  * the system's own renderer (`PdfPages`), an Office file as the server read it (ADR 0198: a workbook in the
  * spreadsheet's grid, a deck's slides, a Word document's page) and an old table in the same grid, an audio file in the
  * voice-message player (`FileVoice`), anything else says
@@ -113,6 +113,17 @@ export function DocumentViewer({
       : []),
     ...(inDrive
       ? [{ icon: "drive" as const, sf: "folder" as const, label: t("mobile.files.drive"), onPress: actions.drive }]
+      : []),
+    ...(actions.mayTrash
+      ? [
+          {
+            icon: "trash" as const,
+            sf: "trash" as const,
+            label: t("artifacts.delete"),
+            destructive: true,
+            onPress: () => actions.trash(goBack),
+          },
+        ]
       : []),
   ];
   // A type the app doesn't draw (or a sound this phone can't play): that it has no preview (its name is the bar's title

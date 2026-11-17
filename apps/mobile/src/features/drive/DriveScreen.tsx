@@ -40,6 +40,7 @@ import {
   keepsLooking,
   matchesType,
 } from "./logic";
+import { openDriveTrash } from "./useDriveTrash";
 import { useDriveUpload } from "./useDriveUpload";
 
 /** Cards shown at first and added by "Mostrar mais" (each card loads its own preview). */
@@ -61,8 +62,8 @@ const monthFormat = (locale: string, withYear: boolean) => {
  * Drive, pushed from Você: the search, the type chips (Tudo, Documentos, Planilhas, Apresentações, Quadros, Imagens,
  * Tabelas, Diffs), and everything the person can see grouped by day (Hoje, Esta semana, then by month) in a two-column
  * grid of real previews, with the faces of who is in each live file now, and a file sent from the phone. "+" makes a
- * spreadsheet, a presentation or a canvas (ADR 0196 §9) or sends a file. A card opens the file as every file opens.
- * `highlightId`: the item "Ver no Drive" came from, outlined.
+ * spreadsheet, a presentation or a canvas (ADR 0196 §9) or sends a file; the bar's trash opens the Lixeira. A card
+ * opens the file as every file opens. `highlightId`: the item "Ver no Drive" came from, outlined.
  *
  * A chip narrows the list on the server to the kinds that can hold its type (`driveFilters`); an uploaded file is one
  * kind there whatever it holds, so the phone keeps the files its name says are of the type, and reads the server's
@@ -175,21 +176,23 @@ function DriveBody({ highlightId = null, folderId = null }: { highlightId?: stri
   return (
     <PushedLargeTitle
       title={here?.name ?? t("mobile.drive.title")}
-      {...(mayUpload
-        ? {
-            actions: [
+      actions={[
+        // The Lixeira, for everyone as on the web: it lists what the person may restore.
+        { icon: "trash", sf: "trash", label: t("artifacts.trash"), onPress: openDriveTrash },
+        ...(mayUpload
+          ? [
               {
-                icon: "plus",
-                sf: "plus",
+                icon: "plus" as const,
+                sf: "plus" as const,
                 label: t("live.kinds.newMenu"),
                 disabled: uploader.busy || maker.busy !== null,
                 menu: newItems,
                 // Android: the same choices in the app's list (iOS opens the menu from the button itself).
                 onPress: () => chooseAction(t("live.kinds.newMenu"), newItems, t("mobile.common.cancel")),
               },
-            ],
-          }
-        : {})}
+            ]
+          : []),
+      ]}
       refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} />}
       // The grid draws every card at once: a PDF's card downloads its first page only once it comes in sight.
       onScrollEnd={noteCardsScrolled}

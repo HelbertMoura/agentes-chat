@@ -6,6 +6,7 @@ import type {
   ArtifactLiveContent,
 } from "@agenteschat/client";
 import { documentPreview, parsePatch } from "@agenteschat/client/lib/artifacts";
+import { daysLeft } from "@agenteschat/client/lib/drive";
 import { fileIcon, previewKind } from "@agenteschat/client/lib/files";
 import { daysBetween } from "@agenteschat/client/lib/format";
 
@@ -265,4 +266,17 @@ export function kindKey(
   if (a.kind !== "file") return "file";
   const icon = fileIcon(a.title);
   return icon === "document" ? "document" : icon === "slides" ? "slides" : "file";
+}
+
+/** Few days left in the trash: the line turns to attention, as the web's chip does. */
+export const TRASH_SOON_DAYS = 3;
+
+/**
+ * What a trashed file's line says of the days it has left (the web's Lixeira): `drive.goneIn` when few are left
+ * (`soon`, shown in the attention color), else `drive.daysLeft`, with the whole days until it's purged.
+ */
+export function trashLeft(purgeAt: string, now = new Date()): { count: number; soon: boolean; key: string } {
+  const count = daysLeft(purgeAt, now);
+  const soon = count <= TRASH_SOON_DAYS;
+  return { count, soon, key: soon ? "drive.goneIn" : "drive.daysLeft" };
 }
