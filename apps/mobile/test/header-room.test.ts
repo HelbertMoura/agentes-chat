@@ -6,15 +6,22 @@ describe("the chat bar's room for the switch button", () => {
     expect(pillRoom(390, 0)).toBe(238);
     expect(pillRoom(390, 1)).toBe(194);
     expect(pillRoom(320, 3)).toBe(MIN_ROOM);
+    expect(MIN_ROOM).toBe(120);
   });
 
-  test("it shows on a 360 phone beside the pill alone and steps aside once another button crowds it", () => {
+  test("it shows on a 360 phone with one other button and steps aside once a second one crowds it", () => {
     expect(switchFits(360, 0)).toBe(true);
-    expect(switchFits(360, 1)).toBe(false);
+    expect(switchFits(360, 1)).toBe(true);
+    expect(switchFits(360, 2)).toBe(false);
+  });
+
+  test("a channel on a 411 dp phone (faces in the pill, search and a queue button) shows it", () => {
+    expect(switchFits(411, 1)).toBe(true);
+    expect(switchFits(411, 2)).toBe(true);
   });
 
   test("it shows on a wide phone with one more button, and never leaves the pill under its floor", () => {
-    expect(switchFits(430, 1)).toBe(true);
+    expect(switchFits(430, 2)).toBe(true);
     for (const screen of [320, 360, 390, 430, 768]) {
       for (const extra of [0, 1, 2, 3]) {
         if (switchFits(screen, extra)) expect(screen - 152 - (extra + 1) * 44).toBeGreaterThanOrEqual(MIN_ROOM);

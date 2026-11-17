@@ -2013,6 +2013,7 @@ function Chat({
             mission={mission}
             onMission={() => openNewMission("", info.id)}
             onPins={openPins}
+            onSwitch={() => sheet.close(openSwitcher)}
           />,
         )
       : sheet.open(
@@ -2041,6 +2042,7 @@ function Chat({
                 : undefined
             }
             onSearch={dm && searchPlace ? openSearch : undefined}
+            onSwitch={() => sheet.close(openSwitcher)}
           />,
         );
   // Holding the pill or tapping the bar's swap button: "Trocar de conversa". The pick swaps the conversation in place (the route's params; the
