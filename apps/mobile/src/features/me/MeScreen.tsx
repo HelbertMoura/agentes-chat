@@ -12,6 +12,7 @@ import { StyleSheet, View } from "react-native";
 import Animated, { Easing, FadeIn, FadeInUp } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { signOut } from "@/features/account";
+import { AppLockRow } from "@/features/lock/AppLockRow";
 import { type SoundChoice, setSoundChoice, useSoundChoice } from "@/lib/sounds";
 import { useOrg } from "@/providers/org";
 import { WorkspaceSky } from "@/sky/Sky";
@@ -485,6 +486,7 @@ export function MeScreen() {
               menu
               onPress={pickSound}
             />
+            <AppLockRow key="appLock" />
             <GroupedRow
               key="appearance"
               icon={theme.scheme === "dark" ? "moon" : "sun"}
