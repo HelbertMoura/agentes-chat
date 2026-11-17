@@ -1337,6 +1337,7 @@
     "type": {
       "image": "Immagine",
       "video": "Video",
+      "audio": "Audio",
       "pdf": "PDF",
       "document": "Documento",
       "table": "Tabella",

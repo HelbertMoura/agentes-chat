@@ -1,5 +1,13 @@
 import type { ArtifactDetail, ArtifactKind } from "@agenteschat/client";
-import { extensionOf, fileIcon, isMarkdownFile, previewKind, previewType } from "@agenteschat/client/lib/files";
+import {
+  AUDIO_EXT,
+  extensionOf,
+  fileIcon,
+  isAudioFile,
+  isMarkdownFile,
+  previewKind,
+  previewType,
+} from "@agenteschat/client/lib/files";
 import { filePath } from "@agenteschat/client/lib/message-links";
 import { type LiveScreen, liveRoute, opensLive, type PhoneLiveKind } from "../live-files/routes";
 
@@ -9,13 +17,14 @@ import { type LiveScreen, liveRoute, opensLive, type PhoneLiveKind } from "../li
  */
 
 /**
- * How the app shows a file: inline picture or video, the document screen (Markdown, text, PDF), a live file's own
+ * How the app shows a file: inline picture or video, an audio player (in the message and the file screen), the document screen (Markdown, text, PDF), a live file's own
  * screen (ADR 0196), an Office file as the server read it (ADR 0198: a workbook's grid, a deck's slides, a Word
  * document's page; an old table in the same grid), or only its card.
  */
 export type FileView =
   | "image"
   | "video"
+  | "audio"
   | "markdown"
   | "text"
   | "pdf"
@@ -30,6 +39,7 @@ export type FileView =
 export type FileTypeKey =
   | "image"
   | "video"
+  | "audio"
   | "pdf"
   | "document"
   | "table"
@@ -65,6 +75,9 @@ const VIDEO_TYPES = new Set(["video/mp4", "video/quicktime", "video/x-m4v", "vid
 export const VIDEO_EXT = new Set(["mp4", "mov", "m4v", "webm"]);
 /** Names that say "picture": while the details load, and when the stored type doesn't (an upload typed as bytes). */
 export const IMAGE_EXT = new Set(["png", "jpg", "jpeg", "gif", "webp", "heic", "heif"]);
+/** Names that say "audio" (the types are `AUDIO_TYPES`, shared with the web): while the details load, and untyped. */
+export { AUDIO_EXT };
+
 const TEXT_EXT = new Set(["txt", "log", "csv", "tsv", "json", "yml", "yaml", "toml", "xml", "ini", "env"]);
 
 /** Non-file artifacts: the extension their download gets (as the server names them). */
@@ -137,6 +150,7 @@ export function fileInfo(a: Pick<ArtifactDetail, "kind" | "title" | "content">):
     let view: FileView = "other";
     if (IMAGE_TYPES.has(mime) || (untyped && IMAGE_EXT.has(ext))) view = "image";
     else if (VIDEO_TYPES.has(mime) || (untyped && VIDEO_EXT.has(ext))) view = "video";
+    else if (isAudioFile(name, mime)) view = "audio";
     else if (mime === "application/pdf" || ext === "pdf") view = "pdf";
     else if (office) view = office;
     // A page is shown as a page (its source isn't the point), before the text types it is one of.
@@ -169,6 +183,7 @@ const OFFICE_VIEW: Record<string, FileView> = {
 function fileType(name: string, mime: string, view: FileView): FileTypeKey {
   if (view === "image") return "image";
   if (view === "video") return "video";
+  if (view === "audio") return "audio";
   if (view === "pdf") return "pdf";
   if (view === "markdown") return "document";
   const icon = fileIcon(name, mime);
@@ -416,13 +431,15 @@ const DOCUMENT_EXT = new Set([
 ]);
 
 /**
- * Its details, or its kind and name, already say where a file opens: a picture's or a video's name, or a document's.
+ * Its details, or its kind and name, already say where a file opens: a picture's or a video's name, or a document's or
+ * an audio file's.
  * A name with no extension, or one the app doesn't know (a video in a rarer format), says nothing.
  */
 export function whereKnown(ref: FileRef): boolean {
   if (ref.detail) return true;
   if (ref.kind !== undefined && ref.kind !== "file") return true;
-  return isMediaFile(ref) || DOCUMENT_EXT.has(extensionOf(ref.title ?? ""));
+  const ext = extensionOf(ref.title ?? "");
+  return isMediaFile(ref) || DOCUMENT_EXT.has(ext) || AUDIO_EXT.has(ext);
 }
 
 /**

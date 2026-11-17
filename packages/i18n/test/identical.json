@@ -4433,7 +4433,8 @@
       "vault.field.websitePlaceholder",
       "vault.scope.personal",
       "vault.tab.personal",
-      "coding.commit"
+      "coding.commit",
+      "files.type.audio"
     ],
     "fr": [
       "devices.os.android",
@@ -4518,7 +4519,8 @@
       "live.slides.part.note",
       "live.slides.tools.photo",
       "live.text.noteTitle",
-      "coding.commit"
+      "coding.commit",
+      "files.type.audio"
     ],
     "de": [
       "live.doc.styles.code",
@@ -4597,7 +4599,8 @@
       "settings.group.org",
       "threads.title",
       "roles.icons.person",
-      "coding.commit"
+      "coding.commit",
+      "files.type.audio"
     ],
     "it": [
       "devices.status.offline",
@@ -4652,7 +4655,8 @@
       "find.filterWord.in",
       "connectors.accountTitle",
       "roles.icons.mail",
-      "coding.commit"
+      "coding.commit",
+      "files.type.audio"
     ],
     "nl": [
       "devices.status.offline",
@@ -4742,7 +4746,8 @@
       "live.canvas.tools.pen",
       "live.doc.styles.code",
       "coding.project",
-      "coding.commit"
+      "coding.commit",
+      "files.type.audio"
     ],
     "ja": [
       "devices.os.android",
@@ -4818,7 +4823,8 @@
       "files.type.video",
       "me.status",
       "roles.icons.mail",
-      "coding.commit"
+      "coding.commit",
+      "files.type.audio"
     ],
     "tr": [
       "devices.os.android",

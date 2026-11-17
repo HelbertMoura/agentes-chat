@@ -147,6 +147,8 @@ function fileIconOf(type: string | undefined): IconName {
   switch (type) {
     case "video":
       return "play";
+    case "audio":
+      return "sound";
     case "table":
       return "list";
     case "code":

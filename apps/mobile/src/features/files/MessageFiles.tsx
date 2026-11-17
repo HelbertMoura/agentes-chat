@@ -15,9 +15,11 @@ import { LiveFileCard } from "../live-files/LiveFileCard";
 import { opensLive } from "../live-files/routes";
 import { useColors, useOrgId } from "../shared/hooks";
 import { AttachmentTile } from "./AttachmentTile";
+import { AudioFile } from "./AudioFile";
 import { ImageStack, type StackImage } from "./ImageStack";
 import { isLocalMedia, type LocalFile, localRatio } from "./local-files";
 import {
+  AUDIO_EXT,
   extensionOf,
   extLabel,
   type FileInfo,
@@ -40,7 +42,8 @@ import { VideoFirstFrame, VideoPlayer } from "./VideoPlayer";
  * (`ImageStack`), tapping opens the viewer at that picture. Any other attachment: a tile across the row
  * (`AttachmentTile`: what it holds drawn small, its name, whole, with its kind and size under it), with the pictures
  * beside them as tiles of only the picture, two to a row (as on the web's phone width). A video shows its first frame in
- * the pictures' shape and opens in the same viewer as they do. `align="end"`: the viewer's own message, its files sit on
+ * the pictures' shape and opens in the same viewer as they do; an audio file plays right there (`AudioFile`).
+ * `align="end"`: the viewer's own message, its files sit on
  * the right.
  */
 
@@ -76,6 +79,7 @@ export function MessageFiles({ files, align = "start" }: { files: MessageFile[];
   // A live file is its own card: a preview of it as it is now, opening its screen (ADR 0196 §9).
   const liveFiles: ArtifactDetail[] = [];
   const videos: { file: MessageFile; detail: ArtifactDetail | undefined }[] = [];
+  const audios: { file: MessageFile; detail: ArtifactDetail | undefined }[] = [];
   const others: { file: MessageFile; detail: ArtifactDetail | undefined; failed: boolean }[] = [];
   live.forEach((file, i) => {
     const q = queries[i];
@@ -91,8 +95,10 @@ export function MessageFiles({ files, align = "start" }: { files: MessageFile[];
     // Until it loads, a name like "print.png" already says it's a picture (no jump into the grid).
     const isImage = detail ? fileInfo(detail).view === "image" : !q?.isError && IMAGE_EXT.has(extensionOf(file.title));
     const isVideo = detail ? fileInfo(detail).view === "video" : !q?.isError && VIDEO_EXT.has(extensionOf(file.title));
+    const isAudio = detail ? fileInfo(detail).view === "audio" : !q?.isError && AUDIO_EXT.has(extensionOf(file.title));
     if (isImage) images.push({ file, detail });
     else if (isVideo) videos.push({ file, detail });
+    else if (isAudio) audios.push({ file, detail });
     else others.push({ file, detail, failed: Boolean(q?.isError) });
   });
   const removed = files.filter((f) => f.deleted);
@@ -149,6 +155,9 @@ export function MessageFiles({ files, align = "start" }: { files: MessageFile[];
       ) : null}
       {videos.map(({ file, detail }) => (
         <InlineVideo key={file.id} file={file} detail={detail} width={blockWidth} siblings={media} />
+      ))}
+      {audios.map(({ file, detail }) => (
+        <InlineAudio key={file.id} file={file} detail={detail} width={blockWidth} />
       ))}
       {blocks.map((b) =>
         b.kind === "poll" ? (
@@ -273,10 +282,10 @@ function InlineVideo({
   const link = useRemoteFile(orgId, file.id, file.version, { once: true });
   const [failed, setFailed] = useState(false);
   const source = useMemo(() => (link.data ? { uri: link.data.uri, headers: link.data.headers } : null), [link.data]);
+  const openLooked = useOpenFile();
   if (failed || link.isError)
     return <AttachmentTile file={file} detail={detail} width={width} single siblings={siblings} />;
   const info = detail ? fileInfo(detail) : null;
-  const openLooked = useOpenFile();
   // In the same viewer as the pictures: one place where media opens. Its details may not be here yet (slow, or their
   // read failed): the tap still opens, reading them first, never a press that does nothing.
   const open = () => {
@@ -304,6 +313,37 @@ function InlineVideo({
           ]}
         />
       )}
+    </View>
+  );
+}
+
+/**
+ * An audio file on a message: the voice message's player, its name and line under it; a tap there opens the file screen
+ * (Enviar cópia, the Drive). Played at the version the message names.
+ */
+function InlineAudio({
+  file,
+  detail,
+  width,
+}: {
+  file: MessageFile;
+  detail: ArtifactDetail | undefined;
+  width: number;
+}) {
+  const line = useFileLine();
+  const info = detail ? fileInfo(detail) : null;
+  const open = () => {
+    if (detail) openFile({ id: file.id, version: file.version, title: file.title, detail });
+  };
+  return (
+    <View style={{ width }}>
+      <AudioFile
+        fileId={file.id}
+        version={file.version}
+        name={info?.name || file.title}
+        {...(info ? { line: line(info) } : {})}
+        onOpen={detail ? open : undefined}
+      />
     </View>
   );
 }
