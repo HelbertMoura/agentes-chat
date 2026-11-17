@@ -232,6 +232,8 @@ export function standsAlone(m: Message) {
       meta.missionPlan ||
       meta.missionReview ||
       meta.missionDecision ||
+      meta.missionDelivery ||
+      meta.missionCommand ||
       meta.missionSetup ||
       meta.missionStart ||
       meta.missionLink ||
