@@ -1,3 +1,5 @@
+import { useOverview, useWorkspaceUsesApi } from "@agenteschat/client";
+import { formatPercent } from "@agenteschat/client/lib/format";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, View } from "react-native";
 import { useOrg } from "@/providers/org";
@@ -18,13 +20,18 @@ import { MANAGE_ROW, type ManageRow, manageView } from "./logic";
  * native large title with Você and "+" in the bar, as every tab.
  */
 export function ManageScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const header = useTabHeader();
-  const { org } = useOrg();
+  const { org, orgId } = useOrg();
   const view = manageView(org);
   const waiting = useWaitingCount();
   const unreadThreads = useUnreadThreads();
   const counts: Partial<Record<ManageRow, number>> = { approvals: waiting, threads: unreadThreads };
+  // Uso says its budget as Configurações does (`areaValues`): only where the workspace uses the API.
+  const overview = useOverview(orgId).data;
+  const usesApi = useWorkspaceUsesApi(orgId);
+  const values: Partial<Record<ManageRow, string>> =
+    overview && usesApi ? { usage: formatPercent(i18n.language, overview.budgetUsedPercent) } : {};
   return (
     <LargeTitleScreen title={t("mobile.manage.title")} left={header.left} actions={header.actions} grouped>
       <View style={styles.body}>
@@ -33,12 +40,13 @@ export function ManageScreen() {
           {view.rows.map((row) => {
             const { icon, href, label } = MANAGE_ROW[row];
             const count = counts[row] ?? 0;
+            const value = count > 0 ? String(count) : values[row];
             return (
               <GroupedRow
                 key={row}
                 icon={icon}
                 label={t(label)}
-                {...(count > 0 ? { value: String(count) } : {})}
+                {...(value ? { value } : {})}
                 chevron
                 onPress={() => router.push(href as never)}
               />

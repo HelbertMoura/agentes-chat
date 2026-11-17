@@ -65,7 +65,7 @@ export const MANAGE_ROW: Record<ManageRow, { icon: IconName; href: string; label
   wiki: { icon: "file", href: "/wiki", label: "wiki.title" },
   drive: { icon: "doc", href: "/drive", label: "mobile.me.drive" },
   team: { icon: "members", href: "/team", label: "team.title" },
-  usage: { icon: "chart", href: "/usage", label: "mobile.manage.usage" },
+  usage: { icon: "wallet", href: "/usage", label: "mobile.manage.usage" },
   memory: { icon: "brain", href: "/memory", label: "mobile.memory.title" },
 };
 

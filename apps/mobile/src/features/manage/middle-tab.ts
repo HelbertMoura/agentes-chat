@@ -18,3 +18,9 @@ export function setMiddleTab(next: MiddleTab) {
   void writeValue(STORED.middleTab, next);
   for (const cb of listeners) cb();
 }
+
+/** The phone forgot its remembered values (the last sign-out): back to Threads, so the next account starts there. */
+export function resetMiddleTab() {
+  choice = "threads";
+  for (const cb of listeners) cb();
+}

@@ -44,7 +44,7 @@ const ACCESSORY = alongInAccessory(Platform.OS, Platform.Version);
  * Conversas (the home), Threads (threads and missions), Agentes, Atividade and Buscar in the system tab bar
  * (UITabBarController on iOS, Liquid Glass on iOS 26; Material bottom navigation on Android). Our own glyphs on both platforms (outline, filled when
  * selected), drawn as template images the bar tints. Badges for unread conversations (Conversas: channels
- * and DMs; Threads: its rows, never both) and what waits on you. Every tab holds a stack with a native header. A
+ * and DMs; Threads, or Gestão in its place: Threads' rows, never both) and what waits on you. Every tab holds a stack with a native header. A
  * personal workspace (ADR 0159) leaves Threads out of the bar (`hidden`, the system bar's own way: changing it redraws
  * the tabs from Conversas); its row in You › Work opens the same list, pushed. A phone may put Gestão in Threads' place
  * (`tabHidden`, Você › Preferências), whose first row opens the same list, pushed. A tab change is the system's own: no
@@ -58,7 +58,13 @@ export default function TabsLayout() {
   const unread = useUnreadConversations();
   const unreadThreads = useUnreadThreads();
   const waiting = useWaitingCount();
-  const counts: Record<string, number> = { "(chats)": unread, threads: unreadThreads, activity: waiting };
+  // Gestão in Threads' place keeps its badge: Threads is its first row.
+  const counts: Record<string, number> = {
+    "(chats)": unread,
+    threads: unreadThreads,
+    manage: unreadThreads,
+    activity: waiting,
+  };
   // Long work and what waits on you go with you across the tabs, the phone's Agora (iOS 26: the bar's accessory, the
   // system's glass; Android and older iOS: a strip over the bar, on the tab roots). "Esperando você" only where
   // something really waits on me (the home's strip and Atividade read the same list). The layout only knows whether

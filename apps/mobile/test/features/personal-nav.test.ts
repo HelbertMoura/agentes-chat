@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { featureKeysEn } from "../../src/features/i18n/keys.en";
 import { featureKeysPtBR } from "../../src/features/i18n/keys.pt-BR";
+import { tabHidden } from "../../src/features/manage/logic";
 
 // A personal workspace on the phone (ADR 0159): the same screens and data, only what is in sight and its words change.
 const ROOT = join(import.meta.dir, "..", "..");
@@ -13,6 +14,10 @@ describe("the tabs of a personal workspace", () => {
     const tabs = read("app/(app)/(main)/(tabs)/_layout.tsx");
     expect(tabs).toContain('{ name: "threads", glyph: "threads", label: "mobile.tabs.threads" }');
     expect(tabs).toContain("hidden={tabHidden(tab.name, personal, middle)}");
+    for (const middle of ["threads", "manage"] as const) {
+      expect(tabHidden("threads", true, middle)).toBe(true);
+      expect(tabHidden("manage", true, middle)).toBe(true);
+    }
     // A hidden tab can't be opened: the pushed list lives at /conversations/threads.
     const route = read("app/(app)/(main)/conversations/[kind].tsx");
     expect(route).toContain('if (kind === "threads" && noThreadsTab) return <ThreadsScreen pushed />;');
