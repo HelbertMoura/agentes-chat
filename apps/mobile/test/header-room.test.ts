@@ -21,4 +21,8 @@ describe("the chat bar's room for the switch button", () => {
       }
     }
   });
+
+  test("the right hand's DM (no computer button) and an agent DM without a computer keep it on 390, 393 and 402", () => {
+    for (const screen of [390, 393, 402]) expect(switchFits(screen, 0)).toBe(true);
+  });
 });

@@ -2063,10 +2063,14 @@ function Chat({
   // The visible way in, a button beside the pill (holding it was a gesture nobody found). It steps aside on a narrow
   // phone already crowded by an agent's own buttons (`switchFits`); the hold stays then. The pill gives up its 44.
   const { width: screenWidth } = useWindowDimensions();
+  // Only what shows counts: the computer button needs a computer's words (never the right hand's), and the queue
+  // button takes its slot.
+  const dmComputer = dmAgentId && !isThread && !rightHand ? { agentId: dmAgentId, onOpen: leavePlace } : undefined;
+  const [computerWords, setComputerWords] = useState<string | null>(null);
   const barOthers = isThread
     ? 0
     : dm
-      ? (dmAgentId ? 1 : 0) + (queueShown ? 1 : 0) + (agentTasks ? tasksBadge(agentTasks).room : 0)
+      ? (dmComputer && (queueShown || computerWords) ? 1 : 0) + (agentTasks ? tasksBadge(agentTasks).room : 0)
       : (queueShown ? 1 : 0) + (searchPlace ? 1 : 0);
   const switchShown = switchFits(screenWidth, barOthers);
   const barExtra = barOthers + (switchShown ? 1 : 0);
@@ -2150,7 +2154,6 @@ function Chat({
   // An agent's DM also opens its tasks while it has some (ADR 0128), pushed like a thread, and its computer (as the
   // web's DM header) for whoever may watch it: one entry, the line while turns wait for the computer (the way on to
   // it inside), else the computer.
-  const dmComputer = dmAgentId && !isThread && !rightHand ? { agentId: dmAgentId, onOpen: leavePlace } : undefined;
   const right =
     (isThread && info) || dm || channel ? (
       <>
@@ -2189,7 +2192,6 @@ function Chat({
   // On iOS the plain buttons (the computer, search, "…") are the system's own bar buttons: UIKit places them and takes
   // the tap anywhere on them, where our views in the bar answered only a still tap right on the icon. A counted button
   // (the agent's tasks, the computer's line) has no system form, so while one shows the bar stays ours (`right`).
-  const [computerWords, setComputerWords] = useState<string | null>(null);
   const counted = Boolean((dmAgentId && agentTasks) || (queueShown && barQueue && queueMachineId));
   const barActions: HeaderAction[] | undefined =
     IOS_BAR && !counted && ((isThread && info) || dm || channel)
@@ -2940,7 +2942,7 @@ function Chat({
           solid={false}
           {...(barActions ? { actions: barActions } : { right })}
         />
-        {IOS_BAR && dmComputer ? <DmComputerWords agentId={dmComputer.agentId} onWords={setComputerWords} /> : null}
+        {dmComputer ? <DmComputerWords agentId={dmComputer.agentId} onWords={setComputerWords} /> : null}
         {hasPin ? (
           // The bar is see-through (the conversation runs under it): an open mission's card starts below it. Pinned
           // messages have no bar here: they wait above the first message, revealed by pulling down (`PinnedLines`).
