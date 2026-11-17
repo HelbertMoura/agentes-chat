@@ -1,4 +1,5 @@
 import {
+  useAuthConfig,
   useComputerSetup,
   useConnections,
   useInvitations,
@@ -36,7 +37,7 @@ import { confirmAction, Gap, SettingsPage } from "./parts";
 
 /**
  * The workspace's settings, a screen pushed from Você on the grouped gray, as the phone's own settings: the web's
- * entries as groups, each thing once. Workspace: the workspace itself (its mark, its name, what Geral holds) and GIFs.
+ * entries as groups, each thing once. Workspace: the workspace itself (its mark, its name, what Geral holds), GIFs and, on a self-hosted server, Voz.
  * Pessoas, IA e uso, Conectores, Avançado: one neutral tile and one short value per row (a count or a state), the
  * area's own screen says the rest. Owners get "Apagar <nome>" alone in red at the end, behind the
  * system's alert (one firm haptic as it confirms), then the proof and the hold. A list of places to go, so it takes the
@@ -54,9 +55,10 @@ export function WorkspaceScreen() {
 function TeamSettingsList() {
   const { t } = useTranslation();
   const { org } = useOrg();
+  const server = useAuthConfig().data;
   return (
     <SettingsPage title={t("settings.title")} largeTitle>
-      <SectionGroups areas={visibleSections(org)} />
+      <SectionGroups areas={visibleSections(org, server)} />
       <DeleteWorkspaceRow />
     </SettingsPage>
   );
@@ -71,7 +73,7 @@ function TeamSettingsList() {
 function PersonalSettingsList({ others }: { others: number | undefined }) {
   const { t } = useTranslation();
   const { org } = useOrg();
-  const { main } = personalSections(org, others);
+  const { main } = personalSections(org, others, useAuthConfig().data);
   const values = useAreaValues(main);
   // Pushed as always; beside the list on a large screen (ADR 0212), lit while it shows.
   const open = useOpenPage();
