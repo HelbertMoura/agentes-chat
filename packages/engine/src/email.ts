@@ -297,7 +297,7 @@ export type EmailTemplate =
    * the people who run the server. `url`: the server's own address, for the pictures.
    */
   /**
-   * The account's two-step sign-in changed (ADR 0193): turned on (every other device signed out), turned off, or new
+   * The account's two-step sign-in changed (ADR 0194): turned on (every other device signed out), turned off, or new
    * recovery codes. `support`: where to write if it wasn't them.
    */
   | {

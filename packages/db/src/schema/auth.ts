@@ -39,7 +39,7 @@ export const users = pgTable("users", {
    * the operator API's account (which kinds of people stay). Not a Better Auth field.
    */
   workArea: text(),
-  /** Whether signing in takes a code from an authenticator app too (Better Auth's two-factor plugin, ADR 0193). */
+  /** Whether signing in takes a code from an authenticator app too (Better Auth's two-factor plugin, ADR 0194). */
   twoFactorEnabled: boolean().notNull().default(false),
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
@@ -103,7 +103,7 @@ export const verifications = pgTable(
 );
 
 /**
- * An account's authenticator app (ADR 0193), Better Auth's two-factor model: the TOTP secret and the recovery codes,
+ * An account's authenticator app (ADR 0194), Better Auth's two-factor model: the TOTP secret and the recovery codes,
  * both encrypted with the sessions' secret, never returned to a client. `verified` is false between "Turn on" and the
  * first code the app shows; `failedVerificationCount` and `lockedUntil` hold the account's lockout after wrong codes.
  * Belongs to a person, not a workspace.

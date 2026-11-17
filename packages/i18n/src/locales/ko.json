@@ -10773,6 +10773,17 @@
     "saved": "로고를 업데이트했어요.",
     "removed": "로고를 삭제했어요."
   },
+  "orgAccent": {
+    "label": "강조 색상",
+    "change": "색상 변경",
+    "useDefault": "기본값 사용",
+    "suggested": "추천 색상",
+    "sampleMention": "@에이전트",
+    "sampleLink": "링크",
+    "save": "색상 저장",
+    "saved": "강조 색상을 업데이트했어요.",
+    "reset": "기본 색상으로 되돌렸어요."
+  },
   "look": {
     "previous": "이전",
     "next": "다음",
@@ -15977,6 +15988,7 @@
     "removed": "삭제됨",
     "change": {
       "mergedWithoutAsking": "{{repo}}에서 묻지 않고 병합했어요",
+      "accentChanged": "워크스페이스의 강조 색상을 변경했어요",
       "pattern": "{{area}} {{verb}}",
       "approval": {
         "approved": "요청을 승인했어요",

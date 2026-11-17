@@ -10832,6 +10832,17 @@
     "saved": "Logo diperbarui.",
     "removed": "Logo dihapus."
   },
+  "orgAccent": {
+    "label": "Warna aksen",
+    "change": "Ganti warna",
+    "useDefault": "Pakai bawaan",
+    "suggested": "Warna yang disarankan",
+    "sampleMention": "@Agen",
+    "sampleLink": "Sebuah tautan",
+    "save": "Simpan warna",
+    "saved": "Warna aksen diperbarui.",
+    "reset": "Kembali ke warna bawaan."
+  },
   "look": {
     "previous": "Sebelumnya",
     "next": "Berikutnya",
@@ -16039,6 +16050,7 @@
     "removed": "Dihapus",
     "change": {
       "mergedWithoutAsking": "Merge di {{repo}} tanpa bertanya",
+      "accentChanged": "Mengubah warna aksen ruang kerja",
       "pattern": "{{verb}} {{area}}",
       "approval": {
         "approved": "Menyetujui permintaan",

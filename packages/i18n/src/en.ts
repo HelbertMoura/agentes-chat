@@ -652,7 +652,7 @@ export const en = {
       otherEmail: "This invitation is for another address. Sign up with the address it was sent to.",
       unverified: "Your sign-in provider hasn't confirmed this address. Confirm it there, or sign up with a password.",
     },
-    /** The second step of a sign-in (ADR 0193): the code from the authenticator app, or a recovery code. */
+    /** The second step of a sign-in (ADR 0194): the code from the authenticator app, or a recovery code. */
     twoFactor: {
       title: "Type the code from your authenticator app",
       lead: "Open the app where you added agentes.chat and type the 6 digits it shows now.",
@@ -2385,7 +2385,7 @@ export const en = {
     newPasswordRow: "To change the password you use in other browsers and on other devices",
     newPasswordSaved: "New password saved.",
     newPasswordReauth: "Sign in again to create a new password.",
-    /** Two-step sign-in with an authenticator app (ADR 0193), Settings › Your account. */
+    /** Two-step sign-in with an authenticator app (ADR 0194), Settings › Your account. */
     twoFactor: {
       row: "Two-step sign-in",
       rowOff: "Also ask for a code from an authenticator app when signing in",
@@ -11639,6 +11639,17 @@ export const en = {
     saved: "Logo updated.",
     removed: "Logo removed.",
   },
+  orgAccent: {
+    label: "Accent color",
+    change: "Change color",
+    useDefault: "Use the default",
+    suggested: "Suggested colors",
+    sampleMention: "@Agent",
+    sampleLink: "A link",
+    save: "Save color",
+    saved: "Accent color updated.",
+    reset: "Back to the default color.",
+  },
   look: {
     previous: "Previous",
     next: "Next",
@@ -16950,6 +16961,7 @@ export const en = {
     removed: "Removed",
     change: {
       mergedWithoutAsking: "Merged in {{repo}} without asking",
+      accentChanged: "Changed the workspace's accent color",
       pattern: "{{verb}} {{area}}",
       approval: {
         approved: "Approved a request",

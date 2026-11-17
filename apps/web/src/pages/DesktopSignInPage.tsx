@@ -14,7 +14,7 @@ import { BROWSER_SIGN_IN_PATH } from "@/lib/desktop";
  * confirm it matches the code on their computer. The hand-over happens only after
  * that explicit confirmation, so a link that jumps straight here signs no one in.
  * A refusal (`error`, the provider's or the server's) comes back here too: why, and
- * back to the app to try again, never the provider once more. An account with two-step sign-in (ADR 0193) comes back
+ * back to the app to try again, never the provider once more. An account with two-step sign-in (ADR 0194) comes back
  * waiting for its code: the sign-in page asks for it, then comes back here to confirm.
  * `access`: an early-access link's token the app's window had, for the sign-up this makes.
  */

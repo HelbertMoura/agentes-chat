@@ -270,7 +270,7 @@ export interface User {
   hasPassword?: boolean;
   /** Opened the link that confirms the email address. */
   emailVerified?: boolean;
-  /** Signing in also takes a code from an authenticator app (ADR 0193; absent from an older server: false). */
+  /** Signing in also takes a code from an authenticator app (ADR 0194; absent from an older server: false). */
   twoFactorEnabled?: boolean;
   /**
    * The installation's owner on the desktop app's own server: a sign-in in the last 10 minutes through Continue on this
@@ -316,6 +316,8 @@ export interface OrgSummary {
   rank?: number | null;
   /** The workspace logo (`/api/app/org-logos/…`); null or absent = the agent mark. */
   logo?: string | null;
+  /** The workspace's accent "#rrggbb" (ADR 0193): the apps paint the agent colors from it. Null or absent: the default. */
+  accent?: string | null;
   /** From `GET /me`: when it was made. Absent from older servers. */
   createdAt?: string;
   /** From `GET /me`; absent from older servers (active). Changes come as `org.standing` events. */

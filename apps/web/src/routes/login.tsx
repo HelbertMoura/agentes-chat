@@ -25,7 +25,7 @@ export const Route = createFileRoute("/login")({
       goal && "invite" in goal ? context.queryClient.prefetchQuery(invitationQuery(context.api, goal.invite)) : null,
     ]);
     // An OAuth callback that waited for a sign-in (under /api/) is the server's: a full load.
-    // A provider's return that waits for its account's code (ADR 0193) is another account's sign-in: the page asks.
+    // A provider's return that waits for its account's code (ADR 0194) is another account's sign-in: the page asks.
     const waitsForCode = search.error === TWO_FACTOR_REQUIRED;
     if (me && !search.add && !waitsForCode) {
       throw redirect({ href: search.redirect ?? "/", reloadDocument: search.redirect?.startsWith("/api/") });

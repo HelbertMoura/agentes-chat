@@ -131,7 +131,7 @@ export function desktopSignIn() {
           if (!source || source.session.expiresAt <= new Date()) return ctx.json({ signedIn: false });
           const { user } = source;
           // It signed in when the browser's session did: it proves no fresher sign-in (`signedInLately`).
-          // A copy of the browser's session, which passed the second step there (ADR 0193).
+          // A copy of the browser's session, which passed the second step there (ADR 0194).
           const session = await copyOfProvenSession(() =>
             ctx.context.internalAdapter.createSession(
               user.id,

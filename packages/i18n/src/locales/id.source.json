@@ -27347,6 +27347,33 @@
   "orgLogo.removed": {
     "value": "Logo removed."
   },
+  "orgAccent.label": {
+    "value": "Accent color"
+  },
+  "orgAccent.change": {
+    "value": "Change color"
+  },
+  "orgAccent.useDefault": {
+    "value": "Use the default"
+  },
+  "orgAccent.suggested": {
+    "value": "Suggested colors"
+  },
+  "orgAccent.sampleMention": {
+    "value": "@Agent"
+  },
+  "orgAccent.sampleLink": {
+    "value": "A link"
+  },
+  "orgAccent.save": {
+    "value": "Save color"
+  },
+  "orgAccent.saved": {
+    "value": "Accent color updated."
+  },
+  "orgAccent.reset": {
+    "value": "Back to the default color."
+  },
   "look.previous": {
     "value": "Previous"
   },
@@ -40762,6 +40789,9 @@
   },
   "audit.change.mergedWithoutAsking": {
     "value": "Merged in {{repo}} without asking"
+  },
+  "audit.change.accentChanged": {
+    "value": "Changed the workspace's accent color"
   },
   "audit.change.pattern": {
     "value": "{{verb}} {{area}}"

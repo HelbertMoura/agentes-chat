@@ -24,7 +24,7 @@ export interface SignInFlow {
 export type SignInStep = "password" | "social" | "noPassword" | "name" | "closed" | "expired" | "forgot";
 
 /**
- * The second step of a sign-in (ADR 0193), on a screen of its own over whichever screen signed in: the password's,
+ * The second step of a sign-in (ADR 0194), on a screen of its own over whichever screen signed in: the password's,
  * a provider's button's. It needs no flow: the challenge is in the place's cookies.
  */
 export const TWO_FACTOR_STEP_PATH = "/sign-in/code";

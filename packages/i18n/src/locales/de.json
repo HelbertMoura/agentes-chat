@@ -11222,6 +11222,17 @@
     "saved": "Logo aktualisiert.",
     "removed": "Logo entfernt."
   },
+  "orgAccent": {
+    "label": "Akzentfarbe",
+    "change": "Farbe ändern",
+    "useDefault": "Standard verwenden",
+    "suggested": "Vorgeschlagene Farben",
+    "sampleMention": "@Agent",
+    "sampleLink": "Ein Link",
+    "save": "Farbe speichern",
+    "saved": "Akzentfarbe aktualisiert.",
+    "reset": "Wieder die Standardfarbe."
+  },
   "look": {
     "previous": "Zurück",
     "next": "Weiter",
@@ -16564,6 +16575,7 @@
     "removed": "Entfernt",
     "change": {
       "mergedWithoutAsking": "In {{repo}} ohne Nachfrage gemergt",
+      "accentChanged": "Hat die Akzentfarbe des Workspace geändert",
       "pattern": "{{verb}}: {{area}}",
       "approval": {
         "approved": "Hat eine Anfrage freigegeben",

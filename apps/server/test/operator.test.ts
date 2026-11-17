@@ -34,6 +34,7 @@ beforeAll(async () => {
     version: "test",
     log: createLogger("error"),
     pubsub: t.adapters.pubsub,
+    blobs: t.adapters.platformBlobs,
     hub: t.engine.machineHub,
   };
   const app = createOperatorApp(deps, TOKEN);
@@ -1408,6 +1409,62 @@ test("work analytics: fleet-wide and one workspace's; 401 without the token, 400
   expect(fleet.workspaces.map((w) => w.orgId)).toContain(acme.orgId);
   const after = await agentTokens();
   expect([after.input - before.input, after.output - before.output]).toEqual([40, 2]);
+});
+
+test("a workspace's look (ADR 0193): logo and accent set, kept or cleared, as the system, seen by its members", async () => {
+  const READ = "operator-read-token-".padEnd(48, "x");
+  const app = createOperatorApp(deps, TOKEN, READ);
+  const call = (json: unknown, orgId = acme.orgId, authorization: string | null = BEARER) =>
+    app.request(`/api/operator/v1/orgs/${orgId}/look`, {
+      method: "PUT",
+      headers: { ...(authorization === null ? {} : { authorization }), "content-type": "application/json" },
+      body: JSON.stringify(json),
+    });
+  const refusal = async (res: Response) => [res.status, ((await res.json()) as { error: { code: string } }).error.code];
+  const JPEG = Buffer.from([
+    0xff, 0xd8, 0xff, 0xe1, 0x00, 0x08, 0x45, 0x78, 0x69, 0x66, 0x00, 0x00, 0xff, 0xda, 0x00, 0x02, 0x01, 0xff, 0xd9,
+  ]).toString("base64");
+  const seen = async () =>
+    (
+      (await (await owner("/api/app/me")).json()) as { organizations: { id: string; logo?: string; accent?: string }[] }
+    ).organizations
+      .filter((o) => o.id === acme.orgId)
+      .map((o) => ({ logo: o.logo ?? null, accent: o.accent ?? null }))[0];
+
+  expect(await refusal(await call({ accent: "#7c3aed" }, acme.orgId, null))).toEqual([401, "unauthorized"]);
+  expect(await refusal(await call({ accent: "#7c3aed" }, acme.orgId, `Bearer ${READ}`))).toEqual([403, "forbidden"]);
+  expect(await refusal(await call({}, "0b0b0b0b-0b0b-4b0b-8b0b-0b0b0b0b0b0b"))).toEqual([404, "not_found"]);
+  for (const bad of [{ accent: "purple" }, { logo: { contentType: "image/gif", base64: JPEG } }, { logo: "x" }]) {
+    expect({ bad, status: (await call(bad)).status }).toEqual({ bad, status: 400 });
+  }
+  // Bytes that aren't the declared image: the logo's own refusal, and the accent beside it is left alone.
+  const svg = { contentType: "image/png", base64: Buffer.from("<svg/>").toString("base64") };
+  expect(await refusal(await call({ accent: "#7c3aed", logo: svg }))).toEqual([400, "logo.type"]);
+  expect(await seen()).toEqual({ logo: null, accent: null });
+
+  const both = await body<{ logo: string; accent: string }>(
+    await call({ accent: "#F97316", logo: { contentType: "image/jpeg", base64: JPEG } }),
+  );
+  expect(both).toEqual({ accent: "#f97316", logo: expect.stringContaining(`/api/app/org-logos/${acme.orgId}/`) });
+  expect(await seen()).toEqual(both);
+  expect((await owner(both.logo)).status).toBe(200);
+
+  // An absent field is left alone; null clears it.
+  expect(await body(await call({ accent: null }))).toEqual({ accent: null, logo: both.logo });
+  expect(await body(await call({ logo: null }))).toEqual({ accent: null, logo: null });
+  expect(await body(await call({}))).toEqual({ accent: null, logo: null });
+
+  const audit = await t.db
+    .select({ action: schema.auditLog.action, actorType: schema.auditLog.actorType })
+    .from(schema.auditLog)
+    .where(eq(schema.auditLog.orgId, acme.orgId))
+    .orderBy(schema.auditLog.id);
+  expect(audit.filter((a) => a.action.startsWith("organization.logo") || a.action.endsWith("accent_changed"))).toEqual([
+    { action: "organization.logo_changed", actorType: "system" },
+    { action: "organization.accent_changed", actorType: "system" },
+    { action: "organization.accent_changed", actorType: "system" },
+    { action: "organization.logo_removed", actorType: "system" },
+  ]);
 });
 
 test("the OpenAPI document is the committed contract (ADR 0056)", async () => {

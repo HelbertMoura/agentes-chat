@@ -11587,6 +11587,17 @@
     "saved": "Logo actualizado.",
     "removed": "Logo quitado."
   },
+  "orgAccent": {
+    "label": "Color de acento",
+    "change": "Cambiar color",
+    "useDefault": "Usar el predeterminado",
+    "suggested": "Colores sugeridos",
+    "sampleMention": "@Agente",
+    "sampleLink": "Un enlace",
+    "save": "Guardar color",
+    "saved": "Color de acento actualizado.",
+    "reset": "De vuelta al color predeterminado."
+  },
   "look": {
     "previous": "Anterior",
     "next": "Siguiente",
@@ -17035,6 +17046,7 @@
     "removed": "Eliminado",
     "change": {
       "mergedWithoutAsking": "Hizo merge en {{repo}} sin preguntar",
+      "accentChanged": "Cambió el color de acento del espacio de trabajo",
       "pattern": "{{verb}} {{area}}",
       "approval": {
         "approved": "Aprobó una solicitud",
