@@ -2490,6 +2490,9 @@
   "find.action.newAgent": {
     "value": "Create agent"
   },
+  "find.usageKeywords": {
+    "value": "quota quotas limit limits usage tokens cost spending"
+  },
   "channelRef.list": {
     "value": "Channels"
   },
