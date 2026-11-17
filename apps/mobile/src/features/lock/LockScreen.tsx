@@ -1,3 +1,4 @@
+import { TrueSheetOverlay } from "@lodev09/react-native-true-sheet";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, View } from "react-native";
@@ -11,6 +12,9 @@ const LOGO = 72;
 /**
  * The app lock over everything (ADR 0220): the mark and Desbloquear, on the app's background so nothing of the app
  * shows under it. Out of sight it covers alone; Desbloquear appears once proof is needed. Mounted once, at the root.
+ * It is drawn in TrueSheet's overlay, a native layer the library keeps above every sheet it presents (the app's sheets
+ * are all TrueSheet), and mounted only while it shows, so it lands on top of whatever is presented then (a screen
+ * presented whole, the splash included).
  */
 export function LockScreen() {
   const { t } = useTranslation();
@@ -24,21 +28,23 @@ export function LockScreen() {
     void unlock(t("mobile.lock.prompt")).finally(() => setBusy(false));
   };
   return (
-    <View style={[StyleSheet.absoluteFill, styles.center, { backgroundColor: colors.bg }]} accessibilityViewIsModal>
-      <LogoMark size={LOGO} />
-      {lock.locked ? (
-        <View style={styles.action}>
-          <Button
-            variant="primary"
-            wide
-            label={t("mobile.lock.unlock")}
-            loading={busy}
-            disabled={busy}
-            onPress={open}
-          />
-        </View>
-      ) : null}
-    </View>
+    <TrueSheetOverlay>
+      <View style={[StyleSheet.absoluteFill, styles.center, { backgroundColor: colors.bg }]} accessibilityViewIsModal>
+        <LogoMark size={LOGO} />
+        {lock.locked ? (
+          <View style={styles.action}>
+            <Button
+              variant="primary"
+              wide
+              label={t("mobile.lock.unlock")}
+              loading={busy}
+              disabled={busy}
+              onPress={open}
+            />
+          </View>
+        ) : null}
+      </View>
+    </TrueSheetOverlay>
   );
 }
 
