@@ -297,6 +297,7 @@ export function AgentsScreen() {
             gazeOf={gazeOf}
             onRoutine={onRoutine}
             now={now}
+            searching={searching}
           />
         ) : null}
         {archived.length > 0 ? (
@@ -385,6 +386,7 @@ function FreeSections({
   gazeOf,
   onRoutine,
   now,
+  searching,
 }: {
   free: TeamLine[];
   groups: AgentGroup[];
@@ -393,6 +395,8 @@ function FreeSections({
   gazeOf: (id: string) => Gaze | undefined;
   onRoutine: ReadonlyMap<string, string>;
   now: number;
+  /** While the search has words, every sector stays open: a match in a collapsed one is in sight. */
+  searching: boolean;
 }) {
   const { t } = useTranslation();
   // A personal workspace's free agents are its person's, not a team (ADR 0159).
@@ -426,7 +430,7 @@ function FreeSections({
             key={group.id}
             title={group.name}
             count={lines.length}
-            collapsed={collapsed.includes(group.id)}
+            collapsed={!searching && collapsed.includes(group.id)}
             onToggle={() => toggle(group.id)}
             {...(manages
               ? { menu: { label: t("agentGroups.options", { name: group.name }), onPress: () => sectorMenu(group) } }

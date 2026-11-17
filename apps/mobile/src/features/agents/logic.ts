@@ -32,11 +32,14 @@ import { daysAgo, previewOf } from "../shared/logic";
 
 export { type WorkItem, workByAgent, workingNow } from "@agenteschat/client/lib/working";
 
-/** The agents Agentes' search keeps: by name, @ and role, ignoring case and accents ("ana" finds "Ána"). */
+/** The agents Agentes' search keeps: by name, @ and role, ignoring case and accents ("ana" and "@ana" find "Ána"). */
 export const findAgents = <A extends Pick<Agent, "name" | "role"> & { handle?: string }>(
   agents: readonly A[],
   q: string,
-): A[] => agents.filter((a) => matches(q, a.name, a.handle, a.role));
+): A[] => {
+  const words = q.trim().replace(/^@/, "");
+  return agents.filter((a) => matches(words, a.name, a.handle, a.role));
+};
 
 /** Agents with something in progress. */
 export const busyAgents = (work: WorkItem[]) => new Set(work.map((w) => w.agentId));

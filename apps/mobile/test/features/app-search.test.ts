@@ -25,6 +25,7 @@ describe("Agentes' search", () => {
   test("by name, @ and role, ignoring case and accents; no words keeps everyone", () => {
     expect(findAgents(agents, "ANA").map((a) => a.handle)).toEqual(["ana"]);
     expect(findAgents(agents, "dev-").map((a) => a.handle)).toEqual(["dev-bruno"]);
+    expect(findAgents(agents, " @ana").map((a) => a.handle)).toEqual(["ana"]);
     expect(findAgents(agents, "engenharia").map((a) => a.handle)).toEqual(["dev-bruno"]);
     expect(findAgents(agents, "  ")).toEqual(agents);
     expect(findAgents(agents, "ninguém")).toEqual([]);

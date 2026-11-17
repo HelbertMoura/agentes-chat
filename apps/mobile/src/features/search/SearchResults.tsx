@@ -3,7 +3,7 @@ import { hitText } from "@agenteschat/client/lib/media";
 import { previewBody } from "@agenteschat/client/lib/message-body";
 import { makesAgents } from "@agenteschat/client/lib/permissions";
 import { searchTerms } from "@agenteschat/client/lib/search-filters";
-import type { ReactNode } from "react";
+import { type ReactNode, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, View } from "react-native";
 import { useOrg } from "@/providers/org";
@@ -42,7 +42,8 @@ export function SearchResults({ q }: { q: string }) {
   const words = Boolean(q.trim());
   // The wiki's titles only once there are words (as the web's palette, only while it is open).
   const wiki = useWikiTree(orgId, words);
-  const places = findDestinations(q, destinations(t, org, wiki.data ?? []));
+  const all = useMemo(() => destinations(t, org, wiki.data ?? []), [t, org, wiki.data]);
+  const places = findDestinations(q, all);
   const labels: Record<SearchAction, string> = {
     newConversation: t("mobile.find.action.newConversation"),
     newTask: t("mobile.find.action.newTask"),
