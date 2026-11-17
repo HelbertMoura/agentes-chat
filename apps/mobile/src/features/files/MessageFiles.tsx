@@ -287,8 +287,12 @@ function InlineAudio({
 }) {
   const line = useFileLine();
   const info = detail ? fileInfo(detail) : null;
+  const openLooked = useOpenFile();
+  // Its details may not be here yet: the tap still opens, reading them first.
   const open = () => {
-    if (detail) openFile({ id: file.id, version: file.version, title: file.title, detail });
+    const ref = { id: file.id, version: file.version, title: file.title };
+    if (detail) openFile({ ...ref, detail });
+    else void openLooked(ref);
   };
   return (
     <View style={{ width }}>
@@ -297,7 +301,7 @@ function InlineAudio({
         version={file.version}
         name={info?.name || file.title}
         {...(info ? { line: line(info) } : {})}
-        onOpen={detail ? open : undefined}
+        onOpen={open}
       />
     </View>
   );
