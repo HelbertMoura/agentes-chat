@@ -16,6 +16,9 @@ import { CODEX_MCP_SERVER } from "./mcp";
 const settingsFile = (home: string) => path.join(home, ".gemini", "antigravity-cli", "settings.json");
 const configDir = (home: string) => path.join(home, ".gemini", "config");
 
+/** The account's one allow rule: our server's tools without asking. */
+export const AGY_MCP_RULE = `mcp(${CODEX_MCP_SERVER}/*)`;
+
 /** The agent Lodi's turns run as (`--agent`): no built-in tool, our server's alone. */
 export const AGY_CHAT_AGENT = "agenteschat-chat";
 
@@ -75,7 +78,7 @@ export function writeAgySettings(home: string, auth?: AgyAuth, gcp?: Record<stri
     showFeedbackSurvey: false,
     notifications: false,
     artifactReviewPolicy: "always-proceed",
-    permissions: { allow: [`mcp(${CODEX_MCP_SERVER}/*)`] },
+    permissions: { allow: [AGY_MCP_RULE] },
   };
   writeIfChanged(settingsFile(home), `${JSON.stringify(settings, null, 2)}\n`);
   mkdirSync(agyRuntimeDir(home), { recursive: true, mode: 0o700 });

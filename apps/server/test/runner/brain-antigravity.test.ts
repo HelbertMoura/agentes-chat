@@ -32,6 +32,7 @@ import {
   writeAgySettings,
 } from "../../runner/agy-home";
 import {
+  AGY_WORK_SETTINGS,
   type AntigravityBrainContext,
   type AntigravityBrainTurnRequest,
   antigravityChatBreach,
@@ -77,6 +78,11 @@ test("command line: headless stream-json in the sandbox; work takes edits, plan 
   const work = antigravityTurnArgs({ prompt: "oi", model: "gemini-4-argon-high", chat: FIRST, effort: "max" });
   expect(work.slice(0, 4)).toEqual(["-p", "oi", "--output-format", "stream-json"]);
   expect(work.join(" ")).toContain("--sandbox --disable-slash-commands --mode accept-edits");
+  // Commands for this session alone (CLI 1.5.8 refuses them headless otherwise), our server's rule kept beside them.
+  expect(work[work.indexOf("--settings") + 1]).toBe(AGY_WORK_SETTINGS);
+  expect(JSON.parse(AGY_WORK_SETTINGS)).toEqual({
+    permissions: { allow: [`mcp(${CODEX_MCP_SERVER}/*)`, "command(*)"] },
+  });
   expect(work.join(" ")).toContain("--model gemini-4-argon-high");
   // A slug names its thinking level: no `--effort` beside it, the extra one (`xhigh`) included.
   expect(work).not.toContain("--effort");
@@ -88,9 +94,11 @@ test("command line: headless stream-json in the sandbox; work takes edits, plan 
   const plan = antigravityTurnArgs({ prompt: "oi", profile: "plan" }).join(" ");
   expect(plan).not.toContain("--mode");
   expect(plan).not.toContain("--dangerously-skip-permissions");
+  expect(plan).not.toContain("--settings");
   const chat = antigravityTurnArgs({ prompt: "oi", locked: true }).join(" ");
   expect(chat).toContain(`--agent ${AGY_CHAT_AGENT}`);
   expect(chat).not.toContain("accept-edits");
+  expect(chat).not.toContain("--settings");
 });
 
 test("the account's home: what a turn planted goes, our settings, our server alone and Lodi's agent; the sign-in stays", () => {
