@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { MIN_ROOM, pillRoom, switchFits } from "../src/features/chat/headerRoom";
+import { facesFit, MIN_ROOM, pillRoom, switchFits } from "../src/features/chat/headerRoom";
 
 describe("the chat bar's room for the switch button", () => {
   test("the pill's room shrinks by a button's 44 and never under its floor", () => {
@@ -31,5 +31,13 @@ describe("the chat bar's room for the switch button", () => {
 
   test("the right hand's DM (no computer button) and an agent DM without a computer keep it on 390, 393 and 402", () => {
     for (const screen of [390, 393, 402]) expect(switchFits(screen, 0)).toBe(true);
+  });
+
+  test("the member faces show only with a room of 160 or more, so the name keeps it on a 360 phone", () => {
+    expect(facesFit(160)).toBe(true);
+    expect(facesFit(159)).toBe(false);
+    // 360 with the switch and search buttons: the pill is at its floor, no faces.
+    expect(facesFit(pillRoom(360, 2))).toBe(false);
+    expect(facesFit(pillRoom(411, 1))).toBe(true);
   });
 });
