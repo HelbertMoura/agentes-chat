@@ -263,6 +263,9 @@ function Viewer({
             onPress={actions.savePhotos}
           />
           <Action icon="drive" label={t("mobile.files.drive")} disabled={!detail} onPress={actions.drive} />
+          {actions.mayTrash ? (
+            <Action icon="trash" label={t("artifacts.delete")} onPress={() => actions.trash(close)} />
+          ) : null}
         </View>
       </Chrome>
     </View>
