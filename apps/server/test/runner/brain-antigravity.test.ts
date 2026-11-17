@@ -1,7 +1,9 @@
 import { afterEach, expect, test } from "bun:test";
 import { spawn } from "node:child_process";
+import { EventEmitter } from "node:events";
 import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { PassThrough } from "node:stream";
 import { accountCodeAad } from "@agenteschat/adapters/machine-protocol";
 import { cutAtWord } from "@agenteschat/adapters/redact";
 import { sealSecret } from "@agenteschat/adapters/secret-box";
@@ -30,6 +32,7 @@ import {
   writeAgySettings,
 } from "../../runner/agy-home";
 import {
+  AGY_FOLLOW_UP,
   AGY_WORK_SETTINGS,
   type AntigravityBrainContext,
   type AntigravityBrainTurnRequest,
@@ -40,8 +43,9 @@ import {
   handleAntigravityBrainTurn,
   isOurAgyTool,
   parseAgyError,
+  runAntigravityTurn,
 } from "../../runner/brain-antigravity";
-import type { CodexBrainEvent } from "../../runner/brain-codex";
+import { type CodexBrainEvent, CodexThreads } from "../../runner/brain-codex";
 import { detectExecutors, parseAgyModels } from "../../runner/executors";
 import { CODEX_MCP_SERVER } from "../../runner/mcp";
 import { antigravityUsage, resetFromWords } from "../../runner/plan-usage";
@@ -758,3 +762,92 @@ test.skipIf(!posix)(
   },
   45_000,
 );
+
+/** A spawn that answers each run with the NDJSON lines given for it, in order. */
+function scriptedSpawn(runs: unknown[][]) {
+  const calls: string[][] = [];
+  const fn = ((_cmd: string, args: string[]) => {
+    const lines = runs[calls.length] ?? [];
+    calls.push(args);
+    const child = Object.assign(new EventEmitter(), {
+      stdout: new PassThrough(),
+      stderr: new PassThrough(),
+      kill: () => true,
+    });
+    setTimeout(() => {
+      for (const l of lines)
+        child.stdout.write(`${JSON.stringify(l)}
+`);
+      child.stdout.end();
+      child.stderr.end();
+      setTimeout(() => child.emit("close", 0), 5);
+    }, 1);
+    return child;
+  }) as unknown as Spawn;
+  return { fn, calls };
+}
+
+test("a turn that used tools and wrote nothing gets one follow-up on its conversation; its text is the reply", async () => {
+  const root = tempDir("agy-follow-");
+  dirs.push(root);
+  const done = (usage: number) => ({
+    event: "step_update",
+    step_update: { step_type: "agent_response", state: "DONE", usage: { input_tokens: usage, output_tokens: usage } },
+  });
+  const { fn, calls } = scriptedSpawn([
+    [
+      { event: "init", conversation_id: FIRST, init: { tools: [] } },
+      {
+        event: "step_update",
+        step_update: {
+          step_type: "tool",
+          state: "DONE",
+          tool_name: `${CODEX_MCP_SERVER}__post_message`,
+          tool_info: { name: "post_message", output: "ok" },
+        },
+      },
+      done(10),
+      { event: "result", result: { status: "SUCCESS", response: "" } },
+    ],
+    [
+      { event: "init", conversation_id: FIRST, init: { tools: [] } },
+      { event: "step_update", step_update: { step_type: "agent_response", text_delta: "Feito: 1 item." } },
+      done(5),
+      { event: "result", result: { status: "SUCCESS", response: "Feito: 1 item." } },
+    ],
+    [{ event: "result", result: { status: "SUCCESS", response: "never" } }],
+  ]);
+  const events: CodexBrainEvent[] = [];
+  await runAntigravityTurn(
+    {
+      runId: RUN,
+      sessionId: SESSION,
+      cwd: root,
+      model: "gemini-4-hydrogen-high",
+      system: "You are Dev.",
+      prompt: "check the issues",
+      mcp: { token: "tok_run" },
+      account: { id: ACCOUNT, home: path.join(root, "home") },
+    },
+    {
+      chats: new CodexThreads(path.join(root, "chats.json")),
+      emit: (e) => events.push(e),
+      signal: new AbortController().signal,
+      bin: "/usr/bin/agy",
+      spawn: fn,
+      platform: "linux",
+    },
+  );
+  expect(calls).toHaveLength(2);
+  const follow = calls[1] ?? [];
+  expect(follow[follow.indexOf("-p") + 1]).toBe(AGY_FOLLOW_UP);
+  expect(follow.join(" ")).toContain(`--conversation ${FIRST}`);
+  expect(follow.join(" ")).toContain("--model gemini-4-hydrogen-high");
+  expect(follow).toContain("--settings");
+  expect(events.filter((e) => e.type === "text_delta")).toEqual([{ type: "text_delta", text: "Feito: 1 item." }]);
+  // One usage for the whole turn: both runs.
+  expect(events.filter((e) => e.type === "usage")).toEqual([
+    { type: "usage", input: 15, output: 15, source: "plan", model: "gemini-4-hydrogen-high" },
+  ]);
+  expect(events.at(-1)).toEqual({ type: "done", text: "Feito: 1 item.", session: { id: SESSION } });
+});
