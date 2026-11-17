@@ -16,6 +16,8 @@ const plugin = require("../plugins/with-app-shortcuts") as {
   stringName: (id: string) => string;
   shortcutUrl: (id: string) => string;
   valuesDir: (locale: string) => string;
+  SHORT_LABELS: Record<string, Record<string, string>>;
+  shortName: (id: string) => string;
   shortcutsXml: (appPackage: string) => string;
   labelsXml: (locale: string) => string;
   attachShortcuts: (manifest: Manifest) => Manifest;
@@ -37,7 +39,7 @@ const metaOf = (n: Node) => (n["meta-data"] as Node[] | undefined)?.map((m) => m
 describe("launcher shortcuts (long press on the app icon)", () => {
   test("every link becomes the app's own path, never the URL", () => {
     for (const id of plugin.SHORTCUTS) expect(shortcutHref(plugin.shortcutUrl(id))).not.toBeNull();
-    expect(shortcutHref("agenteschat:///shortcut/approvals")).toBe("/activity?filter=waiting");
+    expect(shortcutHref("agenteschat:///shortcut/approvals")).toMatch(/^\/activity\?filter=waiting&at=\d+$/);
     expect(shortcutHref("agenteschat://shortcut/new-task")).toBe("/issues/new");
     expect(shortcutHref("/shortcut/right-hand")).toBe("/link?rightHand=1");
     expect(shortcutHref("agenteschat:///shortcut/other")).toBeNull();
@@ -68,6 +70,13 @@ describe("launcher shortcuts (long press on the app icon)", () => {
     expect(pt).toContain('<string name="shortcut_right_hand">Braço direito</string>');
     for (const [locale, words] of Object.entries(plugin.LABELS))
       for (const id of plugin.SHORTCUTS) expect(words[id]?.length, `${locale}/${id}`).toBeGreaterThan(0);
+    // The short labels stay within Android's advised 10 characters.
+    expect(pt).toContain('<string name="shortcut_new_task_short">Tarefa</string>');
+    for (const [locale, words] of Object.entries(plugin.LABELS))
+      for (const id of plugin.SHORTCUTS) {
+        const short = plugin.SHORT_LABELS[locale]?.[id] ?? words[id] ?? "";
+        expect(Array.from(short).length, `${locale}/${id}`).toBeLessThanOrEqual(10);
+      }
     expect(new Set(Object.keys(plugin.LABELS).map(plugin.valuesDir)).size).toBe(Object.keys(plugin.LABELS).length);
   });
 

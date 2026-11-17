@@ -45,6 +45,21 @@ const LABELS = {
   ru: { approvals: "Одобрения", "new-task": "Новая задача", "right-hand": "Правая рука" },
 };
 
+/**
+ * The short label (Android advises 10 characters) where the full one is longer; the others use the full label.
+ */
+const SHORT_LABELS = {
+  "pt-BR": { "new-task": "Tarefa", "right-hand": "Braço dir." },
+  es: { approvals: "Aprobar", "new-task": "Tarea", "right-hand": "Mano der." },
+  fr: { approvals: "Approuver", "new-task": "Tâche" },
+  de: { "new-task": "Aufgabe", "right-hand": "Rechte Hd." },
+  it: { approvals: "Approva", "new-task": "Attività", "right-hand": "Braccio dx" },
+  nl: { approvals: "Akkoord", "new-task": "Taak", "right-hand": "Rechterh." },
+  id: { approvals: "Setujui", "right-hand": "Tgn kanan" },
+  pl: { approvals: "Zatwierdź", "new-task": "Zadanie" },
+  ru: { "new-task": "Задача", "right-hand": "Пр. рука" },
+};
+
 const DEFAULT_LOCALE = "en";
 const RESOURCE = "@xml/shortcuts";
 const META = "android.app.shortcuts";
@@ -52,6 +67,8 @@ const LAUNCHER = "android.intent.category.LAUNCHER";
 
 /** A shortcut's string resource (`approvals` → `shortcut_approvals`, `new-task` → `shortcut_new_task`). */
 const stringName = (id) => `shortcut_${id.replace(/-/g, "_")}`;
+/** Its short label's string resource. */
+const shortName = (id) => `${stringName(id)}_short`;
 /** Its link: the app's own scheme with the path `shortcutHref` reads. */
 const shortcutUrl = (id) => `${SCHEME}:///${PREFIX}/${id}`;
 
@@ -75,7 +92,7 @@ function shortcutsXml(appPackage) {
     (id) => `    <shortcut
         android:shortcutId="${id}"
         android:enabled="true"
-        android:shortcutShortLabel="@string/${stringName(id)}"
+        android:shortcutShortLabel="@string/${shortName(id)}"
         android:shortcutLongLabel="@string/${stringName(id)}">
         <intent
             android:action="android.intent.action.VIEW"
@@ -94,7 +111,10 @@ ${items.join("\n")}
 /** One language's `strings` file with the labels. */
 function labelsXml(locale) {
   const labels = LABELS[locale];
-  const lines = SHORTCUTS.map((id) => `    <string name="${stringName(id)}">${escapeXml(labels[id])}</string>`);
+  const lines = SHORTCUTS.flatMap((id) => [
+    `    <string name="${stringName(id)}">${escapeXml(labels[id])}</string>`,
+    `    <string name="${shortName(id)}">${escapeXml(SHORT_LABELS[locale]?.[id] ?? labels[id])}</string>`,
+  ]);
   return `<?xml version="1.0" encoding="utf-8"?>
 <resources>
 ${lines.join("\n")}
@@ -146,6 +166,8 @@ module.exports.SCHEME = SCHEME;
 module.exports.PREFIX = PREFIX;
 module.exports.SHORTCUTS = SHORTCUTS;
 module.exports.LABELS = LABELS;
+module.exports.SHORT_LABELS = SHORT_LABELS;
+module.exports.shortName = shortName;
 module.exports.DEFAULT_LOCALE = DEFAULT_LOCALE;
 module.exports.stringName = stringName;
 module.exports.shortcutUrl = shortcutUrl;

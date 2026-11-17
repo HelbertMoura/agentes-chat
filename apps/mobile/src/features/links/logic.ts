@@ -180,7 +180,8 @@ export function shortcutHref(url: string): string | null {
   const m = /^(?:agenteschat:\/\/)?\/*shortcut\/([a-z-]+)\/?(?:[?#].*)?$/i.exec(url.trim());
   switch (m?.[1]?.toLowerCase()) {
     case "approvals":
-      return "/activity?filter=waiting";
+      // `at` makes each use re-select "Esperando você" (ActivityScreen re-applies the filter when it changes).
+      return `/activity?filter=waiting&at=${Date.now()}`;
     case "new-task":
       return "/issues/new";
     case "right-hand":
