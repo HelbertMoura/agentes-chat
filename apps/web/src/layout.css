@@ -2097,7 +2097,7 @@ html:not([data-pointer]) .artifact-tile__open:focus-visible {
   display: flex;
   align-items: flex-start;
   gap: var(--space-2);
-  padding: 0 0 2px 46px;
+  padding: 0 0 2px var(--voice-text-inset);
 }
 .artifact-audio__name {
   flex: 1;
