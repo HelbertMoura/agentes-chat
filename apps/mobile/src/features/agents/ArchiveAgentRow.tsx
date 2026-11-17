@@ -14,7 +14,16 @@ import { successHaptic } from "../shared/parts";
  * chats, memory and history kept), the screen closes on Agentes and the toast's Desfazer brings it back. Restoring
  * later is Agentes' swipe. Shown only to who manages agents, never for the right hand (the caller decides).
  */
-export function ArchiveAgentRow({ agentId, name }: { agentId: string; name: string }) {
+export function ArchiveAgentRow({
+  agentId,
+  name,
+  onLeave,
+}: {
+  agentId: string;
+  name: string;
+  /** Before the screen closes: a screen with unsaved edits lets them go (they leave with the agent), never asking. */
+  onLeave?: () => void;
+}) {
   const { t } = useTranslation();
   const api = useApi();
   const qc = useQueryClient();
@@ -43,6 +52,7 @@ export function ArchiveAgentRow({ agentId, name }: { agentId: string; name: stri
           },
         });
         refresh();
+        onLeave?.();
         router.dismissTo("/agents");
       },
       onError: (e) => toast({ title: errorText(t, e), icon: "x" }),

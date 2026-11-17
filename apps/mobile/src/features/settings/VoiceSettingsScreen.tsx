@@ -124,6 +124,8 @@ function SpeechEngine({ view }: { view: SpeechKey }) {
         successHaptic();
         setValue("");
         setTested(true);
+        // The key typed never stays in the mutation's state.
+        save.reset();
       },
       onError: (e) => setError(errorText(t, e)),
     });

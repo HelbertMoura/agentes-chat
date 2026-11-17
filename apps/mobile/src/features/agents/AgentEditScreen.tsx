@@ -334,7 +334,7 @@ export function AgentEditScreen({ id }: { id: string }) {
         <>
           <Gap />
           <GroupedList>
-            <ArchiveAgentRow agentId={id} name={agent.name} />
+            <ArchiveAgentRow agentId={id} name={agent.name} onLeave={leave} />
             <GroupedRow
               icon="x"
               label={t("agentPage.delete.action", agentGrammar(agent.name))}
