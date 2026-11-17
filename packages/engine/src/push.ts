@@ -303,12 +303,12 @@ export interface PushDelivery {
 /**
  * The app's notification category for a push (iOS `aps.category`, Android `categoryId`): the buttons it shows on the
  * lock screen. A device's notice has its own (Stop; Let it join, Deny; Allow once, No), by its kind. An approval that
- * isn't high risk has Aprovar and Recusar, decided without opening the app (ADR 0035 addendum); a high-risk one has
- * none, so it is only ever approved in the app.
+ * isn't high risk has Recusar, decided without opening the app, and Aprovar, which opens its card (ADR 0035
+ * addendum); a high-risk one, or one whose risk isn't known, has none.
  */
-export function pushCategory(kind: string, highRisk: boolean): string | undefined {
+export function pushCategory(kind: string, highRisk: boolean, approvalId?: string | null): string | undefined {
   if (kind.startsWith("device.")) return kind;
-  if (kind === "approval" && !highRisk) return APPROVAL_PUSH_CATEGORY;
+  if (kind === "approval" && approvalId && !highRisk) return APPROVAL_PUSH_CATEGORY;
   return undefined;
 }
 
@@ -468,12 +468,16 @@ export async function deliverPush(
   const actor = row.actors[0];
   const name = await actorName(db, row.orgId, actor);
   let highRisk = false;
+  // The buttons follow the risk the Tool Gateway stored with the request (`approvals.high_risk`), and the card's rule
+  // besides; anything unknown has none. The words keep the card's rule alone.
+  let buttonsRisk = true;
   if (row.kind === "approval" && source.approvalId) {
     const [approval] = await db
-      .select({ tool: approvals.tool, scope: approvals.scope })
+      .select({ tool: approvals.tool, scope: approvals.scope, highRisk: approvals.highRisk })
       .from(approvals)
       .where(and(eq(approvals.orgId, row.orgId), eq(approvals.id, source.approvalId)));
     highRisk = approval ? approvalIsHighRisk(approval) : true;
+    buttonsRisk = !approval || approval.highRisk || highRisk;
   }
   const data: Record<string, unknown> = { orgId: row.orgId, kind: row.kind, notificationId: row.id };
   if (deps.server) data.server = deps.server;
@@ -510,7 +514,7 @@ export async function deliverPush(
   let phoneRequestFailed = false;
 
   if (deps.push && phones.length > 0) {
-    const category = pushCategory(row.kind, highRisk);
+    const category = pushCategory(row.kind, buttonsRisk, source.approvalId);
     const messages: PushMessage[] = phones.map((d) => ({
       to: d.token,
       platform: d.platform === "ios" ? "ios" : "android",

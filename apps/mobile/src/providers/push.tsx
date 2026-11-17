@@ -147,8 +147,8 @@ export function PushProvider({ children }: { children: ReactNode }) {
       } catch {
         // Nothing kept to clear.
       }
-      // Aprovar or Recusar on an approval's notification: decided where the app is, and nothing opens (ADR 0035
-      // addendum). On Android the background task may have taken it first.
+      // Recusar on an approval's notification: refused where the app is, and nothing opens (ADR 0035 addendum). On
+      // Android the background task may have taken it first. Aprovar goes on as a tap: the request's card opens.
       const pressed = pressedButton(response);
       if (pressed && decideFromPush(pressed)) return;
       const data = readPushData(response.notification.request.content.data);
