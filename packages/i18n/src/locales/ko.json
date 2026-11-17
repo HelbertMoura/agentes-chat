@@ -16028,6 +16028,34 @@
     },
     "system": "시스템",
     "removed": "삭제됨",
+    "operatorRead": {
+      "sentence": "{{who}}이 {{what}} 읽었어요",
+      "who": {
+        "server": "이 서버를 운영하는 사람",
+        "cloud": "agentes.chat 지원팀"
+      },
+      "what": {
+        "message": "메시지 한 건을",
+        "run_step": "에이전트 작업의 한 단계를",
+        "agent": "에이전트의 지침을",
+        "routine": "루틴 하나를",
+        "task": "백그라운드 작업 하나를",
+        "channel": "채널 이름을",
+        "connection": "연결 정보를",
+        "support_request": "지원 요청 한 건을",
+        "direct": "비공개 대화의 내용을",
+        "other": "워크스페이스의 내용을"
+      },
+      "request": {
+        "plain": "{{name}}님의 요청",
+        "app": "{{name}}님의 요청, 앱에서 보냄",
+        "email": "{{name}}님의 요청, 이메일로 보냄",
+        "operator": "{{name}}님의 요청, 이 서버를 운영하는 사람이 기록",
+        "support": "{{name}}님의 요청, 지원팀이 기록"
+      },
+      "fault": "실패했거나 멈춘 실행을 진단하기 위해",
+      "ai": "AI 어시스턴트 사용"
+    },
     "change": {
       "mergedWithoutAsking": "{{repo}}에서 묻지 않고 병합했어요",
       "accentChanged": "워크스페이스의 강조 색상을 변경했어요",

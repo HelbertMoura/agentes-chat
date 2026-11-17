@@ -628,6 +628,7 @@ async function boot(
         hub: engine.machineHub,
         emails: adapters.email.delivers,
         humanCheck: adapters.humanCheck,
+        rateLimiter: adapters.rateLimiter,
         sessions: engine.sessions,
       });
   if (operator) {

@@ -17710,6 +17710,34 @@
     },
     "system": "System",
     "removed": "Usunięte",
+    "operatorRead": {
+      "sentence": "{{who}}: odczytano {{what}}",
+      "who": {
+        "server": "Osoba zarządzająca tym serwerem",
+        "cloud": "Wsparcie agentes.chat"
+      },
+      "what": {
+        "message": "jedną wiadomość",
+        "run_step": "krok pracy agenta",
+        "agent": "instrukcje agenta",
+        "routine": "jedną rutynę",
+        "task": "zadanie w tle",
+        "channel": "nazwę kanału",
+        "connection": "dane połączenia",
+        "support_request": "prośbę o wsparcie",
+        "direct": "coś z rozmowy prywatnej",
+        "other": "coś z przestrzeni roboczej"
+      },
+      "request": {
+        "plain": "na prośbę osoby: {{name}}",
+        "app": "na prośbę osoby: {{name}}, wysłaną z aplikacji",
+        "email": "na prośbę osoby: {{name}}, wysłaną e-mailem",
+        "operator": "na prośbę osoby: {{name}}, zapisaną przez osobę zarządzającą tym serwerem",
+        "support": "na prośbę osoby: {{name}}, zapisaną przez wsparcie"
+      },
+      "fault": "aby zdiagnozować nieudane lub zawieszone uruchomienie",
+      "ai": "z pomocą asystenta AI"
+    },
     "change": {
       "mergedWithoutAsking": "Scalono w {{repo}} bez pytania",
       "accentChanged": "Zmieniono kolor akcentu przestrzeni roboczej",

@@ -40901,6 +40901,66 @@
   "audit.removed": {
     "value": "Removed"
   },
+  "audit.operatorRead.sentence": {
+    "value": "{{who}} read {{what}}"
+  },
+  "audit.operatorRead.who.server": {
+    "value": "Whoever runs this server"
+  },
+  "audit.operatorRead.who.cloud": {
+    "value": "agentes.chat support"
+  },
+  "audit.operatorRead.what.message": {
+    "value": "a message"
+  },
+  "audit.operatorRead.what.run_step": {
+    "value": "a step of an agent's work"
+  },
+  "audit.operatorRead.what.agent": {
+    "value": "an agent's instructions"
+  },
+  "audit.operatorRead.what.routine": {
+    "value": "a routine"
+  },
+  "audit.operatorRead.what.task": {
+    "value": "a background task"
+  },
+  "audit.operatorRead.what.channel": {
+    "value": "a channel's name"
+  },
+  "audit.operatorRead.what.connection": {
+    "value": "a connection's details"
+  },
+  "audit.operatorRead.what.support_request": {
+    "value": "a support request"
+  },
+  "audit.operatorRead.what.direct": {
+    "value": "something in a private conversation"
+  },
+  "audit.operatorRead.what.other": {
+    "value": "something in the workspace"
+  },
+  "audit.operatorRead.request.plain": {
+    "value": "at {{name}}'s request"
+  },
+  "audit.operatorRead.request.app": {
+    "value": "at {{name}}'s request, sent from the app"
+  },
+  "audit.operatorRead.request.email": {
+    "value": "at {{name}}'s request, sent by email"
+  },
+  "audit.operatorRead.request.operator": {
+    "value": "at {{name}}'s request, recorded by whoever runs this server"
+  },
+  "audit.operatorRead.request.support": {
+    "value": "at {{name}}'s request, recorded by support"
+  },
+  "audit.operatorRead.fault": {
+    "value": "to diagnose a failed or stuck run"
+  },
+  "audit.operatorRead.ai": {
+    "value": "with an AI assistant"
+  },
   "audit.change.mergedWithoutAsking": {
     "value": "Merged in {{repo}} without asking"
   },

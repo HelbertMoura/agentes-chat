@@ -6,7 +6,7 @@
   `copyOfProvenSession`, `turnOffTwoFactor`), `auth.ts` (the plugin, `session.create.before`, the hooks, the
   one-time token's copy), `desktop-sign-in.ts` (`/desktop/redeem`'s copy), `phone-browser-sign-in.ts` (the challenge
   in the phone's code), `main.ts two-factor-off`; schema `packages/db/src/schema/auth.ts` (`users.two_factor_enabled`,
-  `two_factors`, migration 0291); email `two_factor_changed` (`packages/engine/src/email.ts`); web
+  `two_factors`, migration 0292); email `two_factor_changed` (`packages/engine/src/email.ts`); web
   `apps/web/src/pages/AuthPage.tsx` (the code step), `components/TwoFactor.tsx` (Settings › Your account),
   `auth/better-auth.ts`, `pages/DesktopSignInPage.tsx`, `pages/DesktopHandoverPage.tsx`; phone
   `apps/mobile/src/features/auth/SignInSteps.tsx` (`TwoFactorStep`), `src/lib/auth.ts`, `src/ui/auth/SocialButtons.tsx`;

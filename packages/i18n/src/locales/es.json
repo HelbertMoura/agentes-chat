@@ -17086,6 +17086,34 @@
     },
     "system": "Sistema",
     "removed": "Eliminado",
+    "operatorRead": {
+      "sentence": "{{who}} leyó {{what}}",
+      "who": {
+        "server": "Quien administra este servidor",
+        "cloud": "El soporte de agentes.chat"
+      },
+      "what": {
+        "message": "un mensaje",
+        "run_step": "un paso del trabajo de un agente",
+        "agent": "las instrucciones de un agente",
+        "routine": "una rutina",
+        "task": "una tarea en segundo plano",
+        "channel": "el nombre de un canal",
+        "connection": "los datos de una conexión",
+        "support_request": "una solicitud de soporte",
+        "direct": "algo en una conversación privada",
+        "other": "algo del espacio de trabajo"
+      },
+      "request": {
+        "plain": "a pedido de {{name}}",
+        "app": "a pedido de {{name}}, enviado desde la app",
+        "email": "a pedido de {{name}}, enviado por correo",
+        "operator": "a pedido de {{name}}, registrado por quien administra este servidor",
+        "support": "a pedido de {{name}}, registrado por soporte"
+      },
+      "fault": "para diagnosticar una ejecución que falló o se quedó detenida",
+      "ai": "con un asistente de IA"
+    },
     "change": {
       "mergedWithoutAsking": "Hizo merge en {{repo}} sin preguntar",
       "accentChanged": "Cambió el color de acento del espacio de trabajo",

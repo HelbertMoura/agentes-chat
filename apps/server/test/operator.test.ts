@@ -196,6 +196,79 @@ test("the read-only token: GET and HEAD outside /review; 403 for a write or a re
   }
 });
 
+test("the reveal token: POST under /reveal and nothing else; the other two never open that door; unset, it is closed to all", async () => {
+  const READ = "operator-read-token-".padEnd(48, "x");
+  const REVEAL = "operator-reveal-token-".padEnd(48, "x");
+  const as = (app: ReturnType<typeof createOperatorApp>, token: string, path: string, method = "GET") =>
+    app.request(`/api/operator/v1${path}`, { method, headers: { authorization: `Bearer ${token}` } });
+  const answer = async (res: Response) => [res.status, ((await res.json()) as { error: { code: string } }).error.code];
+  const door = `/reveal/orgs/${acme.orgId}`;
+
+  const open = createOperatorApp(deps, TOKEN, READ, REVEAL);
+  // Past the door: an empty body is the route's own refusal, never the door's.
+  expect(await answer(await as(open, REVEAL, door, "POST"))).toEqual([400, "invalid_request"]);
+  for (const method of ["GET", "HEAD", "PUT", "DELETE"]) {
+    expect({ method, status: (await as(open, REVEAL, door, method)).status }).toEqual({ method, status: 403 });
+  }
+  for (const [path, method] of [
+    ["/health", "GET"],
+    ["/orgs", "GET"],
+    ["/openapi.json", "GET"],
+    ["/events", "GET"],
+    [`/orgs/${acme.orgId}/deletion-hold`, "PUT"],
+    [`/review/run/${crypto.randomUUID()}?reason=check&operator=someone`, "GET"],
+    ["/nope", "POST"],
+  ] as const) {
+    expect({ path, answer: await answer(await as(open, REVEAL, path, method)) }).toEqual({
+      path,
+      answer: [403, "forbidden"],
+    });
+  }
+  for (const token of [TOKEN, READ]) {
+    for (const [path, method] of [
+      [door, "POST"],
+      [door, "GET"],
+      ["/reveal/nope", "POST"],
+    ] as const) {
+      expect({ path, method, answer: await answer(await as(open, token, path, method)) }).toEqual({
+        path,
+        method,
+        answer: [403, "forbidden"],
+      });
+    }
+    expect((await as(open, token, "/health")).status).toBe(200);
+  }
+  expect(await answer(await as(open, "wrong", door, "POST"))).toEqual([401, "unauthorized"]);
+
+  // A server that didn't set it: the door is closed whoever knocks, and the token is nobody's.
+  const closed = createOperatorApp(deps, TOKEN, READ);
+  for (const token of [TOKEN, READ, REVEAL, "wrong", ""]) {
+    expect({ token, answer: await answer(await as(closed, token, door, "POST")) }).toEqual({
+      token,
+      answer: [403, "forbidden"],
+    });
+  }
+  expect(await answer(await as(closed, REVEAL, "/health"))).toEqual([401, "unauthorized"]);
+
+  // The listener takes it from the configuration.
+  const config = testConfig({
+    OPERATOR_API_TOKEN: TOKEN,
+    OPERATOR_API_READ_TOKEN: READ,
+    OPERATOR_API_REVEAL_TOKEN: REVEAL,
+    HOST: "127.0.0.1",
+  });
+  const server = serveOperatorApi({ ...deps, config }, 0);
+  if (!server) throw new Error("no operator listener");
+  try {
+    const url = `http://127.0.0.1:${server.port}/api/operator/v1`;
+    const headers = { authorization: `Bearer ${REVEAL}` };
+    expect((await fetch(`${url}${door}`, { method: "POST", headers })).status).toBe(400);
+    expect((await fetch(`${url}/health`, { headers })).status).toBe(403);
+  } finally {
+    await server.stop(true);
+  }
+});
+
 test("health, with the bot check: off without its keys, else its state, since when, the networks it refused and the tokens it passed", async () => {
   const off = await body<{ ok: boolean; version: string; botCheck: Record<string, unknown> & { since: string } }>(
     await op("/health"),

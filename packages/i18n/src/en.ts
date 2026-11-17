@@ -16959,6 +16959,37 @@ export const en = {
     },
     system: "System",
     removed: "Removed",
+    /** Whoever runs the server read one piece of what the workspace wrote. The row's sentence, then why under it. */
+    operatorRead: {
+      /** `who`: one of `who.*`. `what`: one of `what.*`, written to follow "read". */
+      sentence: "{{who}} read {{what}}",
+      who: {
+        server: "Whoever runs this server",
+        cloud: "agentes.chat support",
+      },
+      what: {
+        message: "a message",
+        run_step: "a step of an agent's work",
+        agent: "an agent's instructions",
+        routine: "a routine",
+        task: "a background task",
+        channel: "a channel's name",
+        connection: "a connection's details",
+        support_request: "a support request",
+        direct: "something in a private conversation",
+        other: "something in the workspace",
+      },
+      /** Under the sentence, and after "Reason:" in the entry's panel. `name`: the member who asked for help. */
+      request: {
+        plain: "at {{name}}'s request",
+        app: "at {{name}}'s request, sent from the app",
+        email: "at {{name}}'s request, sent by email",
+        operator: "at {{name}}'s request, recorded by whoever runs this server",
+        support: "at {{name}}'s request, recorded by support",
+      },
+      fault: "to diagnose a failed or stuck run",
+      ai: "with an AI assistant",
+    },
     change: {
       mergedWithoutAsking: "Merged in {{repo}} without asking",
       accentChanged: "Changed the workspace's accent color",

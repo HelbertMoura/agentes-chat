@@ -16090,6 +16090,34 @@
     },
     "system": "Sistem",
     "removed": "Dihapus",
+    "operatorRead": {
+      "sentence": "{{who}} membaca {{what}}",
+      "who": {
+        "server": "Pengelola server ini",
+        "cloud": "Tim dukungan agentes.chat"
+      },
+      "what": {
+        "message": "sebuah pesan",
+        "run_step": "satu langkah dari pekerjaan agen",
+        "agent": "instruksi sebuah agen",
+        "routine": "sebuah rutinitas",
+        "task": "sebuah tugas latar belakang",
+        "channel": "nama sebuah kanal",
+        "connection": "detail sebuah koneksi",
+        "support_request": "sebuah permintaan dukungan",
+        "direct": "sesuatu dalam percakapan pribadi",
+        "other": "sesuatu di ruang kerja"
+      },
+      "request": {
+        "plain": "atas permintaan {{name}}",
+        "app": "atas permintaan {{name}}, dikirim dari aplikasi",
+        "email": "atas permintaan {{name}}, dikirim lewat email",
+        "operator": "atas permintaan {{name}}, dicatat oleh pengelola server ini",
+        "support": "atas permintaan {{name}}, dicatat oleh tim dukungan"
+      },
+      "fault": "untuk mendiagnosis proses yang gagal atau macet",
+      "ai": "dengan asisten AI"
+    },
     "change": {
       "mergedWithoutAsking": "Merge di {{repo}} tanpa bertanya",
       "accentChanged": "Mengubah warna aksen ruang kerja",
