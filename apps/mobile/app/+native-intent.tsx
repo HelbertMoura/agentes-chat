@@ -1,6 +1,7 @@
 import type { Href } from "expo-router";
 import { openOwnPage } from "@/features/ai/parts";
 import { appLinkFromUrl, appPathOf, liveActivityLinkHref } from "@/features/links/app-links";
+import { shortcutHref } from "@/features/links/logic";
 import { workspaceOnScreen } from "@/features/links/on-screen";
 import { rememberLink } from "@/features/links/pending";
 import { appLockHolds, whenUnlocked } from "@/features/lock/store";
@@ -11,8 +12,9 @@ import { router } from "@/ui/navigation";
  * Every URL the system opens the app with (a universal link / App Link to the website, or `agenteschat://`), before
  * expo-router reads it: the website's address becomes the app's screen (`appLinkFromUrl`), and a page the app has no
  * screen for opens in the browser, the app staying where it was (on its start at launch). A screen of the workspace on
- * screen opens straight away; another workspace's, or one that needs a lookup, goes through `/link`. What another app
- * shared through the system's share sheet opens "Compartilhar com…"; the agents' island, the conversation it shows.
+ * screen opens straight away; another workspace's, or one that needs a lookup, goes through `/link`. A launcher shortcut
+ * opens its own path (`shortcutHref`). What another app shared through the system's share sheet opens "Compartilhar
+ * com…"; the agents' island, the conversation it shows.
  */
 export function redirectSystemPath({ path, initial }: { path: string; initial: boolean }): string {
   // Where the app stays when the link opens nothing now: its start at launch, else where it was.
@@ -28,6 +30,15 @@ export function redirectSystemPath({ path, initial }: { path: string; initial: b
     if (island) {
       if (!holding) return island;
       whenUnlocked(() => router.navigate(island as Href));
+      return stay;
+    }
+    // A launcher shortcut (long press on the icon): the app's own path, signed out waiting for the sign-in like a web
+    // link, and behind the lock waiting for it to open.
+    const shortcut = shortcutHref(path);
+    if (shortcut) {
+      if (shortcut.startsWith("/link?")) rememberLink(shortcut);
+      if (!holding) return shortcut;
+      whenUnlocked(() => router.navigate(shortcut as Href));
       return stay;
     }
     const link = appLinkFromUrl(path, workspaceOnScreen());
