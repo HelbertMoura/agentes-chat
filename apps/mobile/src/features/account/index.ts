@@ -15,6 +15,7 @@ import {
 import { serverAfter } from "@/lib/server-choice";
 import { snapshotStoreFor } from "@/lib/snapshot";
 import { clearStoredValues, writeValue } from "@/lib/storage";
+import { resetMiddleTab } from "../manage/middle-tab";
 import { type DeleteAccountResult, readDeleteResponse } from "./result";
 
 export type { DeleteAccountResult };
@@ -53,6 +54,7 @@ async function forgetServer(server: string, last: boolean) {
   if (last) {
     await clearStoredValues();
     forgetAppLock();
+    resetMiddleTab();
   }
 }
 

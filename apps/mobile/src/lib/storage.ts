@@ -103,6 +103,8 @@ export const STORED = {
   appLock: "app-lock",
   /** How long away before the app lock asks again, in milliseconds ("0", "60000"…; features/lock/logic.ts). */
   appLockAfter: "app-lock-after",
+  /** The tab bar's second place on this phone: "threads" (default) or "manage" (features/manage/middle-tab.ts). */
+  middleTab: "middle-tab",
 } as const;
 
 export async function clearStoredValues(): Promise<void> {
