@@ -1160,7 +1160,8 @@
       "codeSessions.gitTab.commits",
       "codeTerminal.label",
       "codeSessions.tabs.talk",
-      "codeSessions.tabs.terminalN"
+      "codeSessions.tabs.terminalN",
+      "quotas.title"
     ],
     "de": [
       "live.sheet.args.k",
