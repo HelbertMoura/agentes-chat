@@ -1,11 +1,11 @@
-import { TrueSheetOverlay } from "@lodev09/react-native-true-sheet";
+import { TrueSheet, TrueSheetOverlay } from "@lodev09/react-native-true-sheet";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, View } from "react-native";
 import { Button } from "@/ui/Button";
 import { LogoMark } from "@/ui/LogoMark";
 import { useTheme } from "@/ui/theme";
-import { unlock, useAppLock, watchAppLock } from "./store";
+import { onAppLocked, unlock, useAppLock, watchAppLock } from "./store";
 
 const LOGO = 72;
 
@@ -22,6 +22,9 @@ export function LockScreen() {
   const lock = useAppLock();
   const [busy, setBusy] = useState(false);
   useEffect(() => watchAppLock(), []);
+  // Locking closes every open sheet, the route sheets and the screens' own (each hears it as a swipe down): a screen
+  // reader still reached a sheet left under the lock.
+  useEffect(() => onAppLocked(() => void TrueSheet.dismissAll(false).catch(() => {})), []);
   if (!lock.locked && !lock.covered) return null;
   const open = () => {
     setBusy(true);

@@ -32,7 +32,7 @@ mock.module("expo-local-authentication", () => ({
   },
 }));
 
-const { OPEN, appLockHolds, turnAppLock, unlock, watchAppLock, whenUnlocked } = await import(
+const { OPEN, appLockHolds, onAppLocked, turnAppLock, unlock, watchAppLock, whenUnlocked } = await import(
   "../../src/features/lock/store"
 );
 
@@ -94,6 +94,27 @@ describe("the app lock's state (ADR 0191)", () => {
     auth.answer = true;
     expect(await unlock("x")).toBe(true);
     expect(done).toEqual(["allow"]);
+  });
+
+  test("the sheets close as the lock engages, never as it only covers", async () => {
+    let closed = 0;
+    const stopHearing = onAppLocked(() => closed++);
+    setSystemTime(T0 + 200_000);
+    goTo("inactive");
+    goTo("background");
+    expect(closed).toBe(0);
+    setSystemTime(T0 + 210_000);
+    goTo("active");
+    expect(closed).toBe(0);
+    goTo("background");
+    setSystemTime(T0 + 280_000);
+    goTo("active");
+    expect(closed).toBe(1);
+    goTo("background");
+    goTo("active");
+    expect(closed).toBe(1);
+    await unlock("x");
+    stopHearing();
   });
 
   test("links and shares while locked: only the latest opens, once the lock opens", async () => {
