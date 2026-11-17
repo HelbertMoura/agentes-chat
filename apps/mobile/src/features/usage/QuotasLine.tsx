@@ -1,4 +1,5 @@
-import { usePlanUsage } from "@agenteschat/client";
+import { useAiAccounts, usePlanUsage } from "@agenteschat/client";
+import { groupUsageAccounts } from "@agenteschat/client/lib/plan-usage";
 import { quotaSummary, quotaSummaryText } from "@agenteschat/client/lib/quotas";
 import { PLAN_TONE } from "@agenteschat/ui/plan-state";
 import { useTranslation } from "react-i18next";
@@ -18,7 +19,9 @@ export function QuotasLine() {
   const { orgId } = useOrg();
   const c = useColors();
   const usage = usePlanUsage(orgId);
-  const accounts = usage.data?.accounts ?? [];
+  const mine = useAiAccounts(orgId);
+  // One seat on two computers is one account, as Cotas lists it.
+  const accounts = usage.data ? groupUsageAccounts(usage.data.accounts, mine.data) : [];
   if (accounts.length === 0) return null;
   const summary = quotaSummary(accounts);
   const sub = quotaSummaryText(t, summary);

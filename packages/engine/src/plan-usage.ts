@@ -117,7 +117,7 @@ export interface PlanAccountUsage extends PlanAccountInfo {
   equivalentUsd?: number | null;
   /**
    * Its use over the last day, 7 days and 30 days, rolling (ADR 0063 addendum 2026-11-17): what the Cotas view shows for
-   * an account whose provider reports no limits. Only in `orgPlanUsage`.
+   * an account whose provider reports no limits. Only in `orgPlanUsage`, and only on an account with no limits known.
    */
   recent?: Record<RecentPeriod, RecentUse>;
 }
@@ -529,6 +529,8 @@ async function readRecent(db: Database, orgId: string, now: Date): Promise<Map<R
         eq(usageRecords.orgId, orgId),
         gte(usageRecords.createdAt, new Date(since(RECENT_DAYS.month))),
         eq(usageRecords.billedTo, "plan"),
+        // The rows the month counts (`readUsage`): an agent's, never the router's or the organization's own calls.
+        sql`${usageRecords.agentId} is not null`,
         sql`${usageRecords.machineId} is not null`,
         sql`${usageRecords.provider} <> ${WEB_USAGE_PROVIDER}`,
       ),
@@ -750,6 +752,8 @@ export async function orgPlanUsage(
     if (key) keys.add(key);
   }
   const found = [...keys].flatMap((k) => accountOf(ctx, k, userId) ?? []);
+  // Recent use is what Cotas shows in place of limits: read only while an account has none known.
+  const unknown = (u: PlanUsage | null) => !u || (u.windows.length === 0 && u.limited !== true);
   const [hourly, mayTalk, recent] = await Promise.all([
     hourlySince(
       db,
@@ -758,12 +762,12 @@ export async function orgPlanUsage(
       now,
     ),
     talkableBy(db, orgId, ctx, userId),
-    readRecent(db, orgId, now),
+    found.some((a) => unknown(a.usage)) ? readRecent(db, orgId, now) : null,
   ]);
   const accounts = found
     .map((a) => ({
       ...accountUsage(ctx, a, money, month, hourly, now, mayTalk),
-      recent: recentOf(a.info.key, recent, money),
+      ...(recent && unknown(a.usage) ? { recent: recentOf(a.info.key, recent, money) } : {}),
     }))
     .sort(
       (a, b) =>

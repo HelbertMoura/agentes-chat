@@ -150,7 +150,7 @@ test("an account's windows split by agent and its month by agent; the email for 
 });
 
 test("an account's recent use over the last day, 7 days and 30 days, rolling: tokens, calls, money for admins", async () => {
-  const { spend } = await scene();
+  const { spend, machineId } = await scene();
   await spend(f.agent.id, PESSOAL, "claude-haiku-5-5", 1_000);
   await spend(f.agent.id, PESSOAL, "claude-sonnet-5-5", 2_000);
   await spend(f.agent.id, PESSOAL, "claude-opus-5-5", 4_000);
@@ -163,8 +163,27 @@ test("an account's recent use over the last day, 7 days and 30 days, rolling: to
   await ago("claude-sonnet-5-5", 3);
   await ago("claude-opus-5-5", 20);
   await ago("claude-opus-5-1", 40);
+  // A router call on the plan: not an agent's, so neither the month nor the recent use counts it.
+  await f.db.insert(schema.usageRecords).values({
+    orgId: f.org.id,
+    kind: "router",
+    provider: "claude_code",
+    billedTo: "plan",
+    machineId,
+    brainAccountId: PESSOAL,
+    model: "claude-haiku-5-5",
+    requestedModel: "claude-haiku-5-5",
+    inputTokens: 500,
+    outputTokens: 0,
+    costNanoUsd: 0,
+  });
 
-  const view = await orgPlanUsage(f.db, f.owner.id, f.org.id);
+  // Its limits are known: Cotas shows them, no recent use.
+  let view = await orgPlanUsage(f.db, f.owner.id, f.org.id);
+  expect(view.accounts.find((a) => a.accountId === PESSOAL)?.recent).toBeUndefined();
+  // None known: its recent use instead.
+  await f.db.update(schema.machineAccounts).set({ usage: null }).where(eq(schema.machineAccounts.id, PESSOAL));
+  view = await orgPlanUsage(f.db, f.owner.id, f.org.id);
   const recent = view.accounts.find((a) => a.accountId === PESSOAL)?.recent;
   expect(recent?.day).toMatchObject({ tokens: 1_000, requests: 1 });
   expect(recent?.week).toMatchObject({ tokens: 3_000, requests: 2 });

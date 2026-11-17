@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type { TFunction } from "i18next";
 import type { PlanAccountUsage, PlanUsage } from "../src/api/types";
 import { formatUsd } from "../src/lib/format";
+import { groupUsageAccounts } from "../src/lib/plan-usage";
 import {
   limitsReported,
   noQuotaText,
@@ -154,5 +155,51 @@ describe("recent use", () => {
     expect(recentLines(words, "en", undefined)).toEqual([]);
     const none = { tokens: 0, requests: 0 };
     expect(recentLines(words, "en", { day: none, week: none, month: none })).toEqual([]);
+  });
+});
+
+describe("one seat on two computers", () => {
+  const seat = (machineId: string, over: Partial<PlanAccountUsage>) =>
+    account(`${machineId}:cursor:${machineId}`, {
+      machineId,
+      kind: "cursor",
+      accountId: machineId,
+      seat: "s1",
+      ...over,
+    });
+
+  test("its recent use is both logins' summed, money where either has it", () => {
+    const [row, ...rest] = groupUsageAccounts(
+      [
+        seat("m1", {
+          recent: {
+            day: { tokens: 10, requests: 1 },
+            week: { tokens: 100, requests: 2, equivalentUsd: 1 },
+            month: { tokens: 1_000, requests: 3, equivalentUsd: 2 },
+          },
+        }),
+        seat("m2", {
+          recent: {
+            day: { tokens: 5, requests: 1 },
+            week: { tokens: 50, requests: 1 },
+            month: { tokens: 500, requests: 4, equivalentUsd: 0.5 },
+          },
+        }),
+      ],
+      undefined,
+    );
+    expect(rest).toEqual([]);
+    expect(row?.recent).toEqual({
+      day: { tokens: 15, requests: 2 },
+      week: { tokens: 150, requests: 3, equivalentUsd: 1 },
+      month: { tokens: 1_500, requests: 7, equivalentUsd: 2.5 },
+    });
+  });
+
+  test("counts once on Início's line and in its few", () => {
+    const full = usage([{ kind: "five_hour", usedPercent: 100 }]);
+    const grouped = groupUsageAccounts([seat("m1", { usage: full }), seat("m2", { usage: full })], undefined);
+    expect(quotaSummary(grouped, NOW)).toEqual({ limited: 1, almost: 0, known: 1, total: 1 });
+    expect(tightestAccounts(grouped, 3, NOW)).toHaveLength(1);
   });
 });
