@@ -5047,6 +5047,7 @@
       "joinRequest_other": "{{name}}たちが参加をリクエストしています",
       "joinRequestNames": "{{names}}が参加をリクエストしています",
       "joinSuggestion": "{{by}}が{{name}}を提案しました",
+      "joinOutside": "{{name}}が{{outsideOf}}の外部協力者として参加をリクエストしました。プランの席は使いません",
       "doing": {
         "merge": "マージ",
         "deploy": "デプロイ",
@@ -5103,6 +5104,7 @@
       "joinRequest": "<b>{{name}}</b>が参加をリクエストしています",
       "joinRequestMany": "<b>{{names}}</b>が参加をリクエストしています",
       "joinSuggestion": "<b>{{by}}</b>が<b>{{name}}</b>を提案しました",
+      "joinOutside": "<b>{{name}}</b>が<b>{{outsideOf}}</b>の外部協力者として参加をリクエストしました。プランの席は使いません",
       "changeRequest": "<b>{{name}}</b>が<b>{{agent}}</b>の変更を依頼しています",
       "proposalWaiting": "<b>{{names}}</b> からの改善提案",
       "changeRequestAgent": "<b>{{name}}</b>が新しいエージェントを依頼しています：<b>{{agent}}</b>",
@@ -7092,6 +7094,10 @@
     "rolesAdd": "ロールを追加",
     "rolesChange": "ロールを変更",
     "moreOf": "{{name}} のその他の操作",
+    "outside": {
+      "chip": "外部",
+      "title": "外部協力者"
+    },
     "passwordLink": {
       "item": "新しいパスワードのリンクを作成",
       "hint": "パスワードを忘れたときに",
@@ -7289,6 +7295,8 @@
       "viaLink": "{{when}}にリンクからリクエスト",
       "suggested": "{{when}}に{{name}}が提案",
       "suggestedLabel": "{{by}}が{{name}}を提案",
+      "outside": "{{when}}に{{outsideOf}}の外部協力者として参加をリクエスト",
+      "outsideSeat": "外部協力者はプランの人数に含まれず、いつでも削除できます。",
       "asked": "{{ago}}にリクエスト",
       "askedNow": "たった今リクエスト",
       "askedOn": "{{date}}にリクエスト",
@@ -14479,7 +14487,8 @@
       "aboveYou": "このロールを変更できるのは、それより上のロールの人だけです。",
       "base": "どのワークスペースにも「全員」ロールは必ずあります。",
       "unknown": "そのロールはもうありません。",
-      "orderIncomplete": "移動中にロールが変更されました。再読み込みしてもう一度お試しください。"
+      "orderIncomplete": "移動中にロールが変更されました。再読み込みしてもう一度お試しください。",
+      "outsideOwner": "外部協力者はオーナーになれません。"
     },
     "teamProposal": {
       "undoExpired": "このチームの作成から1日以上たったため、ここでは取り消せません。各エージェントのページでアーカイブしてください。"
@@ -15987,6 +15996,11 @@
         "left": "ワークスペースから退出",
         "role_changed": "メンバーのロールを変更",
         "password_link": "メンバーの新しいパスワードのリンクを作成しました"
+      },
+      "outside": {
+        "approved": "{{outsideOf}}の外部協力者の参加を承認",
+        "removed": "{{outsideOf}}の外部協力者を削除",
+        "left": "{{outsideOf}}の外部協力者としてワークスペースから退出"
       },
       "role": {
         "permission_set": "「{{short}}」ができる人を変更",
@@ -18343,6 +18357,10 @@
     "seatsPaid_other": "支払い済み {{count}}席",
     "noLimit": "上限なし",
     "ownBucket": "自前のバケットを使用、こちらの上限はありません"
+  },
+  "referrals": {
+    "open": "紹介して特典を獲得",
+    "failed": "今は開けませんでした。少し待ってからもう一度お試しください。"
   },
   "limits": {
     "members": {

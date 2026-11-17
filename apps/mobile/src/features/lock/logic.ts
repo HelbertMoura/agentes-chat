@@ -1,5 +1,5 @@
 /**
- * The app lock's rules (ADR 0192), kept apart from the native calls so they can be tested.
+ * The app lock's rules (ADR 0194), kept apart from the native calls so they can be tested.
  */
 
 /** Back within this long after leaving, the app opens as it was; later, it asks again. No setting changes it. */

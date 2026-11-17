@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { availabilityOf, LOCK_GRACE_MS, locksOnReturn } from "../../src/features/lock/logic";
 
-describe("app lock (ADR 0192)", () => {
+describe("app lock (ADR 0194)", () => {
   test("the grace is one minute", () => {
     expect(LOCK_GRACE_MS).toBe(60_000);
   });

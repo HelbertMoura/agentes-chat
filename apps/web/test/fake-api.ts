@@ -365,6 +365,8 @@ export interface FakeState {
   holdPosts?: Promise<void>;
   /** What `orgs.billingLink` throws (default: a link on billing.example.com). */
   billingLinkError?: ApiError;
+  /** What `account.referralsLink` throws (default: a link on refer.example.com). */
+  referralsLinkError?: ApiError;
   /** A new workspace's standing (`orgs.create`): agentes.chat Cloud starts it waiting for its first plan. */
   newWorkspaceStanding?: OrgStanding;
   /** `orgs.limits` (ADR 0079); unset = no limits, the members counted from `members`. */
@@ -1547,6 +1549,11 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         firstRun: false,
         ...state.authConfig,
       }),
+      referralsLink: async (returnTo) => {
+        log("account.referralsLink", returnTo);
+        if (state.referralsLinkError) throw state.referralsLinkError;
+        return { url: "https://refer.example.com/link?t=v1", expiresAt: NOW.toISOString() };
+      },
       signInOptions: async (input, humanCheck) => {
         if (humanCheck !== undefined) state.calls.push({ method: "account.signInOptions", args: [input, humanCheck] });
         return state.signInOptions ?? { account: false, password: false, providers: [], canSignUp: true };

@@ -5045,6 +5045,7 @@
       "joinRequest_other": "{{name}} 님 외 여러 명이 참여를 요청해요",
       "joinRequestNames": "{{names}} 님이 참여를 요청해요",
       "joinSuggestion": "{{by}} 님이 {{name}} 님을 제안했어요",
+      "joinOutside": "{{name}} 님이 {{outsideOf}}의 외부 협력자로 참여를 요청했어요. 자리를 차지하지 않아요",
       "doing": {
         "merge": "머지",
         "deploy": "배포",
@@ -5101,6 +5102,7 @@
       "joinRequest": "<b>{{name}}</b> 님이 참여를 요청해요",
       "joinRequestMany": "<b>{{names}}</b> 님이 참여를 요청해요",
       "joinSuggestion": "<b>{{by}}</b> 님이 <b>{{name}}</b> 님을 제안했어요",
+      "joinOutside": "<b>{{name}}</b> 님이 <b>{{outsideOf}}</b>의 외부 협력자로 참여를 요청했어요. 자리를 차지하지 않아요",
       "changeRequest": "<b>{{name}}</b>님이 <b>{{agent}}</b> 변경을 요청해요",
       "proposalWaiting": "<b>{{names}}</b>의 개선 제안",
       "changeRequestAgent": "<b>{{name}}</b>님이 새 에이전트를 요청해요: <b>{{agent}}</b>",
@@ -7089,6 +7091,10 @@
     "rolesAdd": "역할 추가",
     "rolesChange": "역할 변경",
     "moreOf": "{{name}} 더 보기",
+    "outside": {
+      "chip": "외부",
+      "title": "외부 협력자"
+    },
     "passwordLink": {
       "item": "새 비밀번호 링크 만들기",
       "hint": "비밀번호를 잊었을 때",
@@ -7286,6 +7292,8 @@
       "viaLink": "{{when}} 링크로 요청함",
       "suggested": "{{when}} {{name}} 님이 제안함",
       "suggestedLabel": "{{by}} 님이 {{name}} 님을 제안함",
+      "outside": "{{when}} {{outsideOf}}의 외부 협력자로 참여 요청함",
+      "outsideSeat": "외부 협력자는 요금제 인원에 포함되지 않으며, 언제든지 내보낼 수 있어요.",
       "asked": "{{ago}} 요청함",
       "askedNow": "방금 요청함",
       "askedOn": "{{date}}에 요청함",
@@ -14473,7 +14481,8 @@
       "aboveYou": "이 역할보다 위에 있는 사람만 변경할 수 있어요.",
       "base": "모든 워크스페이스에는 ‘모두’ 역할이 항상 있어요.",
       "unknown": "그 역할은 더 이상 없어요.",
-      "orderIncomplete": "옮기는 동안 역할이 바뀌었어요. 새로고침하고 다시 시도하세요."
+      "orderIncomplete": "옮기는 동안 역할이 바뀌었어요. 새로고침하고 다시 시도하세요.",
+      "outsideOwner": "외부 협력자는 소유자가 될 수 없어요."
     },
     "teamProposal": {
       "undoExpired": "이 팀을 만든 지 하루가 넘어서 여기서는 되돌릴 수 없어요. 각 에이전트 페이지에서 보관하세요."
@@ -15979,6 +15988,11 @@
         "left": "워크스페이스를 떠났어요",
         "role_changed": "멤버의 역할을 변경했어요",
         "password_link": "멤버의 새 비밀번호 링크를 만들었어요"
+      },
+      "outside": {
+        "approved": "{{outsideOf}}의 외부 협력자를 들였어요",
+        "removed": "{{outsideOf}}의 외부 협력자를 내보냈어요",
+        "left": "{{outsideOf}}의 외부 협력자로서 워크스페이스를 떠났어요"
       },
       "role": {
         "permission_set": "{{short}} 권한을 가진 사람을 변경했어요",
@@ -18335,6 +18349,10 @@
     "seatsPaid_other": "결제한 자리 {{count}}개",
     "noLimit": "제한 없음",
     "ownBucket": "자체 버킷 사용, 저희 쪽 제한 없음"
+  },
+  "referrals": {
+    "open": "추천하고 혜택 받기",
+    "failed": "지금은 열 수 없어요. 잠시 후 다시 시도하세요."
   },
   "limits": {
     "members": {

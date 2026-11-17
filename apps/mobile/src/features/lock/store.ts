@@ -5,7 +5,7 @@ import { readValueSyncOrUnknown, STORED, writeValue } from "@/lib/storage";
 import { availabilityOf, type LockAvailability, locksOnReturn } from "./logic";
 
 /**
- * The app lock (ADR 0192), kept on this phone: off by default, on only after the person proved it once. While on, the
+ * The app lock (ADR 0194), kept on this phone: off by default, on only after the person proved it once. While on, the
  * app opens locked and locks again when it comes back after the grace (`LOCK_GRACE_MS`). Out of sight (the app
  * switcher, the background) the lock screen covers it without asking anything, so its picture shows no conversation.
  */

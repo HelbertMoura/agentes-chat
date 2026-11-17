@@ -185,6 +185,7 @@ const KNOWN = {
   "role.name_required": "errors.role.nameRequired",
   "role.name_long": "errors.role.nameLong",
   "role.too_many": "errors.role.tooMany",
+  "member.outside_owner": "errors.role.outsideOwner",
   "role.grant_forbidden": "errors.role.grantForbidden",
   "role.above_you": "errors.role.aboveYou",
   "role.base": "errors.role.base",

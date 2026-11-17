@@ -114,6 +114,7 @@ import {
   Credential,
   Model,
   ModelTier,
+  OutsideOf,
   PendingReturn,
   ProviderId,
   Role,
@@ -302,6 +303,7 @@ const Person = z
     roleIds: z.array(z.string()).openapi({ description: "Their roles (`org_roles` ids), not `everyone`." }),
     joinedAt: z.string(),
     lastSeenAt: z.string().nullable(),
+    outsideOf: OutsideOf,
     online: z.boolean().openapi({ description: "Seen as connected: `presence` is online, away or busy." }),
     presence: z.enum(["online", "away", "busy", "out", "hidden", "offline"]).openapi({
       description:

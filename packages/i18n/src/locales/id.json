@@ -5060,6 +5060,7 @@
       "joinRequest_other": "{{name}} dan lainnya meminta bergabung",
       "joinRequestNames": "{{names}} meminta bergabung",
       "joinSuggestion": "{{by}} mengusulkan {{name}}",
+      "joinOutside": "{{name}} minta bergabung sebagai kolaborator eksternal untuk {{outsideOf}}, tanpa memakai kursi",
       "doing": {
         "merge": "merge",
         "deploy": "deploy",
@@ -5117,6 +5118,7 @@
       "joinRequest": "<b>{{name}}</b> meminta bergabung",
       "joinRequestMany": "<b>{{names}}</b> meminta bergabung",
       "joinSuggestion": "<b>{{by}}</b> mengusulkan <b>{{name}}</b>",
+      "joinOutside": "<b>{{name}}</b> minta bergabung sebagai kolaborator eksternal untuk <b>{{outsideOf}}</b>, tanpa memakai kursi",
       "changeRequest": "<b>{{name}}</b> meminta perubahan pada <b>{{agent}}</b>",
       "proposalWaiting": "Usulan perbaikan dari <b>{{names}}</b>",
       "changeRequestAgent": "<b>{{name}}</b> meminta agen baru: <b>{{agent}}</b>",
@@ -7120,6 +7122,10 @@
     "rolesAdd": "Tambah peran",
     "rolesChange": "Ubah peran",
     "moreOf": "Lainnya untuk {{name}}",
+    "outside": {
+      "chip": "Eksternal",
+      "title": "Kolaborator eksternal"
+    },
     "passwordLink": {
       "item": "Buat tautan kata sandi baru",
       "hint": "Untuk saat ia lupa kata sandi",
@@ -7317,6 +7323,8 @@
       "viaLink": "Meminta lewat tautan {{when}}",
       "suggested": "Diusulkan oleh {{name}} {{when}}",
       "suggestedLabel": "{{by}} mengusulkan {{name}}",
+      "outside": "Meminta {{when}} untuk bergabung sebagai kolaborator eksternal untuk {{outsideOf}}",
+      "outsideSeat": "Kolaborator eksternal tidak dihitung dalam jumlah orang di paketmu, dan kamu bisa mengeluarkan mereka kapan saja.",
       "asked": "Meminta {{ago}}",
       "askedNow": "Baru saja meminta",
       "askedOn": "Meminta pada {{date}}",
@@ -14533,7 +14541,8 @@
       "aboveYou": "Hanya orang di atas peran ini yang bisa mengubahnya.",
       "base": "Setiap ruang kerja tetap punya peran Semua orang.",
       "unknown": "Peran itu sudah tidak ada.",
-      "orderIncomplete": "Peran berubah saat kamu memindahkannya. Muat ulang dan coba lagi."
+      "orderIncomplete": "Peran berubah saat kamu memindahkannya. Muat ulang dan coba lagi.",
+      "outsideOwner": "Kolaborator eksternal tidak bisa menjadi pemilik."
     },
     "teamProposal": {
       "undoExpired": "Sudah lebih dari sehari sejak tim ini dibuat, jadi tidak bisa dibatalkan di sini. Arsipkan agennya di halaman masing-masing."
@@ -16041,6 +16050,11 @@
         "left": "Keluar dari ruang kerja",
         "role_changed": "Mengubah peran anggota",
         "password_link": "Membuat tautan kata sandi baru untuk anggota"
+      },
+      "outside": {
+        "approved": "Memasukkan kolaborator eksternal untuk {{outsideOf}}",
+        "removed": "Mengeluarkan kolaborator eksternal untuk {{outsideOf}}",
+        "left": "Keluar dari ruang kerja, kolaborator eksternal untuk {{outsideOf}}"
       },
       "role": {
         "permission_set": "Mengubah siapa yang boleh {{short}}",
@@ -18397,6 +18411,10 @@
     "seatsPaid_other": "{{count}} kursi berbayar",
     "noLimit": "Tanpa batas",
     "ownBucket": "Di bucket milikmu sendiri, tanpa batas dari kami"
+  },
+  "referrals": {
+    "open": "Ajak teman dan dapatkan hadiah",
+    "failed": "Tidak bisa membukanya sekarang. Coba lagi sebentar lagi."
   },
   "limits": {
     "members": {

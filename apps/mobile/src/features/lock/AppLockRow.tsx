@@ -4,7 +4,7 @@ import { GroupedRow } from "@/ui";
 import { turnAppLock, useAppLock, useLockAvailability } from "./store";
 
 /**
- * Você › Preferências: "Bloquear com biometria", for this phone only (ADR 0192). Offered where the phone has
+ * Você › Preferências: "Bloquear com biometria", for this phone only (ADR 0194). Offered where the phone has
  * biometrics or a screen lock; turning it on asks for that proof once.
  */
 export function AppLockRow() {

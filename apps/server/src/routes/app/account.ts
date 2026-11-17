@@ -374,6 +374,10 @@ export function accountRoutes(deps: AppDeps) {
               description:
                 "The billing service (BILLING_URL, ADR 0079): owners and admins open a workspace's plan and billing there through `POST …/billing-link`. Null: no billing.",
             }),
+            referralsUrl: z.string().nullable().openapi({
+              description:
+                "The referral service (REFERRALS_URL, ADR 0192): a signed-in person opens it through `POST /api/app/referrals-link`. Null: no referrals.",
+            }),
             cloud: z.boolean().openapi({
               description:
                 "One of agentes.chat's own servers (`cloud` in `GET /api/instance`): the apps show no About screen there, which every other server shows.",
@@ -415,6 +419,7 @@ export function accountRoutes(deps: AppDeps) {
           passwordReset: deps.adapters.email.delivers === true,
           workspaceComputer: config.MACHINE_PROVISIONING === "external",
           billingUrl: config.BILLING_URL ?? null,
+          referralsUrl: config.REFERRALS_URL ?? null,
           cloud: isAgentesCloud(config.PUBLIC_URL),
           turnstileSiteKey: deps.adapters.humanCheck?.siteKey ?? null,
           errorReports: reportsTo(config.SENTRY_WEB_DSN),
