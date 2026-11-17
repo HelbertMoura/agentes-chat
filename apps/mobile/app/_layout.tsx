@@ -210,7 +210,8 @@ function Gate() {
   const covered = suspendedShown || down !== null || !!accountDeletion;
   // The app lock (ADR 0191): over everything but the splash, the app out of screen readers' reach meanwhile.
   const lock = useAppLock();
-  const hidden = covered || lock.locked || lock.covered;
+  const locking = lock.locked || lock.covered;
+  const hidden = covered || locking;
 
   // The navigator is always mounted (so links and pushes can navigate); the splash covers it until ready.
   return (
@@ -241,21 +242,31 @@ function Gate() {
           <Stack.Screen name="connect" options={linkOptions} />
         </Stack>
       </View>
-      {entering ? <Entering org={org.state?.org?.name ?? null} /> : null}
-      {org.state && suspended && suspendedShown ? <SuspendedWorkspace state={org.state} suspended={suspended} /> : null}
-      {accountDeletion ? <DeletingAccount dueAt={accountDeletion.dueAt} /> : null}
+      {/* The covers over the app and the splash, under the lock out of screen readers' reach too. */}
+      <View
+        style={{ position: "absolute", inset: 0 }}
+        pointerEvents="box-none"
+        accessibilityElementsHidden={locking}
+        importantForAccessibility={locking ? "no-hide-descendants" : "auto"}
+      >
+        {entering ? <Entering org={org.state?.org?.name ?? null} /> : null}
+        {org.state && suspended && suspendedShown ? (
+          <SuspendedWorkspace state={org.state} suspended={suspended} />
+        ) : null}
+        {accountDeletion ? <DeletingAccount dueAt={accountDeletion.dueAt} /> : null}
+        {launching ? (
+          <LaunchSplash
+            ready={ready}
+            fontsReady={fontsReady}
+            onShown={hideNative}
+            onDone={launched}
+            waiting={down ? <ServerDownPanel down={down} /> : null}
+            eyesClosed={down !== null && !down.checking}
+            dusk={down !== null && skyHourOf(serverHost(down.server)) === "dusk"}
+          />
+        ) : null}
+      </View>
       <LockScreen />
-      {launching ? (
-        <LaunchSplash
-          ready={ready}
-          fontsReady={fontsReady}
-          onShown={hideNative}
-          onDone={launched}
-          waiting={down ? <ServerDownPanel down={down} /> : null}
-          eyesClosed={down !== null && !down.checking}
-          dusk={down !== null && skyHourOf(serverHost(down.server)) === "dusk"}
-        />
-      ) : null}
     </NavigationThemeProvider>
   );
 }

@@ -1,7 +1,7 @@
 import * as LocalAuthentication from "expo-local-authentication";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { AppState, type AppStateStatus } from "react-native";
-import { readValueSync, STORED, writeValue } from "@/lib/storage";
+import { readValueSyncOrUnknown, STORED, writeValue } from "@/lib/storage";
 import { availabilityOf, type LockAvailability, locksOnReturn } from "./logic";
 
 /**
@@ -18,24 +18,34 @@ interface LockState {
 }
 
 let state: LockState = (() => {
-  const enabled = readValueSync(STORED.appLock) === "1";
+  // Unreadable (the keystore failed) is taken as on: the phone's own proof opens it, and nobody is kept out.
+  const saved = readValueSyncOrUnknown(STORED.appLock);
+  const enabled = saved === "1" || saved === undefined;
   return { enabled, locked: enabled, covered: false };
 })();
 let leftAt: number | null = null;
 /** The system's prompt is up: the app leaving for it (Face ID, Android's PIN screen) is not the person leaving. */
 let authenticating = false;
 const listeners = new Set<() => void>();
-/** What waits for the lock to open (a tapped notification's screen). */
-const waiting = new Set<() => void>();
+/**
+ * What waits for the lock to open, by kind: a tapped notification or a link (`OPEN`) keeps only the latest, so
+ * opening the lock goes to one place.
+ */
+const waiting = new Map<string, () => void>();
+
+/** A tapped notification's or a link's screen: the latest one wins. */
+export const OPEN = "open";
+
+/** Locked, or out of sight: what a tap or a link would open waits. */
+const holds = () => state.locked || state.covered;
 
 function set(next: Partial<LockState>) {
   state = { ...state, ...next };
   for (const cb of listeners) cb();
-  if (!state.locked) {
-    const ready = [...waiting];
-    waiting.clear();
-    for (const fn of ready) fn();
-  }
+  if (holds()) return;
+  const ready = [...waiting.values()];
+  waiting.clear();
+  for (const fn of ready) fn();
 }
 
 const subscribe = (cb: () => void) => {
@@ -46,14 +56,20 @@ const current = () => state;
 
 export const useAppLock = () => useSyncExternalStore(subscribe, current, current);
 
-/** Runs `fn` now, or once the lock opens; the returned function drops it if it hasn't run. */
-export function whenUnlocked(fn: () => void): () => void {
-  if (!state.locked) {
+/** Whether the lock holds what the app would open now (locked, or out of sight with the lock on). */
+export const appLockHolds = () => holds();
+
+/**
+ * Runs `fn` now, or once the lock opens and the app is in front again; true when it waits. A later `fn` of the same
+ * `kind` replaces one still waiting.
+ */
+export function whenUnlocked(fn: () => void, kind: string = OPEN): boolean {
+  if (!holds()) {
     fn();
-    return () => {};
+    return false;
   }
-  waiting.add(fn);
-  return () => void waiting.delete(fn);
+  waiting.set(kind, fn);
+  return true;
 }
 
 /** Follows the app in and out of the front (mounted once, at the root). */
