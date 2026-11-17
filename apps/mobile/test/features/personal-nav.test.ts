@@ -11,11 +11,11 @@ const read = (path: string) => readFileSync(join(ROOT, path), "utf8");
 describe("the tabs of a personal workspace", () => {
   test("Threads leaves the bar the system's way, and its list is pushed from You › Work", () => {
     const tabs = read("app/(app)/(main)/(tabs)/_layout.tsx");
-    expect(tabs).toContain('{ name: "threads", glyph: "threads", label: "mobile.tabs.threads", teamOnly: true }');
-    expect(tabs).toContain("hidden={personal && tab.teamOnly === true}");
+    expect(tabs).toContain('{ name: "threads", glyph: "threads", label: "mobile.tabs.threads" }');
+    expect(tabs).toContain("hidden={tabHidden(tab.name, personal, middle)}");
     // A hidden tab can't be opened: the pushed list lives at /conversations/threads.
     const route = read("app/(app)/(main)/conversations/[kind].tsx");
-    expect(route).toContain('if (kind === "threads" && personal) return <ThreadsScreen pushed />;');
+    expect(route).toContain('if (kind === "threads" && noThreadsTab) return <ThreadsScreen pushed />;');
     expect(read("src/features/chats/ThreadsScreen.tsx")).toContain("<PushedLargeTitle");
     const me = read("src/features/me/MeScreen.tsx");
     expect(me).toContain('onPress={() => open("/conversations/threads")}');
