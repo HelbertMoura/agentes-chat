@@ -8,6 +8,7 @@ import { AppState } from "react-native";
 import { registerDeviceActions, runDeviceAction } from "@/features/devices/push";
 import { hrefForPush, notificationWebPath, pushAsNotification } from "@/features/links/logic";
 import { openWebPath } from "@/features/links/open-web";
+import { whenUnlocked } from "@/features/lock/store";
 import { openWorkspace } from "@/features/server";
 import { pushOpens } from "@/lib/org-choice";
 import {
@@ -177,18 +178,26 @@ export function PushProvider({ children }: { children: ReactNode }) {
         setTimeout(() => (web ? openWebPath(web) : router.push(href ?? "/activity")), 0);
       });
     };
+    // With the app lock on (ADR 0220), what a tap opens waits until the lock opens.
+    const held = new Set<() => void>();
+    const openUnlocked = (response: Notifications.NotificationResponse | null) => {
+      if (response) held.add(whenUnlocked(() => open(response)));
+    };
     if (afterSwitch) {
       const waiting = afterSwitch;
       afterSwitch = null;
-      open(waiting);
+      openUnlocked(waiting);
     }
     try {
-      open(Notifications.getLastNotificationResponse());
+      openUnlocked(Notifications.getLastNotificationResponse());
     } catch {
       // No launch notification.
     }
-    const sub = Notifications.addNotificationResponseReceivedListener(open);
-    return () => sub.remove();
+    const sub = Notifications.addNotificationResponseReceivedListener(openUnlocked);
+    return () => {
+      sub.remove();
+      for (const drop of held) drop();
+    };
   }, [ready, api, qc]);
 
   const value = useMemo<PushApi>(() => {

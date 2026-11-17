@@ -1143,6 +1143,13 @@
       "none": "没有这个名称的时区"
     }
   },
+  "lock": {
+    "setting": "使用生物识别锁定",
+    "unavailable": "请先在这部手机上设置指纹、面容或屏幕锁定。",
+    "confirm": "确认是你本人，以锁定应用",
+    "prompt": "解锁 agentes.chat",
+    "unlock": "解锁"
+  },
   "delete": {
     "intro": "此操作无法撤销。",
     "introGrace": "你有 7 天时间改变主意。",

@@ -21,6 +21,8 @@ import { LaunchSplash, useLaunchSettle } from "@/features/launch/LaunchSplash";
 import { markLaunched } from "@/features/launch/launched";
 import { isStill, stillHref } from "@/features/links/landing";
 import { takeLink } from "@/features/links/pending";
+import { LockScreen } from "@/features/lock/LockScreen";
+import { useAppLock } from "@/features/lock/store";
 import {
   endOnboarding,
   isRootPage,
@@ -215,18 +217,21 @@ function Gate() {
   const suspendedShown = suspended !== null && !deletingAccount;
   const covered = suspendedShown || down !== null || !!accountDeletion;
   const settleStyle = useLaunchSettle();
+  // The app lock (ADR 0220): over everything but the splash, the app out of screen readers' reach meanwhile.
+  const lock = useAppLock();
+  const hidden = covered || lock.locked || lock.covered;
 
   // The navigator is always mounted (so links and pushes can navigate); the splash covers it until ready.
   return (
     // The native bars (headers, back button tint, interface style) read React Navigation's theme: ours.
     <NavigationThemeProvider value={navigationTheme}>
       <StatusBar style={scheme === "dark" ? "light" : "dark"} />
-      {/* Under the suspended screen or the waiting splash the app stays mounted, out of screen readers' reach. */}
+      {/* Under the suspended screen, the lock or the waiting splash the app stays mounted, hidden from screen readers. */}
       {/* It settles from a little larger as the launch splash's ring opens on it (`useLaunchSettle`). */}
       <Animated.View
         style={[{ flex: 1 }, settleStyle]}
-        accessibilityElementsHidden={covered}
-        importantForAccessibility={covered ? "no-hide-descendants" : "auto"}
+        accessibilityElementsHidden={hidden}
+        importantForAccessibility={hidden ? "no-hide-descendants" : "auto"}
       >
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
           <Stack.Protected guard={inApp} redirectTo="/sign-in">
@@ -249,6 +254,7 @@ function Gate() {
       {entering ? <Entering org={org.state?.org?.name ?? null} /> : null}
       {org.state && suspended && suspendedShown ? <SuspendedWorkspace state={org.state} suspended={suspended} /> : null}
       {accountDeletion ? <DeletingAccount dueAt={accountDeletion.dueAt} /> : null}
+      <LockScreen />
       {launching ? (
         <LaunchSplash
           ready={ready}

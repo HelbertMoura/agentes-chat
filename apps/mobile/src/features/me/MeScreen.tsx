@@ -12,6 +12,7 @@ import { Platform, StyleSheet, View } from "react-native";
 import Animated, { Easing, FadeIn, FadeInUp } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { signOut } from "@/features/account";
+import { AppLockRow } from "@/features/lock/AppLockRow";
 import { useOrg } from "@/providers/org";
 import { WorkspaceSky } from "@/sky/Sky";
 import {
@@ -548,6 +549,7 @@ function MePage() {
               menu
               onPress={pickSound}
             />
+            <AppLockRow key="appLock" />
             <GroupedRow
               key="appearance"
               icon={theme.scheme === "dark" ? "moon" : "sun"}

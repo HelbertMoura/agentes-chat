@@ -1222,6 +1222,13 @@
       "none": "Keine Zeitzone mit diesem Namen"
     }
   },
+  "lock": {
+    "setting": "Mit Biometrie sperren",
+    "unavailable": "Richte zuerst einen Fingerabdruck, dein Gesicht oder eine Displaysperre auf diesem Handy ein.",
+    "confirm": "Bestätige, dass du es bist, um die App zu sperren",
+    "prompt": "agentes.chat entsperren",
+    "unlock": "Entsperren"
+  },
   "delete": {
     "intro": "Das lässt sich nicht rückgängig machen.",
     "introGrace": "Du hast 7 Tage Zeit, es dir anders zu überlegen.",

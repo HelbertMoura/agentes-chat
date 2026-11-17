@@ -1279,6 +1279,13 @@ export const featureKeysPtBR = {
       none: "Nenhum fuso com esse nome",
     },
   },
+  lock: {
+    setting: "Bloquear com biometria",
+    unavailable: "Configure antes uma digital, seu rosto ou um bloqueio de tela neste celular.",
+    confirm: "Confirme que é você para bloquear o app",
+    prompt: "Desbloquear o agentes.chat",
+    unlock: "Desbloquear",
+  },
   delete: {
     intro: "Isso não tem volta.",
     introGrace: "Você tem 7 dias para mudar de ideia.",
