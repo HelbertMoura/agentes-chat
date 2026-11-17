@@ -29,22 +29,22 @@ import "./plan-quotas.css";
  */
 
 /** The workspace's accounts as Cotas lists them: the viewer's logins of one account as one, as "Contas" groups them. */
-function useQuotaAccounts() {
+function useQuotaAccounts({ refresh }: { refresh: boolean }) {
   const { org } = useOrg();
   const api = useApi();
   const usage = usePlanUsage(org.id);
   const mine = useAiAccounts(org.id);
-  // Looking at the quotas: they are read again (they come back as `machine.updated`).
+  // Looking at the quotas: they are read again (they come back as `machine.updated`). Início only reads them.
   useEffect(() => {
-    void api.machines.refreshAccountUsage(org.id).catch(() => undefined);
-  }, [api, org.id]);
+    if (refresh) void api.machines.refreshAccountUsage(org.id).catch(() => undefined);
+  }, [api, org.id, refresh]);
   return { usage, accounts: usage.data ? groupUsageAccounts(usage.data.accounts, mine.data) : undefined };
 }
 
 /** Uso › Cotas: a card per maker. */
 export function PlanQuotas() {
   const { t } = useTranslation();
-  const { usage, accounts } = useQuotaAccounts();
+  const { usage, accounts } = useQuotaAccounts({ refresh: true });
   if (usage.isLoading) {
     return (
       <Card>
@@ -131,8 +131,8 @@ const HOME_QUOTAS = 3;
 export function HomeQuotas() {
   const { t, i18n } = useTranslation();
   const { org } = useOrg();
-  const usage = usePlanUsage(org.id);
-  const accounts = usage.data?.accounts ?? [];
+  // One seat on two computers is one account here too, as Cotas lists it.
+  const accounts = useQuotaAccounts({ refresh: false }).accounts ?? [];
   if (accounts.length === 0) return null;
   const summary = quotaSummary(accounts);
   const text = planMeterText(t, i18n.language);

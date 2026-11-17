@@ -8303,7 +8303,7 @@ export interface PlanAccountUsage extends PlanAccountInfo {
   equivalentUsd?: number | null;
   /**
    * Its use over the last 24 hours, 7 days and 30 days, rolling: what Cotas shows where the provider reports no
-   * limits. Absent: an older server, or an agent's view.
+   * limits. Absent: limits known, an older server, or an agent's view.
    */
   recent?: Record<RecentPeriod, RecentUse>;
 }

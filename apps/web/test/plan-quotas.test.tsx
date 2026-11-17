@@ -123,3 +123,32 @@ test("Início: where the accounts stand, the tightest first, and the way into Co
   expect(link.getAttribute("href")).toBe(`/org/${ORG_ID}/settings/usage?view=quotas`);
   cleanup();
 });
+
+test("Início counts one seat signed in on two computers once", async () => {
+  const full = (machineId: string) =>
+    acct({
+      key: `${machineId}:claude_code:a`,
+      machineId,
+      machineName: machineId,
+      seat: "seat-1",
+      usage: {
+        windows: [{ kind: "five_hour", usedPercent: 100, resetsAt: soon(1), agents: null }],
+        source: "probe",
+        at: new Date().toISOString(),
+      },
+    });
+  const fake = createFakeApi(withRightHand(seedState()));
+  fake.orgs.planUsage = async (): Promise<OrgPlanUsage> => ({
+    month: new Date().toISOString().slice(0, 7),
+    money: false,
+    api: [],
+    accounts: [full("machine_1"), full("machine_2")],
+  });
+  const { services } = await renderApp(`/org/${ORG_ID}/home`, { api: fake });
+  await settle(6);
+  await showIn(services, "en");
+  const home = document.querySelector(".quotas-home") as HTMLElement;
+  expect(home.textContent).toContain("1 at the limit");
+  expect(home.querySelectorAll(".quotas-home__row")).toHaveLength(1);
+  cleanup();
+});
