@@ -99,7 +99,7 @@ export const STORED = {
   voiceSpeed: "voice-speed",
   /** The person held the send button to stop an agent and send once: the composer's hint is over ("1"). */
   stopSendTaught: "stop-send-taught",
-  /** The app asks for the phone's biometrics or screen lock to open ("1"; features/lock, ADR 0191). */
+  /** The app asks for the phone's biometrics or screen lock to open ("1"; features/lock, ADR 0192). */
   appLock: "app-lock",
 } as const;
 

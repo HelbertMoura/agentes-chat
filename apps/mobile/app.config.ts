@@ -194,7 +194,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
     "expo-web-browser",
     "expo-apple-authentication",
-    // The app lock (ADR 0191): Face ID's text on iOS (each language's in assets/locales); Android's biometric
+    // The app lock (ADR 0192): Face ID's text on iOS (each language's in assets/locales); Android's biometric
     // permissions come with the plugin.
     ["expo-local-authentication", { faceIDPermission: "To unlock the app with Face ID, when you turn its lock on." }],
     [
