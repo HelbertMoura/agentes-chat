@@ -16,7 +16,7 @@ import {
   withoutContainers,
   withoutSignIns,
 } from "./accounts";
-import { AGY_CHAT_AGENT, prepareAgyHome } from "./agy-home";
+import { AGY_CHAT_AGENT, AGY_MCP_RULE, prepareAgyHome } from "./agy-home";
 import { LIMIT_TEXT } from "./brain";
 import { type CodexBrainEvent, CodexThreads, chatFolder, codexProfileOf, codexThreadKey } from "./brain-codex";
 import { cursorPrompt } from "./brain-cursor";
@@ -47,6 +47,9 @@ import { agentSecrets } from "./secrets";
  * - ADR 0053 §3: every turn runs with `--sandbox` (terminal commands in the CLI's sandbox: the turn's folder and temp,
  *   no network) and the account's `proceed-in-sandbox`; `work` adds `--mode accept-edits` (edits in the workspace
  *   without asking), `plan` doesn't (an edit needs an approval nobody gives in headless mode, so it is refused).
+ *   Since CLI 1.5.8 a headless turn also refuses every command needing the `command` permission (nobody to ask);
+ *   `work` gets `command(*)` for its session alone (`--settings`), so its commands run, still in the sandbox. Never
+ *   in the account's `settings.json`, which `plan` and `chat` turns read too (ADR 0143 addendum 2026-11-17).
  * - `chat` (the team's right hand, ADR 0137 §4): `--agent agenteschat-chat` (no built-in tool, no commands, never a
  *   subagent), in an empty folder with none of the agent's secrets. `antigravityChatBreach` kills the turn on an
  *   `init` listing any tool but our server's, on anything before `init`, on a tool step that isn't ours and on a
@@ -96,6 +99,12 @@ export const isOurAgyTool = (name: unknown) => typeof name === "string" && OURS.
 const agyEffort = (effort?: BrainEffort, model?: string) =>
   model && /-(?:low|medium|high)$/.test(model) ? undefined : effort === "xhigh" || effort === "max" ? "high" : effort;
 
+/**
+ * `--settings` of a `work` turn: commands allowed for this session only. Our server's rule is repeated in case the
+ * CLI replaces the file's `permissions` rather than merging them (its `--help` doesn't say).
+ */
+export const AGY_WORK_SETTINGS = JSON.stringify({ permissions: { allow: [AGY_MCP_RULE, "command(*)"] } });
+
 /** The `agy` arguments for one turn. */
 export function antigravityTurnArgs(input: {
   prompt: string;
@@ -114,7 +123,11 @@ export function antigravityTurnArgs(input: {
     "stream-json",
     "--sandbox",
     "--disable-slash-commands",
-    ...(input.locked ? ["--agent", AGY_CHAT_AGENT] : input.profile === "plan" ? [] : ["--mode", "accept-edits"]),
+    ...(input.locked
+      ? ["--agent", AGY_CHAT_AGENT]
+      : input.profile === "plan"
+        ? []
+        : ["--mode", "accept-edits", "--settings", AGY_WORK_SETTINGS]),
     ...(input.model ? ["--model", input.model] : []),
     ...(effort ? ["--effort", effort] : []),
     ...(input.chat ? ["--conversation", input.chat] : []),
