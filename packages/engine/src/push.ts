@@ -313,6 +313,21 @@ export interface PushDelivery {
   held?: boolean;
 }
 
+/**
+ * The app's notification category for a push (iOS `aps.category`, Android `categoryId`): the buttons it shows on the
+ * lock screen. A device's notice has its own (Stop; Let it join, Deny; Allow once, No), by its kind. An approval that
+ * isn't high risk has Aprovar and Recusar, decided without opening the app (ADR 0035 addendum); a high-risk one has
+ * none, so it is only ever approved in the app.
+ */
+export function pushCategory(kind: string, highRisk: boolean): string | undefined {
+  if (kind.startsWith("device.")) return kind;
+  if (kind === "approval" && !highRisk) return APPROVAL_PUSH_CATEGORY;
+  return undefined;
+}
+
+/** The category of an approval's push the phone answers with its buttons (`apps/mobile/src/features/approvals/push-actions.ts`). */
+export const APPROVAL_PUSH_CATEGORY = "approval";
+
 /** Same rule as the web's approval card: production, irreversible or external actions are high risk. */
 export function approvalIsHighRisk(approval: { tool: string; scope: string }): boolean {
   const text = `${approval.tool} ${approval.scope}`.toLowerCase();
@@ -509,6 +524,7 @@ export async function deliverPush(
   let phoneRequestFailed = false;
 
   if (deps.push && phones.length > 0) {
+    const category = pushCategory(row.kind, highRisk);
     const messages: PushMessage[] = phones.map((d) => ({
       to: d.token,
       platform: d.platform === "ios" ? "ios" : "android",
@@ -519,8 +535,8 @@ export async function deliverPush(
       ...renderPush(pushLocale(d.locale), text),
       data,
       priority: row.waiting ? "high" : "default",
-      // A device's notice has buttons on the lock screen (Stop; Allow once, Always, No), by its kind.
-      ...(row.kind.startsWith("device.") ? { category: row.kind } : {}),
+      // Buttons on the lock screen: a device's notice, and an approval that isn't high risk.
+      ...(category ? { category } : {}),
     }));
     try {
       const results = await deps.push.send(messages);
