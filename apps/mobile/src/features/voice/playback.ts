@@ -20,6 +20,8 @@ export interface PlayRequest {
 }
 
 const TICK_MS = 50;
+/** Ticks a place picked before the length was known waits for the player to read it (2 s), then it's given up. */
+const PENDING_TICKS = 40;
 /** Moved this far past where it started (s), the clip is playing: its button stops showing it starting. */
 const MOVED_S = 0.05;
 let player: AudioPlayer | null = null;
@@ -116,6 +118,7 @@ export async function startPlayback(request: PlayRequest) {
   const from = (request.from * total) / 1000;
   // A place picked before its length was known: it goes there once the player has read it.
   let pending = total > 0 ? 0 : request.from;
+  let waited = 0;
   let p: AudioPlayer;
   try {
     await voiceAudio(false);
@@ -139,11 +142,11 @@ export async function startPlayback(request: PlayRequest) {
     if (!now) return;
     const status = p.currentStatus;
     if (request.durationMs <= 0 && p.duration > 0) lengths.set(now.id, p.duration * 1000);
-    if (pending > 0) {
-      if (!(p.duration > 0)) return;
+    // Never a return here: a stream that never says its length still ends and stops spinning.
+    if (pending > 0 && p.duration > 0) {
       seekPlayback(now.id, pending);
       pending = 0;
-    }
+    } else if (pending > 0 && ++waited >= PENDING_TICKS) pending = 0;
     const done = status.didJustFinish;
     const at = fraction(p, now.durationMs);
     if (done || at >= 0.998) {
@@ -160,7 +163,8 @@ export async function startPlayback(request: PlayRequest) {
       starting = null;
       say();
     }
-    if (seeking) return;
+    // A seek on its way, or a place still waiting for the length: the player's own place would pull the handle back.
+    if (seeking || pending > 0) return;
     setPlace(now.id, at);
     now.onProgress?.(at);
   }, TICK_MS);

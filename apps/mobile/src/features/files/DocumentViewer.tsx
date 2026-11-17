@@ -166,8 +166,17 @@ export function DocumentViewer({
       ) : pdf ? (
         <PdfPages detail={detail} />
       ) : info.view === "audio" ? (
-        <View style={styles.page}>
+        // The player, and the way to open it in another app: a phone plays only some audio types (no Ogg on iPhone).
+        <View style={[styles.page, styles.audio]}>
           <AudioFile fileId={detail.id} version={detail.shownVersion} />
+          <Button
+            variant="secondary"
+            wide
+            icon="share"
+            label={t("mobile.files.sendCopy")}
+            loading={actions.busy === "share"}
+            onPress={() => void actions.share()}
+          />
         </View>
       ) : (
         // A type the app doesn't draw: that it has no preview (its name is the bar's title already), and the way to
@@ -329,4 +338,5 @@ const styles = StyleSheet.create({
   // The app's body, as a message's words.
   prose: systemText("body"),
   json: { gap: 10, alignItems: "flex-start" },
+  audio: { gap: 16 },
 });
