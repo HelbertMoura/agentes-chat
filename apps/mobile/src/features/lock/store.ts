@@ -1,12 +1,13 @@
 import * as LocalAuthentication from "expo-local-authentication";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { AppState, type AppStateStatus } from "react-native";
-import { readValueSyncOrUnknown, STORED, writeValue } from "@/lib/storage";
-import { availabilityOf, type LockAvailability, locksOnReturn } from "./logic";
+import { readValueSync, readValueSyncOrUnknown, STORED, writeValue } from "@/lib/storage";
+import { availabilityOf, type LockAfter, type LockAvailability, lockAfterOf, locksOnReturn } from "./logic";
 
 /**
  * The app lock (ADR 0194), kept on this phone: off by default, on only after the person proved it once. While on, the
- * app opens locked and locks again when it comes back after the grace (`LOCK_GRACE_MS`). Out of sight (the app
+ * app opens locked and locks again when it comes back after the time the person picked (`lockAfter`, one minute
+ * unless changed). Out of sight (the app
  * switcher, the background) the lock screen covers it without asking anything, so its picture shows no conversation.
  */
 interface LockState {
@@ -15,13 +16,15 @@ interface LockState {
   locked: boolean;
   /** Out of sight: covered, nothing asked on return within the grace. */
   covered: boolean;
+  /** How long away before coming back asks again (`LOCK_AFTER_CHOICES`). */
+  after: LockAfter;
 }
 
 let state: LockState = (() => {
   // Unreadable (the keystore failed) is taken as on: the phone's own proof opens it, and nobody is kept out.
   const saved = readValueSyncOrUnknown(STORED.appLock);
   const enabled = saved === "1" || saved === undefined;
-  return { enabled, locked: enabled, covered: false };
+  return { enabled, locked: enabled, covered: false, after: lockAfterOf(readValueSync(STORED.appLockAfter)) };
 })();
 let leftAt: number | null = null;
 /** The system's prompt is up: the app leaving for it (Face ID, Android's PIN screen) is not the person leaving. */
@@ -88,7 +91,7 @@ export function watchAppLock(): () => void {
   const sub = AppState.addEventListener("change", (s: AppStateStatus) => {
     if (!state.enabled || authenticating) return;
     if (s === "active") {
-      const locked = state.locked || locksOnReturn(leftAt, Date.now());
+      const locked = state.locked || locksOnReturn(leftAt, Date.now(), state.after);
       leftAt = null;
       set({ locked, covered: false });
       return;
@@ -163,6 +166,12 @@ export async function turnAppLock(on: boolean, promptMessage: string): Promise<b
   return true;
 }
 
+/** How long away before it asks again, kept on this phone. */
+export function setLockAfter(after: LockAfter) {
+  void writeValue(STORED.appLockAfter, String(after));
+  set({ after });
+}
+
 function setAppLock(on: boolean) {
   leftAt = null;
   void writeValue(STORED.appLock, on ? "1" : null);
@@ -172,5 +181,5 @@ function setAppLock(on: boolean) {
 /** The phone's remembered values were cleared (the last account signed out): the lock goes with them. */
 export function forgetAppLock() {
   leftAt = null;
-  set({ enabled: false, locked: false, covered: false });
+  set({ enabled: false, locked: false, covered: false, after: lockAfterOf(null) });
 }

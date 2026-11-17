@@ -101,6 +101,8 @@ export const STORED = {
   stopSendTaught: "stop-send-taught",
   /** The app asks for the phone's biometrics or screen lock to open ("1"; features/lock, ADR 0194). */
   appLock: "app-lock",
+  /** How long away before the app lock asks again, in milliseconds ("0", "60000"…; features/lock/logic.ts). */
+  appLockAfter: "app-lock-after",
 } as const;
 
 export async function clearStoredValues(): Promise<void> {

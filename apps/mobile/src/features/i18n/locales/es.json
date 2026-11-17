@@ -1257,7 +1257,13 @@
     "unavailable": "Primero configura una huella, tu rostro o un bloqueo de pantalla en este teléfono.",
     "confirm": "Confirma que eres tú para bloquear la app",
     "prompt": "Desbloquear agentes.chat",
-    "unlock": "Desbloquear"
+    "unlock": "Desbloquear",
+    "after": "Bloquear al salir",
+    "afterNow": "Al instante",
+    "after1m": "Después de 1 minuto",
+    "after5m": "Después de 5 minutos",
+    "after30m": "Después de 30 minutos",
+    "after1h": "Después de 1 hora"
   },
   "delete": {
     "intro": "No se puede deshacer.",
