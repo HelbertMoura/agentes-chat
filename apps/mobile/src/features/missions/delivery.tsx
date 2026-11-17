@@ -7,7 +7,7 @@ import {
   useMissionDeliveries,
 } from "@agenteschat/client";
 import { errorText } from "@agenteschat/client/lib/errors";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Button, Icon, LineIcon, Text, Toggle, useToast } from "@/ui";
@@ -19,7 +19,7 @@ import { useColors, useDirectory, useMeId, useOrgId, useWhen } from "../shared/h
 import { PromptForm } from "../shared/PromptForm";
 import { errorHaptic, successHaptic, tapHaptic, useSurface } from "../shared/parts";
 import { useSheet } from "../shared/SheetHost";
-import { deliveryChecked, deliveryFiles, othersWhoChecked } from "./logic";
+import { deliveryChecked, deliveryFiles, othersWhoChecked, settledTicks, tickOf } from "./logic";
 
 /**
  * The mission's end on the phone (ADR 0029), the web's `MissionDeliveryCard`: what was delivered (the summary, its
@@ -51,6 +51,10 @@ export function DeliveryCardView({ delivery: d, mission: m }: { delivery: Missio
   const [wiki, setWiki] = useState(true);
   // The tap shows at once; the delivery comes back from the server with it.
   const [ticks, setTicks] = useState<Record<string, boolean>>({});
+  // A tick the delivery now carries is the server's again: dropped, so a later change (another phone) shows.
+  useEffect(() => {
+    setTicks((s) => settledTicks(s, d.checklist, meId));
+  }, [d.checklist, meId]);
   const accept = useMissionAct(orgId, m.id, (saveToWiki: boolean) =>
     api.missions.acceptDelivery(orgId, m.id, d.id, { saveToWiki }),
   );
@@ -99,7 +103,7 @@ export function DeliveryCardView({ delivery: d, mission: m }: { delivery: Missio
   }
 
   const decide = m.canAct && m.status !== "done" && m.status !== "canceled";
-  const items = d.checklist.map((x) => ({ ...x, mine: ticks[x.id] ?? Boolean(meId && x.checkedBy.includes(meId)) }));
+  const items = d.checklist.map((x) => ({ ...x, mine: tickOf(ticks[x.id], x.checkedBy, meId) }));
   const progress = deliveryChecked(d, meId);
   const done = items.filter((x) => x.mine).length;
   const files = deliveryFiles(d);
@@ -170,12 +174,14 @@ export function DeliveryCardView({ delivery: d, mission: m }: { delivery: Missio
                   check.mutate(
                     { itemId: x.id, checked },
                     {
-                      onSettled: () =>
+                      // The tick stays until the refetched delivery says the same (`tickOf`); a refusal drops it.
+                      onError: (error) => {
                         setTicks((s) => {
                           const { [x.id]: _, ...rest } = s;
                           return rest;
-                        }),
-                      onError: fail,
+                        });
+                        fail(error);
+                      },
                     },
                   );
                 }}

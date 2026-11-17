@@ -78,9 +78,8 @@ export function CommandCardView({ command: cmd, mission: m }: { command: Mission
           <Chip icon={STATE_ICON[cmd.state]} label={t(`missions.command.state.${cmd.state}`)} />
         ) : null}
       </View>
-      {/* The command flat in the card, in mono: it is the line the executor will run. */}
+      {/* The command flat in the card, in mono and whole: it is the line the executor will run, never cut short. */}
       <RNText
-        numberOfLines={8}
         selectable
         maxFontSizeMultiplier={CHROME_MAX_SCALE}
         style={[styles.code, { fontFamily: fonts.mono, color: colors.ink }]}
@@ -338,8 +337,9 @@ function BlockedSheet({
                 >
                   {on ? <Icon name="check" size={13} color={c.bg} /> : null}
                 </View>
+                {/* Whole, never cut: what is allowed is read before the tap. */}
                 <RNText
-                  numberOfLines={3}
+                  selectable
                   maxFontSizeMultiplier={CHROME_MAX_SCALE}
                   style={[styles.itemCode, { fontFamily: fonts.mono, color: c.ink }]}
                 >
@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
   line: { marginTop: 8 },
   sheet: { gap: 12 },
   group: { gap: 2 },
-  // A long command wraps to three lines: its box stays on the first.
+  // A long command wraps: its box stays on the first line.
   item: { flexDirection: "row", alignItems: "flex-start", gap: 10, paddingVertical: 8, borderRadius: 10 },
   box: { width: 20, height: 20, borderRadius: 6, alignItems: "center", justifyContent: "center" },
   itemCode: { flex: 1, fontSize: 13, lineHeight: 18 },

@@ -91,6 +91,30 @@ export function deliveryChecked(d: Pick<MissionDelivery, "checklist">, meId: str
   };
 }
 
+/**
+ * Whether an item shows checked by me: the tap's own value until the delivery the server sends back says the same
+ * (the refetch lands after the request ends), then the server's.
+ */
+export function tickOf(tick: boolean | undefined, checkedBy: string[], meId: string | null) {
+  const server = Boolean(meId && checkedBy.includes(meId));
+  return tick ?? server;
+}
+
+/** The taps still ahead of the server: those the delivery doesn't carry yet (the same object when none settled). */
+export function settledTicks(
+  ticks: Record<string, boolean>,
+  checklist: { id: string; checkedBy: string[] }[],
+  meId: string | null,
+) {
+  const left = Object.fromEntries(
+    Object.entries(ticks).filter(([id, tick]) => {
+      const item = checklist.find((x) => x.id === id);
+      return item ? tick !== Boolean(meId && item.checkedBy.includes(meId)) : false;
+    }),
+  );
+  return Object.keys(left).length === Object.keys(ticks).length ? ticks : left;
+}
+
 /** Who else checked an item: their faces beside it. */
 export const othersWhoChecked = (item: { checkedBy: string[] }, meId: string | null) =>
   item.checkedBy.filter((u) => u !== meId);
