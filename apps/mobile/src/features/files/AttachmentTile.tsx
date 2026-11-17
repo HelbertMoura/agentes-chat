@@ -14,7 +14,7 @@ import { LiveCover } from "../live-files/shared/LiveCover";
 import { useColors, useOrgId } from "../shared/hooks";
 import { MONO } from "../shared/parts";
 import { extensionOf, type FileInfo, type FileRef, fileInfo, isCodeName } from "./logic";
-import { openFile } from "./open";
+import { openFile, useOpenFile } from "./open";
 import { PdfCover } from "./pdf-preview";
 import { pictureDrawn, pictureFade, useRemoteFile } from "./source";
 
@@ -93,15 +93,18 @@ export function AttachmentTile({
     : metaOf(t, detail, i18n.language || "en");
   const icon: IconName =
     !content || content.kind === "file" ? (picture ? "image" : fileIconOf(info?.type)) : KIND_ICON[content.kind];
+  const openLooked = useOpenFile();
+  // Its details may not be here yet (slow, or their read failed): the tap still opens, reading them first.
   const open = () => {
-    if (detail) openFile({ id: file.id, version: file.version, title: file.title, detail }, siblings);
+    const ref = { id: file.id, version: file.version, title: file.title };
+    if (detail) openFile({ ...ref, detail }, siblings);
+    else void openLooked(ref, siblings);
   };
   return (
     // Opening it is navigation: the tile gives under the finger, no tap.
     <PressScale
       haptic={false}
       onPress={open}
-      disabled={!detail}
       accessibilityRole={picture ? "imagebutton" : "button"}
       accessibilityLabel={`${name}, ${meta}`}
       style={[styles.tile, { width, backgroundColor: c.raised, borderColor: picture ? c.line : c.line2 }, cardCorners]}
