@@ -8,6 +8,7 @@ import { EmptyState, GroupedList, GroupedRow } from "@/ui";
 import { Gap, SettingsPage } from "../settings/parts";
 import { useDirectory, useOwnsAgent } from "../shared/hooks";
 import { AlwaysApproved } from "./AgentProfileScreen";
+import { ArchiveAgentRow } from "./ArchiveAgentRow";
 import { BrakesSection } from "./BrakesSection";
 import { openAgentDelete } from "./DeleteAgentScreen";
 import { MergeReposSection } from "./MergeReposSection";
@@ -47,11 +48,12 @@ export function AgentMoreScreen({ agentId }: { agentId: string }) {
       ) : null}
       <AlwaysApproved agentId={agentId} name={name} mayRemove={mine || can(org, "approve_actions")} />
       <MergeReposSection agentId={agentId} mayEdit={mine || admin} />
-      {/* Deleting for good asks for its name on a screen of its own (ADR 0082). */}
+      {/* Archiving asks first, as the web's; deleting for good asks for its name on a screen of its own (ADR 0082). */}
       {admin && !rightHand ? (
         <>
           <Gap />
           <GroupedList>
+            <ArchiveAgentRow agentId={agentId} name={name} />
             <GroupedRow
               icon="x"
               label={t("agentPage.delete.action", agentGrammar(name))}
