@@ -176,6 +176,7 @@ import { sectionName, useSectionOrder } from "./SidebarOrder";
 import { SIDEBAR_TOOLS, SidebarSetupDialog, ToolList } from "./SidebarSetup";
 import { AgentGlow, AgentTrail, colorOf, MenuHorizon, SidebarHorizon, WorkspaceSky } from "./Sky";
 import { SetStatusDialog, useSaveStatus } from "./StatusDialog";
+import { TwoFactorDialog } from "./TwoFactor";
 
 /** An agent's sky for its busy chip (`.sidebar__busy`): both themes, the CSS picks one. */
 const selectionSky = (color: AgentColor) =>
@@ -2305,6 +2306,11 @@ function AccountMenu({ personal = false }: { personal?: boolean }) {
       <OpenOnPhoneDialog open={phone} onClose={() => setPhone(false)} />
       <EmailDialog open={account === "email"} onClose={() => setAccount(null)} />
       <AddPasswordDialog open={account === "password"} onClose={() => setAccount(null)} />
+      <TwoFactorDialog
+        open={account === "two-factor"}
+        onClose={() => setAccount(null)}
+        onAddPassword={() => setAccount("password")}
+      />
       <DeleteAccountDialog open={account === "delete"} onClose={() => setAccount(null)} />
     </>
   );

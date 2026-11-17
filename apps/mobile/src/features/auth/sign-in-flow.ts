@@ -23,6 +23,12 @@ export interface SignInFlow {
 /** A step after the e-mail: each is a screen of its own. */
 export type SignInStep = "password" | "social" | "noPassword" | "name" | "closed" | "expired" | "forgot";
 
+/**
+ * The second step of a sign-in (ADR 0191), on a screen of its own over whichever screen signed in: the password's,
+ * a provider's button's. It needs no flow: the challenge is in the place's cookies.
+ */
+export const TWO_FACTOR_STEP_PATH = "/sign-in/code";
+
 /** Where each step's screen lives (`app/(auth)/(pages)/sign-in/*`). */
 export const SIGN_IN_STEP_PATH: Record<SignInStep, string> = {
   password: "/sign-in/password",

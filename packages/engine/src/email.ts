@@ -294,6 +294,18 @@ export type EmailTemplate =
    * good at `dueAt` (ISO, shown in `timeZone`). `support`: whom to write to if it wasn't them (`SUPPORT_EMAIL`), else
    * the people who run the server. `url`: the server's own address, for the pictures.
    */
+  /**
+   * The account's two-step sign-in changed (ADR 0191): turned on (every other device signed out), turned off, or new
+   * recovery codes. `support`: where to write if it wasn't them.
+   */
+  | {
+      kind: "two_factor_changed";
+      locale?: EmailLocale;
+      email: string;
+      change: "on" | "off" | "codes";
+      support: string | null;
+      url?: string;
+    }
   | {
       kind: "account_deleted";
       locale: EmailLocale;
@@ -1025,6 +1037,16 @@ function docOf(t: EmailTemplate, sender: string | null): EmailDoc {
         c.why,
       );
     }
+    case "two_factor_changed": {
+      const c = w.twoFactor;
+      return doc(
+        c.subject[t.change],
+        c.preheader[t.change],
+        c.headline[t.change],
+        [{ p: c.body[t.change](inertText(t.email)) }, { small: t.support ? c.support(t.support) : c.noSupport }],
+        c.why,
+      );
+    }
   }
 }
 
@@ -1054,6 +1076,7 @@ export function emailsByLocale(recipients: { email: string; locale: EmailLocale 
 /** What an account waiting for its deletion still gets: what it asked for, and what it must be told. */
 const ABOUT_THE_ACCOUNT: ReadonlySet<EmailTemplate["kind"]> = new Set([
   "password_reset",
+  "two_factor_changed",
   "verify_email",
   "account_deleting",
   "account_deleted",

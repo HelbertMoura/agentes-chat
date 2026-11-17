@@ -1,4 +1,5 @@
 import { authConfigQuery, invitationQuery, meQuery } from "@agenteschat/client";
+import { TWO_FACTOR_REQUIRED } from "@agenteschat/client/lib/errors";
 import { safeRedirect, signInFor } from "@agenteschat/client/lib/guards";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { fallBackToAccount } from "@/lib/accounts";
@@ -24,7 +25,8 @@ export const Route = createFileRoute("/login")({
       goal && "invite" in goal ? context.queryClient.prefetchQuery(invitationQuery(context.api, goal.invite)) : null,
     ]);
     // An OAuth callback that waited for a sign-in (under /api/) is the server's: a full load.
-    if (me && !search.add) {
+    // A provider's return that waits for its account's code (ADR 0191) is another account's sign-in: the page asks.
+    if (me && !search.add && search.error !== TWO_FACTOR_REQUIRED) {
       throw redirect({ href: search.redirect ?? "/", reloadDocument: search.redirect?.startsWith("/api/") });
     }
     // Signed out, with another of the browser's accounts still in (ADR 0183): the app opens as that one. The page
