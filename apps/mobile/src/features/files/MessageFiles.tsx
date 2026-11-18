@@ -245,10 +245,10 @@ function InlineVideo({
   const link = useRemoteFile(orgId, file.id, file.version, { once: true });
   const [failed, setFailed] = useState(false);
   const source = useMemo(() => (link.data ? { uri: link.data.uri, headers: link.data.headers } : null), [link.data]);
+  const openLooked = useOpenFile();
   if (failed || link.isError)
     return <AttachmentTile file={file} detail={detail} width={width} single siblings={siblings} />;
   const info = detail ? fileInfo(detail) : null;
-  const openLooked = useOpenFile();
   // In the same viewer as the pictures: one place where media opens. Its details may not be here yet (slow, or their
   // read failed): the tap still opens, reading them first, never a press that does nothing.
   const open = () => {
@@ -268,7 +268,11 @@ function InlineVideo({
           onFailed={() => setFailed(true)}
         />
       ) : (
-        <View
+        <PressScale
+          haptic={false}
+          onPress={open}
+          accessibilityRole="button"
+          accessibilityLabel={info?.name || file.title}
           style={[styles.shot, { width, height: videoHeight(width), backgroundColor: c.sunken, borderColor: c.line2 }]}
         />
       )}
