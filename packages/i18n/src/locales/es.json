@@ -2193,6 +2193,10 @@
         "title": "Computadoras",
         "help": "Se sumó una computadora nueva o la del espacio de trabajo está lista"
       },
+      "plans": {
+        "title": "Límites de los planes",
+        "help": "Cuando una cuenta de IA llega al 90% de un límite"
+      },
       "reactions": {
         "title": "Reacciones",
         "help": "Cuando alguien reacciona a un mensaje tuyo"
@@ -5524,6 +5528,8 @@
       "desktopTaken": "<b>{{name}}</b> tomó el control de la pantalla del computador de <b>{{agent}}</b>",
       "planLent": "<b>{{name}}</b> conectó tu plan de {{plan}} a <b>{{agent}}</b>",
       "planServes": "Tu {{plan}} ahora atiende a todo el workspace",
+      "planLimitNear": "<b>{{account}}</b> usó el {{percent}}% de su límite ({{window}}), {{resets}}",
+      "planLimitNearOpen": "<b>{{account}}</b> usó el {{percent}}% de su límite ({{window}})",
       "planModelDropped": "{{model}} salió de {{plan}}. <b>{{name}}</b> usa {{runs}} hasta que elijas otro modelo.",
       "routineWaitingPlan": "<b>{{name}}</b> espera que su plan se renueve para ejecutar una rutina",
       "planResetUnknown": "{{plan}} no dijo cuándo se renueva su límite. El trabajo de <b>{{name}}</b> sigue esperando.",
@@ -17973,6 +17979,13 @@
       "accounts_other": "{{count}} cuentas de IA"
     },
     "notReported": "El proveedor no informa ninguna cuota.",
+    "ring": {
+      "ok": "Límites de los planes: {{percent}}% usado en {{account}}, la cuenta más cerca de su límite",
+      "almost": "Límites de los planes: {{account}} casi en el límite, {{percent}}% usado",
+      "limited": "Límites de los planes: {{account}} en el límite",
+      "none": "Límites de los planes: ninguna cuenta informa límites",
+      "title": "Límites de los planes"
+    },
     "recent": {
       "title": "Uso reciente",
       "day": "Últimas 24 horas",
