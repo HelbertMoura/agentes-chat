@@ -351,6 +351,8 @@ function Home() {
       title={t("mobile.chats.title")}
       {...header}
       apart={quotaRing}
+      // On Android "+" is the button beside the floating tab bar: one way to it.
+      {...(Platform.OS === "android" ? { actions: [] } : {})}
       // The sky stands behind the bar and the large title and scrolls with them: the title is drawn with it.
       drawnTitle
       backdrop={empty || failed ? undefined : <GreetingSky />}
