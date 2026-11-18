@@ -9,6 +9,7 @@ import {
   addressHeld,
   announceProfile,
   askEmailChange,
+  baseUrlFor,
   CODE_LIMITS,
   ConflictError,
   changeAsked,
@@ -24,6 +25,8 @@ import {
   feedbackDestination,
   finishEmailChange,
   holdsInvitation,
+  hostLook,
+  hostOrigin,
   INVITATION_MAIL_HEADER,
   INVITATION_TOKEN_HEADER,
   isAgentesCloud,
@@ -150,6 +153,13 @@ export function createAuth(deps: {
   const appOrigins = [APP_SCHEME, ...(config.NODE_ENV !== "production" ? ["exp://", "exp://**"] : [])];
   const apple = appleSignIn(config);
   const authorizations = socialAuthorizations(config, apple?.clientId ?? null);
+  const trustedOrigins = [
+    config.PUBLIC_URL,
+    ...(config.EXTRA_TRUSTED_ORIGINS ?? []),
+    ...devOrigins,
+    ...appOrigins,
+    ...(apple ? [APPLE_ORIGIN] : []),
+  ];
   // A sign-in under way when "This wasn't me" ran read the account as it was: the session, sign-in method or password
   // it makes lands after the undo took every one back, and goes too.
   const undoneMeanwhile = async (userId: string) => {
@@ -184,13 +194,12 @@ export function createAuth(deps: {
     // Apple posts the sign-in result back from its own origin (`response_mode=form_post`).
     // `EXTRA_TRUSTED_ORIGINS` is for an instance opened at more than one address (a LAN IP, a tunnel hostname) besides
     // `PUBLIC_URL`; each is already an origin, as Better Auth compares them.
-    trustedOrigins: [
-      config.PUBLIC_URL,
-      ...(config.EXTRA_TRUSTED_ORIGINS ?? []),
-      ...devOrigins,
-      ...appOrigins,
-      ...(apple ? [APPLE_ORIGIN] : []),
-    ],
+    // A request on a registered host also trusts that host's own origin (`hostOrigin`, ADR 0194); with no request
+    // (Better Auth's start), the server's own list.
+    trustedOrigins: async (request?: Request) => {
+      const extra = request ? await hostOrigin(db, request.headers) : null;
+      return extra ? [...trustedOrigins, extra] : trustedOrigins;
+    },
     plugins: [
       expo(),
       // Several accounts signed in on one browser (ADR 0183): every sign-in also leaves a cookie of its own, so the
@@ -201,7 +210,7 @@ export function createAuth(deps: {
       phoneBrowserSignIn(),
       desktopSignIn(),
       ownerSignIn({ db, config, log, mint: (adapter, userId) => mintSignIn(adapter, `${FOR_USER}${userId}`) }),
-      // A code from an authenticator app as a second step (ADR 0193): `twoFactorGate` holds every way in to it.
+      // A code from an authenticator app as a second step (ADR 0195): `twoFactorGate` holds every way in to it.
       twoFactorPlugin(
         isAgentesCloud(config.PUBLIC_URL) ? "agentes.chat" : `agentes.chat (${new URL(config.PUBLIC_URL).host})`,
       ),
@@ -252,6 +261,8 @@ export function createAuth(deps: {
               if (!(await emailAllowed("reset-email", user.email))) return;
               // Straight to our page (not Better Auth's redirect): the same link opens the phone app when it is
               // installed (universal link / App Link, app-links.ts) and the website otherwise; both reset with it.
+              // Always the main address, whatever host asked (ADR 0194): anyone may ask for any account's reset, and a
+              // registered host's traffic is its owner's to read.
               const url = `${config.PUBLIC_URL.replace(/\/$/, "")}/reset-password?token=${encodeURIComponent(token)}`;
               // An account with no language yet (made by the owner link, or before sign-up kept one): the request's.
               const locale = emailLocale(user.locale ?? requestLocale(request?.headers.get("accept-language")));
@@ -315,13 +326,18 @@ export function createAuth(deps: {
                 .from(schema.users)
                 .where(eq(schema.users.id, user.id));
               const change = stored !== undefined && stored.email !== user.email.toLowerCase();
+              // Back to a registered host only for the account just made there; a link asked for later or a new
+              // address goes to the main address, as a reset does (ADR 0194).
+              const base = signingUp
+                ? await baseUrlFor(db, config.PUBLIC_URL, request?.headers.get("host"))
+                : config.PUBLIC_URL;
               await queueEmail(db, {
                 orgId: null,
                 key: `verify-email:${sha256(token)}`,
                 to: [user.email],
                 template: change
-                  ? { kind: "email_change_link", locale, url: confirmationLanding(url) }
-                  : { kind: "verify_email", locale, url: confirmationLanding(url) },
+                  ? { kind: "email_change_link", locale, url: confirmationLanding(url, base) }
+                  : { kind: "verify_email", locale, url: confirmationLanding(url, base) },
               });
             },
           },
@@ -364,7 +380,7 @@ export function createAuth(deps: {
         "/phone/redeem": { window: 60, max: 10 },
         "/owner-claim": { window: 60, max: 10 },
         "/owner-key": { window: 60, max: 10 },
-        // Per address, beside the plugin's 5 tries per challenge and its lock on the account (ADR 0193).
+        // Per address, beside the plugin's 5 tries per challenge and its lock on the account (ADR 0195).
         "/two-factor/verify-totp": { window: 60, max: 10 },
         "/two-factor/verify-backup-code": { window: 60, max: 10 },
         "/two-factor/enable": { window: 60, max: 5 },
@@ -390,6 +406,11 @@ export function createAuth(deps: {
       // Checked before the endpoint runs so the person sees the real reason.
       // The database hook below also guards social sign-in.
       before: createAuthMiddleware(async (ctx) => {
+        // A provider's return comes to `PUBLIC_URL`, never to a registered host, so a social sign-in there could only
+        // end on the main address (ADR 0194): refused as on a server without that provider.
+        if (SOCIAL_STARTS.has(ctx.path) && (await hostLook(db, ctx.headers?.get("host")))) {
+          throw new APIError("NOT_FOUND", { code: "PROVIDER_NOT_FOUND", message: "Provider not found" });
+        }
         if (ctx.path === EXPO_PROXY_PATH) {
           const target =
             (ctx.query as { authorizationURL?: unknown } | undefined)?.authorizationURL ??
@@ -426,6 +447,7 @@ export function createAuth(deps: {
           const address = (ctx.body as { email?: unknown } | undefined)?.email;
           const refused = await humanCheckRefusal(
             deps.humanCheck,
+            db,
             ctx.headers,
             action,
             config.TRUSTED_PROXIES,
@@ -534,7 +556,7 @@ export function createAuth(deps: {
                 ...block,
               });
             }
-            // After the block, which says the real reason: every new session waits for the second step (ADR 0193).
+            // After the block, which says the real reason: every new session waits for the second step (ADR 0195).
             return twoFactorGate(db, session, context);
           },
           // Here, not in `before`: the insert may wait for the undo's commit, and only after it can it see the undo.
@@ -1076,12 +1098,16 @@ async function accessOf(context: { headers?: Headers | null } | null | undefined
 /** Where a confirmation link lands: the web app says how it went there (apps/web/src/lib/email-confirmation.ts). */
 const CONFIRMATION_LANDING = "/?email_confirmed=1";
 
+/** Better Auth's paths that start a provider's sign-in or link one. */
+const SOCIAL_STARTS = new Set(["/sign-in/social", "/link-social"]);
+
 /**
  * The confirmation link, landing on `CONFIRMATION_LANDING` whenever the request named no other page: the phone app's
  * sign-up, a new link asked for later and every new address name none.
  */
-function confirmationLanding(verifyUrl: string): string {
-  const url = new URL(verifyUrl);
+function confirmationLanding(verifyUrl: string, base: string): string {
+  const link = new URL(verifyUrl);
+  const url = new URL(`${link.pathname}${link.search}`, base);
   const back = url.searchParams.get("callbackURL");
   if (!back || back === "/") url.searchParams.set("callbackURL", CONFIRMATION_LANDING);
   return url.toString();
@@ -1111,13 +1137,16 @@ export const workspacePolicy = (config: Config): WorkspacePolicy => ({
   allowSignup: config.ALLOW_SIGNUP,
 });
 
-/** Sign-in options the login and sign-up pages need to render. */
-export function authUiConfig(config: Config) {
+/**
+ * Sign-in options the login and sign-up pages need to render. On a registered host (`onHost`, ADR 0194) sign-in is by
+ * email alone: Better Auth refuses a provider's there too (`SOCIAL_STARTS`).
+ */
+export function authUiConfig(config: Config, onHost = false) {
   return {
     socialProviders: {
-      google: Boolean(config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET),
-      github: Boolean(config.GITHUB_CLIENT_ID && config.GITHUB_CLIENT_SECRET),
-      apple: appleConfigured(config),
+      google: !onHost && Boolean(config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET),
+      github: !onHost && Boolean(config.GITHUB_CLIENT_ID && config.GITHUB_CLIENT_SECRET),
+      apple: !onHost && appleConfigured(config),
     },
     termsUrl: config.TERMS_URL ?? null,
     privacyUrl: config.PRIVACY_URL ?? null,
@@ -1207,7 +1236,7 @@ const phoneSignIn = {
         }
         if (!user) throw new APIError("UNAUTHORIZED", { message: "This code expired or was already used" });
         // Minted from a session, it signed in when that one did: it proves no fresher sign-in (`signedInLately`).
-        // Minted from a session, it is that session's copy and asks for no second code (ADR 0193); for a person by
+        // Minted from a session, it is that session's copy and asks for no second code (ADR 0195); for a person by
         // id (the owner key's, an approved request's), it does.
         const userId = user.id;
         const session = signedIn

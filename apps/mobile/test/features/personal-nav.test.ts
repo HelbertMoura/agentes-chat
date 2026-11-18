@@ -12,7 +12,9 @@ const read = (path: string) => readFileSync(join(ROOT, path), "utf8");
 describe("the tabs of a personal workspace", () => {
   test("Threads leaves the bar the system's way, and its list is pushed from You › Work", () => {
     const tabs = read("app/(app)/(main)/(tabs)/_layout.tsx");
-    expect(tabs).toContain('{ name: "threads", glyph: "threads", label: "mobile.tabs.threads" }');
+    expect(tabs).toMatch(
+      /\{\s*name: "threads",\s*glyph: "threads",\s*label: "mobile\.tabs\.threads",\s*sf: \{[^}]*\},\s*teamOnly: true,\s*\}/,
+    );
     expect(tabs).toContain("hidden={tabHidden(tab.name, personal, middle)}");
     for (const middle of ["threads", "manage"] as const) {
       expect(tabHidden("threads", true, middle)).toBe(true);

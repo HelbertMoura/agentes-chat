@@ -249,8 +249,6 @@
       "mute": "Stumm",
       "unmute": "Ton an"
     },
-    "firstRunLine": "{{name}} richtet das Team ein · {{done}} von {{total}}",
-    "firstRunLinePersonal": "{{name}} richtet deine Agenten ein · {{done}} von {{total}}",
     "first": {
       "title": "Starte mit deinem ersten Agenten",
       "subtitle": "Gib ihm einen Namen und sag, was er macht. Er erscheint hier als Chat.",
@@ -1689,18 +1687,9 @@
   },
   "browser": {
     "card": {
-      "needs": "{{name}} braucht Hilfe",
-      "needsFor": "{{name}} braucht Hilfe · {{time}}",
-      "inControlAt": "Du hast die Steuerung · {{host}}",
-      "doing": "{{name}} · {{doing}}",
-      "startingF": "Browser von {{name}} wird geöffnet…",
-      "startingM": "Browser von {{name}} wird geöffnet…",
       "stopAskF": "Browser von {{name}} schließen?",
       "stopAskM": "Browser von {{name}} schließen?",
-      "whereF": "Im Browser von {{name}}",
-      "whereM": "Im Browser von {{name}}",
       "open": "Öffnen",
-      "expandHint": "Zum Vergrößern tippen",
       "stop": "Stoppen",
       "giveUp": "Aufgeben"
     },
@@ -1708,7 +1697,6 @@
       "inControl": "Du hast die Steuerung",
       "helping": "{{name}} hat die Steuerung",
       "watchOnly": "{{name}} hat die Steuerung. Du schaust nur zu.",
-      "takeOver": "Übernehmen",
       "done": "Fertig",
       "handBack": "Zurückgeben",
       "couldnt": "Hat nicht geklappt",
@@ -1729,7 +1717,6 @@
       "closedHelpM": "Anmeldungen bleiben fürs nächste Mal gespeichert.",
       "stuckHelpF": "Erneut versuchen startet den Browser neu. Anmeldungen bleiben gespeichert.",
       "stuckHelpM": "Erneut versuchen startet den Browser neu. Anmeldungen bleiben gespeichert.",
-      "hidden": "{{name}} hat die Steuerung · Bildschirm verborgen",
       "key": {
         "Tab": "Tab",
         "Enter": "Eingabe",
@@ -2244,7 +2231,6 @@
     "planRowSub": "Meldet sich auf dem Computer des Agenten an, ohne Schlüssel",
     "keyRow": "Ein Schlüssel",
     "keyRowSub": "Du zahlst nach Nutzung, direkt an den Anbieter",
-    "already": "Schon bei {{org}}",
     "stepOf": "{{step}} von {{total}}"
   },
   "crash": {
@@ -2895,5 +2881,11 @@
       "title": "Nichts zu prüfen",
       "text": "Wenn ein Agent außerhalb des Gesprächs etwas tut, erscheint es hier."
     }
+  },
+  "surface": {
+    "on": "An",
+    "codeText": "Sende die Nachricht, die sich dort öffnet, und komm dann hierher zurück.",
+    "openFailed": "{{surface}} ließ sich auf diesem Telefon nicht öffnen. Sende stattdessen den Code unten dorthin.",
+    "orType": "Oder sende diesen Code dort"
   }
 }

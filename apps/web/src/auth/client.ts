@@ -16,7 +16,7 @@ export type AuthResult =
       cloud?: boolean;
     };
 
-/** What turning two-step sign-in on gives (ADR 0193): the authenticator's address and the recovery codes, shown once. */
+/** What turning two-step sign-in on gives (ADR 0195): the authenticator's address and the recovery codes, shown once. */
 export type TwoFactorSetup = { ok: true; totpURI: string; backupCodes: string[] } | Extract<AuthResult, { ok: false }>;
 
 /** `humanCheck` on the email forms: the bot check's token, when the server has one (ADR 0075). */
@@ -71,7 +71,7 @@ export interface AuthClient {
   /** The installation's owner, from the installer's link (`/owner#claim=`): made once, then signed in. */
   ownerClaim(input: { token: string; name: string; email: string; password: string }): Promise<AuthResult>;
   /**
-   * The second step of a sign-in that answered `TWO_FACTOR_REQUIRED` (ADR 0193): the authenticator app's code, or a
+   * The second step of a sign-in that answered `TWO_FACTOR_REQUIRED` (ADR 0195): the authenticator app's code, or a
    * recovery code. Signed in once it is right. Also confirms turning it on, with the signed-in session.
    */
   verifyTwoFactor(input: { code: string; recovery?: boolean }): Promise<AuthResult>;

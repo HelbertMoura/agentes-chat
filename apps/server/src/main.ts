@@ -49,7 +49,7 @@ if (process.argv[2] === "password-link") {
   process.exit(0);
 }
 
-// `main.ts two-factor-off <email>` (`docker compose run --rm agentes two-factor-off ana@example.com`, ADR 0193): that
+// `main.ts two-factor-off <email>` (`docker compose run --rm agentes two-factor-off ana@example.com`, ADR 0195): that
 // account signs in without its authenticator again, for a person who lost it and their recovery codes.
 if (process.argv[2] === "two-factor-off") {
   const email = process.argv[3] ?? "";

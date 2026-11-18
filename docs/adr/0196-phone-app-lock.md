@@ -1,4 +1,4 @@
-# 0194. Phone app lock: biometrics or the screen lock, per device
+# 0196. Phone app lock: biometrics or the screen lock, per device
 
 - Status: Accepted
 - Date: 2026-11-17

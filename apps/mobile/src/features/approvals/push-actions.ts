@@ -21,7 +21,7 @@ export const opensApp = (button: (typeof APPROVAL_BUTTONS)[number][0]): boolean 
 export const APPROVAL_TASK = "approval-push-buttons";
 
 /**
- * The app lock's switch as stored on this phone (ADR 0194, features/lock: "1" while on, absent while off). Read only
+ * The app lock's switch as stored on this phone (ADR 0196, features/lock: "1" while on, absent while off). Read only
  * here, through `approvalButtonsOn`.
  */
 export const APP_LOCK_VALUE = "app-lock";

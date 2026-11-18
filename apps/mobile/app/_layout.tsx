@@ -208,7 +208,7 @@ function Gate() {
   );
   const suspendedShown = suspended !== null && !deletingAccount;
   const covered = suspendedShown || down !== null || !!accountDeletion;
-  // The app lock (ADR 0194): over everything but the splash, the app out of screen readers' reach meanwhile.
+  // The app lock (ADR 0196): over everything but the splash, the app out of screen readers' reach meanwhile.
   const lock = useAppLock();
   const locking = lock.locked || lock.covered;
   const hidden = covered || locking;

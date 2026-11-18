@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
+import { newConfirmationCode } from "@agenteschat/engine";
 import type { BetterAuthPlugin } from "better-auth";
 import { APIError, createAuthEndpoint, sessionMiddleware } from "better-auth/api";
 import { setSessionCookie } from "better-auth/cookies";
@@ -39,22 +40,8 @@ const REQUEST_TTL_MS = 10 * 60_000;
 export const FRESH_SIGN_IN_MS = 10 * 60_000;
 /** 32 random bytes and their SHA-256, both base64url (43 characters): challenge, verifier and request id. */
 export const KEY = /^[A-Za-z0-9_-]{43}$/;
-/** Unambiguous code alphabet (no I/O/0/1) for the match the person reads off both screens. */
-const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-const CODE_LENGTH = 8;
 
 export const desktopChallenge = (verifier: string) => createHash("sha256").update(verifier).digest("base64url");
-
-/** A short code the person compares between the app window and the browser (`KQ7M-3XPF`). */
-export function newConfirmationCode(): string {
-  const bytes = randomBytes(CODE_LENGTH);
-  let code = "";
-  for (let i = 0; i < CODE_LENGTH; i++) {
-    if (i === CODE_LENGTH / 2) code += "-";
-    code += CODE_ALPHABET[(bytes[i] ?? 0) % CODE_ALPHABET.length];
-  }
-  return code;
-}
 
 type RequestRecord = { challenge: string; code: string };
 
@@ -131,7 +118,7 @@ export function desktopSignIn() {
           if (!source || source.session.expiresAt <= new Date()) return ctx.json({ signedIn: false });
           const { user } = source;
           // It signed in when the browser's session did: it proves no fresher sign-in (`signedInLately`).
-          // A copy of the browser's session, which passed the second step there (ADR 0193).
+          // A copy of the browser's session, which passed the second step there (ADR 0195).
           const session = await copyOfProvenSession(() =>
             ctx.context.internalAdapter.createSession(
               user.id,

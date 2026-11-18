@@ -216,7 +216,7 @@ describe("the link screen", () => {
   });
 });
 
-describe("the app's own scheme as a path (ADR 0194: a link held behind the lock)", () => {
+describe("the app's own scheme as a path (ADR 0196: a link held behind the lock)", () => {
   test("agenteschat:// URLs become the app's path, never a URL the system would open the app with again", () => {
     expect(appPathOf("agenteschat:///")).toBe("/");
     expect(appPathOf("agenteschat://")).toBe("/");

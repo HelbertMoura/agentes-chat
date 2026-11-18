@@ -262,10 +262,6 @@ export const featureKeysEn = {
     workingOne: "{{name}} is working",
     /** A conversation's row swiped left: the pane beside Pin, short so the word fits the pane. */
     swipe: { mute: "Mute", unmute: "Unmute" },
-    /** Conversas' one line back to the right hand's first-run checklist (ADR 0155 §6). */
-    firstRunLine: "{{name}} is setting up the team · {{done}} of {{total}}",
-    /** The same line in a personal workspace (ADR 0159): one person's agents, no team. */
-    firstRunLinePersonal: "{{name}} is setting up your agents · {{done}} of {{total}}",
     first: {
       title: "Start with your first agent",
       subtitle: "Give it a name and say what it does. It shows up here, as a chat.",
@@ -1268,7 +1264,7 @@ export const featureKeysEn = {
       none: "No time zone by that name",
     },
   },
-  /** The app lock, for this phone only (ADR 0194). */
+  /** The app lock, for this phone only (ADR 0196). */
   lock: {
     setting: "Lock with biometrics",
     /** Under the setting, turned off, on a phone with no fingerprint, face or screen lock set up. */
@@ -1787,18 +1783,9 @@ export const featureKeysEn = {
   // The agent's browser (ADR 0040).
   browser: {
     card: {
-      needs: "{{name}} needs help",
-      needsFor: "{{name}} needs help · {{time}}",
-      inControlAt: "You're in control · {{host}}",
-      doing: "{{name}} · {{doing}}",
-      startingF: "Opening {{name}}'s browser…",
-      startingM: "Opening {{name}}'s browser…",
       stopAskF: "Close {{name}}'s browser?",
       stopAskM: "Close {{name}}'s browser?",
-      whereF: "In {{name}}'s browser",
-      whereM: "In {{name}}'s browser",
       open: "Open",
-      expandHint: "Tap to expand",
       stop: "Stop",
       giveUp: "Give up",
     },
@@ -1806,7 +1793,6 @@ export const featureKeysEn = {
       inControl: "You're in control",
       helping: "{{name}} is in control",
       watchOnly: "{{name}} is in control. You're only watching.",
-      takeOver: "Take over",
       done: "Done",
       handBack: "Hand back",
       couldnt: "Couldn't do it",
@@ -1827,7 +1813,6 @@ export const featureKeysEn = {
       closedHelpM: "Logins stay saved for next time.",
       stuckHelpF: "Try again restarts the browser. Logins stay saved.",
       stuckHelpM: "Try again restarts the browser. Logins stay saved.",
-      hidden: "{{name}} is in control · screen hidden",
       key: {
         Tab: "Tab",
         Enter: "Enter",
@@ -2386,7 +2371,6 @@ export const featureKeysEn = {
     planRowSub: "Signs in on the agent's computer, no key",
     keyRow: "A key",
     keyRowSub: "You pay per use, straight to the maker",
-    already: "Already at {{org}}",
     stepOf: "{{step}} of {{total}}",
   },
   crash: {
@@ -3076,6 +3060,14 @@ export const featureKeysEn = {
       title: "Nothing to review",
       text: "When an agent does something outside the conversation, it shows up here.",
     },
+  },
+  /** Linking the outside chat app in Notificações (ADR 0187). {{surface}} is that app's name, as the server sets it. */
+  surface: {
+    /** The row's state while a sender is linked. */
+    on: "On",
+    codeText: "Send the message that opens there, then come back here.",
+    openFailed: "Couldn't open {{surface}} on this phone. Send it the code below instead.",
+    orType: "Or send this code there",
   },
 };
 

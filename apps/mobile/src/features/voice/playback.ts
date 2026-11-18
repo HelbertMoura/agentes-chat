@@ -1,4 +1,5 @@
-import { type AudioPlayer, type AudioSource, createAudioPlayer, setAudioModeAsync } from "expo-audio";
+import { type AudioPlayer, type AudioSource, createAudioPlayer } from "expo-audio";
+import { releaseVoiceAudio, voiceAudio } from "@/lib/audio-mode";
 
 /**
  * One voice plays at a time, in the whole app: a single player that rows take turns on, so a list scrolling past
@@ -86,6 +87,8 @@ export function stopPlayback() {
   if (!now && !starting) return;
   now = null;
   starting = null;
+  // The app's own sounds get the session back (silent in silent mode, with the music), unless a voice takes it again.
+  releaseVoiceAudio();
   say();
 }
 
@@ -118,7 +121,7 @@ export async function startPlayback(request: PlayRequest) {
   let waited = 0;
   let p: AudioPlayer;
   try {
-    await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true, interruptionMode: "doNotMix" });
+    await voiceAudio(false);
     // Stopped, or another one started, while this waited: that one has the player (and the one timer).
     if (mine !== turn) return;
     p = player ?? makePlayer();

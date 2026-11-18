@@ -7,7 +7,7 @@ import {
   locksOnReturn,
 } from "../../src/features/lock/logic";
 
-describe("app lock (ADR 0194)", () => {
+describe("app lock (ADR 0196)", () => {
   test("the grace is one minute", () => {
     expect(LOCK_GRACE_MS).toBe(60_000);
   });

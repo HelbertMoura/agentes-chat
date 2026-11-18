@@ -25,7 +25,7 @@ const createClient = (server: string, storagePrefix: string) =>
         if (i18n.language) request.headers.set("accept-language", i18n.language);
       },
     },
-    // `twoFactorClient`: the second step's answers refresh the session, as a sign-in's do (ADR 0193).
+    // `twoFactorClient`: the second step's answers refresh the session, as a sign-in's do (ADR 0195).
     plugins: [expoClient({ scheme: SCHEME, storagePrefix, storage: SecureStore }), twoFactorClient()],
   });
 
@@ -95,16 +95,16 @@ export async function signInWithBrowser(
   const traded = await client
     .$fetch<{ signedIn?: boolean; twoFactor?: boolean }>("/phone/redeem", { method: "POST", body: { verifier } })
     .catch(() => null);
-  // The account's second step (ADR 0193): what came back is its challenge, and the app asks for the code.
+  // The account's second step (ADR 0195): what came back is its challenge, and the app asks for the code.
   return { ...res, twoFactor: traded?.data?.twoFactor === true };
 }
 
-/** A sign-in that answered with the account's second step to go (ADR 0193): its code is asked next. */
+/** A sign-in that answered with the account's second step to go (ADR 0195): its code is asked next. */
 export const waitsForCode = (data: unknown) =>
   (data as { twoFactorRedirect?: unknown } | null | undefined)?.twoFactorRedirect === true;
 
 /**
- * The second step of a sign-in (ADR 0193): the authenticator app's code, or a `recovery` code, for the challenge the
+ * The second step of a sign-in (ADR 0195): the authenticator app's code, or a `recovery` code, for the challenge the
  * sign-in left in this place's cookies. Signed in once it is right; else the refusal as `refusalOf` reads it.
  */
 export async function verifyTwoFactor(code: string, recovery: boolean, place: string = placeKey()) {

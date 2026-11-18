@@ -60,7 +60,7 @@ import { STORAGE_KEYS, sessionStore, storage } from "@/lib/storage";
  * In the Mac app, Google/GitHub/Apple open in the browser and the window
  * waits for the sign-in to come back ("browser", ADR 0036). On the server the
  * app runs on this computer, its owner has no password: "Continue on this Mac"
- * asks the app, which signs them in (ADR 0060 §6). An account with two-step sign-in (ADR 0193) then asks for the
+ * asks the app, which signs them in (ADR 0060 §6). An account with two-step sign-in (ADR 0195) then asks for the
  * authenticator app's code, whichever way it signed in: a provider's return lands here with `TWO_FACTOR_REQUIRED`.
  */
 type Step =
@@ -78,7 +78,7 @@ type Step =
   | "sent"
   | "browser"
   | "ownerWaits"
-  /** The second step (ADR 0193): the authenticator app's code, or a recovery code. */
+  /** The second step (ADR 0195): the authenticator app's code, or a recovery code. */
   | "code";
 
 /** The steps that send something a bot could flood, and what their bot check is for (ADR 0075). */
@@ -165,7 +165,7 @@ export function AuthPage({
   const navigate = useNavigate();
   const qc = useQueryClient();
   const config = useAuthConfig();
-  // Back from a provider with the account's second step to go (ADR 0193): its code is what is left.
+  // Back from a provider with the account's second step to go (ADR 0195): its code is what is left.
   const needsCode = refused === TWO_FACTOR_REQUIRED;
   const [step, setStep] = useState<Step>(needsCode ? "code" : "email");
   const [email, setEmail] = useState(initialEmail ?? "");
@@ -545,11 +545,12 @@ export function AuthPage({
 
   // Which server this signs in to, on every step, with Change: the desktop app's window of servers (it keeps several,
   // and the same screen on another one looks the same, ADR 0158), or on the web "Onde fica o seu workspace?". Said
-  // once the server said whether it is the Cloud (and, in the app, whether it is the app's own).
+  // once the server said whether it is the Cloud (and, in the app, whether it is the app's own). Never on a registered
+  // host (ADR 0194): its pages name it, not the product's service, and the product's chooser isn't theirs.
   const here = window.location.origin;
   const cloudHere = instance.data?.cloud;
   const changes = !desktop || desktopPicksServer();
-  const serverLine = cloudHere !== undefined && placeKnown && (
+  const serverLine = cloudHere !== undefined && placeKnown && config.data !== undefined && !config.data.host && (
     <p className="auth__place">
       <Icon name={local ? "computer" : cloudHere ? "cloud" : "globe"} size={14} />
       <span className="auth__place-where">
