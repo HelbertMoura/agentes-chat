@@ -305,7 +305,11 @@ function InlineVideo({
           onFailed={() => setFailed(true)}
         />
       ) : (
-        <View
+        <PressScale
+          haptic={false}
+          onPress={open}
+          accessibilityRole="button"
+          accessibilityLabel={info?.name || file.title}
           style={[
             styles.shot,
             { width, height: videoHeight(width), backgroundColor: c.sunken, borderColor: c.line2 },
