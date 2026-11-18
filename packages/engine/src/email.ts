@@ -23,8 +23,9 @@ import { notifiedIds } from "./approvals";
 import { isComputerBrain, planName } from "./brains/types";
 import { confidentialRoots } from "./confidential";
 import { invitationMailProof } from "./crypto";
-import { inertText } from "./email/inert";
+import { inertSender, inertText } from "./email/inert";
 import {
+  ASSISTANT_LOOK,
   type Block,
   EMAIL_PICTURES,
   type EmailArt,
@@ -125,6 +126,8 @@ export type EmailTemplate =
       email: string;
       url: string;
       denyUrl: string;
+      /** An outside collaborator's request (ADR 0191): who they work for, said in place of the link they came by. */
+      outsideOf?: string;
       personal?: true;
     }
   /**
@@ -189,6 +192,20 @@ export type EmailTemplate =
    * `email` back for 7 days (`EMAIL_UNDO_DAYS`).
    */
   | { kind: "email_changed"; locale: EmailLocale; email: string; newEmail: string; url: string }
+  /**
+   * An outside chat surface was linked to the account (ADR 0187): `display` is how the surface shows the sender, `url`
+   * the undo page that unlinks it, for 7 days.
+   */
+  | ({
+      kind: "surface_linked";
+      locale: EmailLocale;
+      surface: string;
+      display: string;
+      orgName: string;
+      url: string;
+    } & Beside)
+  /** The surface unlinked the account because the sender's identity there changed. `url`: the server, for the pictures. */
+  | ({ kind: "surface_unlinked"; locale: EmailLocale; surface: string; display: string; url: string } & Beside)
   /**
    * Double opt-in for the landing page's waiting list, in the language they
    * joined in. `email` is the address being confirmed (absent in jobs queued
@@ -398,6 +415,30 @@ async function readPictures(dir: string) {
   }
 }
 
+/** The workspace's assistant beside the phone in the surface emails' picture (`emailAssistant`); none: its default look. */
+interface Beside {
+  assistant?: Look;
+}
+
+/** The look of the workspace's assistant (ADR 0137), when it has one of its own. */
+export async function emailAssistant(db: Executor, orgId: string | null): Promise<Look | undefined> {
+  if (!orgId) return undefined;
+  const { RIGHT_HAND } = await import("./right-hand");
+  const [row] = await db
+    .select({ appearance: agents.appearance })
+    .from(agents)
+    .where(and(eq(agents.orgId, orgId), eq(agents.builtin, RIGHT_HAND), isNull(agents.archivedAt)));
+  const a = row?.appearance;
+  return a ? { color: a.color, eyes: a.eyes, accessory: a.accessory } : undefined;
+}
+
+/** The surface emails' stage: the assistant beside the phone, between two of the onboarding's agents. */
+const surfaceCrew = (assistant: Look | undefined): Look[] => {
+  // Lia, not Ada: Ada's green and headphones read as the teal, headset assistant's twin beside it.
+  const [theo, , lia] = ONBOARDING_CREW;
+  return [theo, assistant ?? ASSISTANT_LOOK, lia];
+};
+
 /** How many agents a picture shows: two on each side of the computer still fit a 320 px phone. */
 const CREW = 4;
 
@@ -437,6 +478,8 @@ const INVITE_NOTE_SHOWN = 300;
 const INVITE_NAMES_SHOWN = 5;
 /** A name typed on an invitation link's page, as the admins' email shows it (ADR 0068). */
 const JOIN_NAME_SHOWN = 60;
+/** Who an outside collaborator works for, shown whole: the server keeps at most 80 characters (`OUTSIDE_OF_MAX`). */
+const OUTSIDE_OF_SHOWN = 80;
 /** An admin's reason for denying a request to join, as long as it is kept. */
 const JOIN_REASON_SHOWN = 300;
 
@@ -729,7 +772,7 @@ function docOf(t: EmailTemplate, sender: string | null): EmailDoc {
         c.headline,
         [
           { people: [{ name: inertText(t.name, JOIN_NAME_SHOWN), detail: address }] },
-          { p: c.body(org) },
+          { p: t.outsideOf ? c.outside(inertText(t.outsideOf, OUTSIDE_OF_SHOWN)) : c.body(org) },
           { note: c.note },
           { button: c.approve, url: t.url, also: { label: c.deny, url: t.denyUrl, danger: true } },
           { small: c.more },
@@ -842,6 +885,34 @@ function docOf(t: EmailTemplate, sender: string | null): EmailDoc {
           fallback(t.url),
         ],
         c.why,
+      );
+    }
+    case "surface_linked": {
+      const c = w.surface.linked;
+      return doc(
+        c.subject(t.surface),
+        c.preheader,
+        c.headline(t.surface),
+        [
+          { p: c.body(t.surface, inertSender(t.display), inertText(t.orgName)) },
+          { note: c.notYou },
+          { button: c.button, url: t.url },
+          { small: c.small },
+          fallback(t.url),
+        ],
+        c.why(t.surface),
+        { crew: surfaceCrew(t.assistant), phone: { alt: c.picture, on: true } },
+      );
+    }
+    case "surface_unlinked": {
+      const c = w.surface.unlinked;
+      return doc(
+        c.subject(t.surface),
+        c.preheader,
+        c.headline(t.surface),
+        [{ p: c.body(t.surface, inertSender(t.display)) }, { small: c.small }],
+        c.why(t.surface),
+        { crew: surfaceCrew(t.assistant), phone: { alt: c.picture, on: false } },
       );
     }
     case "autonomy_report": {

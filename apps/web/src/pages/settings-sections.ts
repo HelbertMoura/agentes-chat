@@ -150,6 +150,8 @@ export const settingsSearch = (
   view?: "quotas";
   /** Cargos, with Criar cargo open (⌘K). */
   create?: 1;
+  /** Notificações, with the outside chat app's link dialog open (ADR 0187). */
+  link?: 1;
 } => ({
   connected: typeof search.connected === "string" ? search.connected : undefined,
   outcome: typeof search.outcome === "string" ? search.outcome : undefined,
@@ -165,4 +167,5 @@ export const settingsSearch = (
   person: typeof search.person === "string" ? search.person : undefined,
   view: search.view === "quotas" ? "quotas" : undefined,
   create: search.create === undefined ? undefined : 1,
+  link: search.link === undefined ? undefined : 1,
 });

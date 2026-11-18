@@ -101,6 +101,7 @@ import {
   json,
   keyTester,
   OrgParams,
+  requestBaseUrl,
   requireSession,
   security,
 } from "./context";
@@ -114,6 +115,7 @@ import {
   Credential,
   Model,
   ModelTier,
+  OutsideOf,
   PendingReturn,
   ProviderId,
   Role,
@@ -302,6 +304,7 @@ const Person = z
     roleIds: z.array(z.string()).openapi({ description: "Their roles (`org_roles` ids), not `everyone`." }),
     joinedAt: z.string(),
     lastSeenAt: z.string().nullable(),
+    outsideOf: OutsideOf,
     online: z.boolean().openapi({ description: "Seen as connected: `presence` is online, away or busy." }),
     presence: z.enum(["online", "away", "busy", "out", "hidden", "offline"]).openapi({
       description:
@@ -1212,7 +1215,7 @@ export function managementRoutes(deps: AppDeps) {
     },
   );
 
-  const inviteUrl = (token: string) => `${config.PUBLIC_URL.replace(/\/$/, "")}/invite/${token}`;
+  const inviteUrl = (base: string, token: string) => `${base}/invite/${token}`;
 
   app.openapi(
     createRoute({
@@ -1227,6 +1230,7 @@ export function managementRoutes(deps: AppDeps) {
     async (c) => {
       const { orgId } = c.req.valid("param");
       const rows = await listInvitationsWithStatus(db, c.get("user").id, orgId, new Date(), config.AGENTES_SECRET);
+      const base = await requestBaseUrl(deps, c.req.raw.headers);
       return c.json(
         {
           invitations: rows.map((i) => ({
@@ -1240,7 +1244,7 @@ export function managementRoutes(deps: AppDeps) {
             expiresAt: i.expiresAt.toISOString(),
             createdAt: i.createdAt.toISOString(),
             invitedBy: i.invitedBy,
-            url: i.token ? inviteUrl(i.token) : null,
+            url: i.token ? inviteUrl(base, i.token) : null,
           })),
         },
         200,
@@ -1335,6 +1339,7 @@ export function managementRoutes(deps: AppDeps) {
         ...c.req.valid("json"),
         secret: config.AGENTES_SECRET,
       });
+      const base = await requestBaseUrl(deps, c.req.raw.headers);
       for (const r of results) {
         if (r.status !== "invited") continue;
         await queueInvitationEmail(db, {
@@ -1342,7 +1347,7 @@ export function managementRoutes(deps: AppDeps) {
           invitationId: r.invitationId,
           email: r.email,
           role: "member",
-          url: inviteUrl(r.token),
+          url: inviteUrl(base, r.token),
           inviterId: c.get("user").id,
           secret: config.AGENTES_SECRET,
         });
@@ -1352,7 +1357,7 @@ export function managementRoutes(deps: AppDeps) {
         {
           results: results.map((r) =>
             r.status === "invited"
-              ? { email: r.email, status: r.status, invitationId: r.invitationId, url: inviteUrl(r.token) }
+              ? { email: r.email, status: r.status, invitationId: r.invitationId, url: inviteUrl(base, r.token) }
               : { email: r.email, status: r.status, ...(r.invitationId ? { invitationId: r.invitationId } : {}) },
           ),
         },
@@ -1382,17 +1387,18 @@ export function managementRoutes(deps: AppDeps) {
         new Date(),
         config.AGENTES_SECRET,
       );
+      const base = await requestBaseUrl(deps, c.req.raw.headers);
       await queueInvitationEmail(db, {
         orgId,
         invitationId,
         email: invitation.email,
         role: invitation.role,
-        url: inviteUrl(token),
+        url: inviteUrl(base, token),
         inviterId: c.get("user").id,
         secret: config.AGENTES_SECRET,
       });
       deps.wakeWorkers?.();
-      return c.json({ url: inviteUrl(token), expiresAt: invitation.expiresAt.toISOString() }, 200);
+      return c.json({ url: inviteUrl(base, token), expiresAt: invitation.expiresAt.toISOString() }, 200);
     },
   );
 
