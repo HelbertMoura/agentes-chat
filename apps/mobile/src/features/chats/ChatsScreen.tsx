@@ -39,6 +39,7 @@ import { Tile } from "../shared/parts";
 import { useActiveWork, useHiddenAgents, useWorkingNow } from "../shared/queries";
 import { SheetHostProvider } from "../shared/SheetHost";
 import { useTabHeader } from "../shared/tabHeader";
+import { useQuotaRing } from "../usage/QuotaRing";
 import { alongInAccessory } from "../work-along/logic";
 import { useHasWorkAlong } from "../work-along/WorkAlong";
 import { ChatsSplit, OpenFirstChat, SplitHandoff } from "./ChatsSplit";
@@ -347,6 +348,7 @@ function Home() {
     <LargeTitleScreen
       title={t("mobile.chats.title")}
       {...header}
+      lead={quotaRing}
       // The sky stands behind the bar and the large title and scrolls with them: the title is drawn with it.
       drawnTitle
       backdrop={empty || failed ? undefined : <GreetingSky />}
