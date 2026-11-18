@@ -6845,6 +6845,11 @@ export type NotificationKind =
    */
   | "plan_serves"
   /**
+   * ADR 0063 addendum 2026-11-18: an AI account reached 90% of a window, once per account, window and reset period.
+   * `source.label` the account, `latest.percent`, `latest.window`, `latest.resetsAt`. Opens Cotas.
+   */
+  | "plan_limit_near"
+  /**
    * A model an agent thinks with left its plan's live list, so its turns run another (the agent's owner, once per agent
    * and model). `source.agentId`, the model in `latest.title`, the plan in `latest.plan`, what runs now in
    * `latest.nowModel`. Choosing another model makes it done.
@@ -7077,8 +7082,11 @@ export interface NotificationLatest {
   plan?: string;
   /** `plan_model_dropped`: the model the agent's turns run now. */
   nowModel?: string;
-  /** `usage_limit`: the share of the person's limit used. */
+  /** `usage_limit`: the share of the person's limit used; `plan_limit_near`: of the window's. */
   percent?: number;
+  /** `plan_limit_near`: the window that reached 90% and when it resets. */
+  window?: { kind: string; label?: string };
+  resetsAt?: string;
   /** `usage_limit` to who decides: the limit, the raise offered, where the limit comes from, this month's requests. */
   limitUsd?: number;
   raiseToUsd?: number;
@@ -7211,6 +7219,7 @@ export type NoticeCategory =
   | "tasks"
   | "routines"
   | "computers"
+  | "plans"
   | "reactions";
 
 export interface NoticePrefs {
@@ -7971,6 +7980,8 @@ export interface PlanAccountInfo {
 export type PlanUseKind = "handoffs" | "people" | "routines";
 
 export interface PlanAccountUsage extends PlanAccountInfo {
+  /** The caller's own agents or right hand think with it now (`GET …/usage/plans` only). */
+  forMe?: boolean;
   /** Its windows as last reported, each with the agents' parts; null: not known yet. */
   usage: (Omit<PlanUsage, "windows"> & { windows: PlanWindowParts[] }) | null;
   /** This month per agent; `now`: it thinks with this account today. */

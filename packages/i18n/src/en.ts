@@ -2277,6 +2277,7 @@ export const en = {
       tasks: { title: "Tasks", help: "Tasks for you, comments and when one changes stage" },
       routines: { title: "Routines and missions", help: "When they stop, fail or wait for their computer" },
       computers: { title: "Computers", help: "A new computer joined or the workspace's one is ready" },
+      plans: { title: "Plan limits", help: "When an AI account reaches 90% of a limit" },
       reactions: { title: "Reactions", help: "When someone reacts to a message of yours" },
     },
   },
@@ -5816,6 +5817,9 @@ export const en = {
       /** Someone gave an agent the person's plan (`plan_lent`): `plan` its maker ("Claude"). */
       planLent: "<b>{{name}}</b> connected your {{plan}} plan to <b>{{agent}}</b>",
       planServes: "Your {{plan}} now serves the whole workspace",
+      /** An AI account reached 90% of a window (`plan_limit_near`): `window` its name, `resets` "resets at 3:40 PM". */
+      planLimitNear: "<b>{{account}}</b> used {{percent}}% of its limit ({{window}}), {{resets}}",
+      planLimitNearOpen: "<b>{{account}}</b> used {{percent}}% of its limit ({{window}})",
       /** The agent's model left its plan's list (`plan_model_dropped`): `runs` the model it uses now. */
       planModelDropped: "{{model}} left {{plan}}. <b>{{name}}</b> is using {{runs}} until you choose another model.",
       routineWaitingPlan: "<b>{{name}}</b> is waiting for its plan to reset to run a routine",
@@ -17922,6 +17926,14 @@ export const en = {
       accounts_other: "{{count}} AI accounts",
     },
     notReported: "No quota reported by the provider.",
+    /** The plan limits ring on every screen: the percent of the account closest to a limit. */
+    ring: {
+      ok: "Plan limits: {{percent}}% used on {{account}}, the account closest to its limit",
+      almost: "Plan limits: {{account}} almost at the limit, {{percent}}% used",
+      limited: "Plan limits: {{account}} at the limit",
+      none: "Plan limits: none of your accounts reports limits",
+      title: "Plan limits",
+    },
     recent: {
       title: "Recent use",
       day: "Last 24 hours",

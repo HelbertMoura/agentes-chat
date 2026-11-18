@@ -2121,6 +2121,10 @@
         "title": "Computers",
         "help": "Er is een nieuwe computer bijgekomen of die van de werkruimte is klaar"
       },
+      "plans": {
+        "title": "Abonnementslimieten",
+        "help": "Wanneer een AI-account 90% van een limiet bereikt"
+      },
       "reactions": {
         "title": "Reacties",
         "help": "Als iemand reageert op een bericht van jou"
@@ -5351,6 +5355,8 @@
       "desktopTaken": "<b>{{name}}</b> heeft het scherm van de computer van <b>{{agent}}</b> overgenomen",
       "planLent": "<b>{{name}}</b> heeft je {{plan}}-abonnement aan <b>{{agent}}</b> gekoppeld",
       "planServes": "Je {{plan}} bedient nu de hele workspace",
+      "planLimitNear": "<b>{{account}}</b> heeft {{percent}}% van de limiet gebruikt ({{window}}), {{resets}}",
+      "planLimitNearOpen": "<b>{{account}}</b> heeft {{percent}}% van de limiet gebruikt ({{window}})",
       "planModelDropped": "{{model}} is uit {{plan}} gehaald. <b>{{name}}</b> gebruikt {{runs}} tot je een ander model kiest.",
       "routineWaitingPlan": "<b>{{name}}</b> wacht tot zijn abonnement wordt gereset om een routine uit te voeren",
       "planResetUnknown": "{{plan}} heeft niet gezegd wanneer de limiet wordt gereset. Het werk van <b>{{name}}</b> wacht nog.",
@@ -17548,6 +17554,13 @@
       "accounts_other": "{{count}} AI-accounts"
     },
     "notReported": "Geen quotum gemeld door de aanbieder.",
+    "ring": {
+      "ok": "Abonnementslimieten: {{percent}}% gebruikt op {{account}}, het account het dichtst bij de limiet",
+      "almost": "Abonnementslimieten: {{account}} bijna aan de limiet, {{percent}}% gebruikt",
+      "limited": "Abonnementslimieten: {{account}} aan de limiet",
+      "none": "Abonnementslimieten: geen van je accounts meldt limieten",
+      "title": "Abonnementslimieten"
+    },
     "recent": {
       "title": "Recent gebruik",
       "day": "Afgelopen 24 uur",

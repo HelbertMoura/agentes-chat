@@ -1,0 +1,176 @@
+/* The plan limits ring (QuotaRing.tsx): a tile as the bell's beside it, the percent written inside its circle. */
+.quota-ring {
+  --quota-tone: var(--ink-muted);
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-h-md);
+  height: var(--control-h-md);
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--quota-tone);
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.quota-ring[data-level="almost"] {
+  --quota-tone: var(--warn);
+}
+.quota-ring:is([data-level="critical"], [data-level="limited"]) {
+  --quota-tone: var(--danger);
+}
+.quota-ring:hover,
+.quota-ring[data-state="open"] {
+  background: var(--side-hover);
+}
+.quota-ring svg {
+  width: 30px;
+  height: 30px;
+  transform: rotate(-90deg);
+}
+.quota-ring circle {
+  fill: none;
+  stroke-width: 2;
+}
+.quota-ring__track {
+  stroke: var(--line);
+}
+.quota-ring__used {
+  stroke: var(--quota-tone);
+  stroke-linecap: round;
+}
+.quota-ring__num {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+/* On the account card, as tall as the bell beside it. */
+.sidebar__me .quota-ring {
+  align-self: stretch;
+  height: auto;
+}
+/* Off the account card (a personal workspace's top row): the size of the bell and the collapse beside it. */
+.sidebar:not([data-rail="true"]) .sidebar__org--person .quota-ring {
+  align-self: center;
+  width: var(--control-h-sm);
+  height: var(--control-h-sm);
+  border-radius: var(--control-r-sm);
+}
+.sidebar[data-rail="true"] .quota-ring {
+  align-self: center;
+  width: var(--control-h-md);
+  height: var(--control-h-md);
+  border-radius: var(--control-r-md);
+}
+
+.quota-pop.ac-popover {
+  width: min(340px, calc(100vw - 24px));
+  max-height: min(480px, var(--radix-popover-content-available-height));
+  overflow-y: auto;
+  padding: 0;
+}
+.quota-pop__in {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+.quota-pop__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.quota-pop__list,
+.quota-pop__windows {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.quota-pop__list {
+  gap: var(--space-3);
+}
+.quota-pop__windows {
+  gap: var(--space-1);
+}
+.quota-pop__account {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.quota-pop__head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 var(--space-2);
+  min-width: 0;
+  font-size: 13.5px;
+}
+.quota-pop__name {
+  min-width: 0;
+  font-weight: 600;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.quota-pop__brand,
+.quota-pop__none,
+.quota-pop__reset {
+  color: var(--muted);
+}
+.quota-pop__brand {
+  font-size: 12.5px;
+}
+.quota-pop__none {
+  margin: 0;
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
+/* The window's name, its percent and when it renews; the renewal drops under them where the card is too narrow. */
+.quota-pop__window {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--space-2);
+  font-size: 12.5px;
+}
+.quota-pop__wname {
+  min-width: 0;
+  color: var(--ink-muted);
+  overflow-wrap: anywhere;
+}
+.quota-pop__pct {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.quota-pop__window[data-level="almost"] .quota-pop__pct {
+  color: var(--warn);
+}
+.quota-pop__window:is([data-level="critical"], [data-level="limited"]) .quota-pop__pct {
+  color: var(--danger);
+}
+.quota-pop__reset {
+  margin-left: auto;
+}
+.quota-pop__more {
+  align-self: flex-start;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+}
+.quota-pop__more:hover {
+  text-decoration: underline;
+}

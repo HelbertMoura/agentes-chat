@@ -2,10 +2,16 @@ import { describe, expect, test } from "bun:test";
 import type { TFunction } from "i18next";
 import type { PlanAccountUsage, PlanUsage } from "../src/api/types";
 import { formatUsd } from "../src/lib/format";
+import { openTarget, targetPath } from "../src/lib/notifications";
 import { groupUsageAccounts } from "../src/lib/plan-usage";
 import {
   limitsReported,
   noQuotaText,
+  planLimitNotice,
+  quotaLevel,
+  quotaOverview,
+  quotaRingLabel,
+  quotaRoom,
   quotaSections,
   quotaStanding,
   quotaSummary,
@@ -201,5 +207,146 @@ describe("one seat on two computers", () => {
     const grouped = groupUsageAccounts([seat("m1", { usage: full }), seat("m2", { usage: full })], undefined);
     expect(quotaSummary(grouped, NOW)).toEqual({ limited: 1, almost: 0, known: 1, total: 1 });
     expect(tightestAccounts(grouped, 3, NOW)).toHaveLength(1);
+  });
+});
+
+describe("the limits ring", () => {
+  const PAST = "2026-11-17T11:00:00.000Z";
+
+  test("the tightest account across windows that haven't reset, closest first, no limits last", () => {
+    const low = account("low", { usage: usage([{ kind: "five_hour", usedPercent: 20, resetsAt: IN_2H }]) });
+    const high = account("high", {
+      usage: usage([
+        { kind: "five_hour", usedPercent: 99, resetsAt: PAST },
+        { kind: "seven_day", usedPercent: 83, resetsAt: IN_2H },
+      ]),
+    });
+    const none = account("none", { kind: "cursor", recent: undefined });
+    const o = quotaOverview([none, low, high], NOW);
+    expect(o.tightest).toMatchObject({ used: 83, standing: "almost", account: { key: "high" } });
+    expect(o.lines.map((l) => l.account.key)).toEqual(["high", "low", "none"]);
+    expect(o.lines[2]?.room).toBeNull();
+    // A window that already reset reads empty, with no reset to wait for.
+    expect(o.lines[0]?.windows).toEqual([
+      { key: "seven_day:", kind: "seven_day", used: 83, resetsAt: IN_2H },
+      { key: "five_hour:", kind: "five_hour", used: 0, resetsAt: null },
+    ]);
+  });
+
+  test("nothing to show a percent for: no accounts, or none reporting limits", () => {
+    expect(quotaOverview([], NOW)).toEqual({ tightest: null, lines: [] });
+    const o = quotaOverview([account("a"), account("b", { usage: usage([]) })], NOW);
+    expect(o.tightest).toBeNull();
+    expect(o.lines).toHaveLength(2);
+    expect(quotaRingLabel(t, o, (a) => a.key)).toBe("quotas.ring.none");
+    expect(quotaLevel(null)).toBe("ok");
+  });
+
+  test("at a limit: a full window, or a refusal with none full", () => {
+    const full = account("full", { usage: usage([{ kind: "five_hour", usedPercent: 100, resetsAt: IN_2H }]) });
+    expect(quotaRoom(full, NOW)).toEqual({ used: 100, standing: "limited" });
+    const refused = account("r", { usage: usage([{ kind: "seven_day", usedPercent: 40 }], true) });
+    expect(quotaRoom(refused, NOW)).toEqual({ used: 100, standing: "limited" });
+    expect(quotaLevel(quotaRoom(refused, NOW))).toBe("limited");
+    expect(quotaRoom(account("n", { usage: usage([], true) }), NOW)).toEqual({ used: 100, standing: "limited" });
+  });
+
+  test("a model's own week or extra usage never leads while the plan has windows of its own", () => {
+    const a = account("a", {
+      usage: usage([
+        { kind: "five_hour", usedPercent: 30, resetsAt: IN_2H },
+        { kind: "other", label: "Fable", usedPercent: 100, resetsAt: IN_2H },
+        { kind: "other", label: "Extra usage", usedPercent: 100 },
+      ]),
+    });
+    expect(quotaRoom(a, NOW)).toEqual({ used: 30, standing: "ok" });
+    // Still listed, every window.
+    expect(quotaOverview([a], NOW).lines[0]?.windows).toHaveLength(3);
+  });
+
+  test("an account with only model groups' quotas is read from them", () => {
+    const agy = account("agy", {
+      kind: "antigravity",
+      usage: usage([
+        { kind: "other", label: "Claude and GPT models · 5h", usedPercent: 91, resetsAt: IN_2H },
+        { kind: "other", label: "Extra usage", usedPercent: 100 },
+      ]),
+    });
+    expect(quotaRoom(agy, NOW)).toEqual({ used: 91, standing: "almost" });
+    expect(quotaLevel(quotaRoom(agy, NOW))).toBe("critical");
+  });
+
+  test("a single model's week never leads while the plan reports its own windows", () => {
+    const a = account("a", {
+      usage: usage([
+        { kind: "five_hour", usedPercent: 20, resetsAt: IN_2H },
+        { kind: "seven_day_opus", usedPercent: 100, resetsAt: IN_2H },
+        { kind: "seven_day_sonnet", usedPercent: 97, resetsAt: IN_2H },
+      ]),
+    });
+    expect(quotaRoom(a, NOW)).toEqual({ used: 20, standing: "ok" });
+  });
+
+  test("a reading with no reset counts no longer than its window lasts", () => {
+    const old = (hours: number) => ({
+      ...usage([{ kind: "five_hour", usedPercent: 95 }]),
+      at: new Date(NOW - hours * 3_600_000).toISOString(),
+    });
+    expect(quotaRoom(account("a", { usage: old(4) }), NOW)).toEqual({ used: 95, standing: "almost" });
+    const stale = account("b", { usage: old(6) });
+    expect(quotaRoom(stale, NOW)).toBeNull();
+    expect(quotaOverview([stale], NOW).lines[0]?.windows[0]?.used).toBe(0);
+  });
+
+  test("only accounts that concern the viewer color the ring; the others stay listed", () => {
+    const theirs = account("theirs", {
+      mine: false,
+      usage: usage([{ kind: "five_hour", usedPercent: 100, resetsAt: IN_2H }]),
+    });
+    const mine = account("mine", { usage: usage([{ kind: "five_hour", usedPercent: 10, resetsAt: IN_2H }]) });
+    const o = quotaOverview([theirs, mine], NOW);
+    expect(o.tightest).toMatchObject({ used: 10, standing: "ok", account: { key: "mine" } });
+    expect(o.lines.map((l) => l.account.key)).toEqual(["theirs", "mine"]);
+    expect(quotaOverview([theirs], NOW).tightest).toBeNull();
+    expect(quotaOverview([{ ...theirs, forMe: true }, mine], NOW).tightest?.account.key).toBe("theirs");
+  });
+
+  test("a signed-out account stays listed but never leads", () => {
+    const out = account("out", {
+      signedOut: true,
+      usage: usage([{ kind: "five_hour", usedPercent: 100, resetsAt: IN_2H }]),
+    });
+    const on = account("on", { usage: usage([{ kind: "five_hour", usedPercent: 10, resetsAt: IN_2H }]) });
+    const o = quotaOverview([out, on], NOW);
+    expect(o.tightest?.account.key).toBe("on");
+    expect(o.lines.map((l) => l.account.key)).toEqual(["on", "out"]);
+  });
+
+  test("the ring's name says the percent and the account", () => {
+    const a = account("Work", { usage: usage([{ kind: "five_hour", usedPercent: 92, resetsAt: IN_2H }]) });
+    expect(quotaRingLabel(t, quotaOverview([a], NOW), (x) => x.key)).toBe(
+      'quotas.ring.almost {"percent":92,"account":"Work"}',
+    );
+  });
+});
+
+describe("the alert at 90%", () => {
+  const n = {
+    kind: "plan_limit_near",
+    source: { label: "Trabalho" },
+    latest: { percent: 91.4, window: { kind: "five_hour" }, resetsAt: IN_2H },
+    actors: [],
+  } as unknown as Parameters<typeof openTarget>[0];
+
+  test("says the account, the percent, the window and the reset while it is ahead", () => {
+    const now = new Date(NOW);
+    expect(planLimitNotice(t, "en", n, now)).toMatchObject({ account: "Trabalho", percent: 91 });
+    expect(planLimitNotice(t, "en", n, now).resets).toContain("aiAccounts.usage.resetsAt");
+    expect(planLimitNotice(t, "en", n, new Date(Date.parse(IN_2H) + 1)).resets).toBeNull();
+  });
+
+  test("opens Cotas", () => {
+    const target = openTarget(n);
+    expect(target && targetPath("o1", target)).toBe("/org/o1/settings/usage?view=quotas");
   });
 });

@@ -2194,6 +2194,10 @@
         "title": "Ordinateurs",
         "help": "Un nouvel ordinateur a rejoint, ou celui de l'espace de travail est prêt"
       },
+      "plans": {
+        "title": "Limites des forfaits",
+        "help": "Quand un compte d’IA atteint 90 % d’une limite"
+      },
       "reactions": {
         "title": "Réactions",
         "help": "Quand quelqu'un réagit à l'un de vos messages"
@@ -5530,6 +5534,8 @@
       "desktopTaken": "<b>{{name}}</b> a pris le contrôle de l'écran de l'ordinateur de <b>{{agent}}</b>",
       "planLent": "<b>{{name}}</b> a connecté votre forfait {{plan}} à <b>{{agent}}</b>",
       "planServes": "Votre {{plan}} sert désormais tout le workspace",
+      "planLimitNear": "<b>{{account}}</b> a utilisé {{percent}} % de sa limite ({{window}}), {{resets}}",
+      "planLimitNearOpen": "<b>{{account}}</b> a utilisé {{percent}} % de sa limite ({{window}})",
       "planModelDropped": "{{model}} a quitté {{plan}}. <b>{{name}}</b> utilise {{runs}} jusqu’à ce que tu choisisses un autre modèle.",
       "routineWaitingPlan": "<b>{{name}}</b> attend la réinitialisation de son abonnement pour exécuter une routine",
       "planResetUnknown": "{{plan}} n'a pas indiqué quand sa limite se réinitialise. Le travail de <b>{{name}}</b> attend toujours.",
@@ -18042,6 +18048,13 @@
       "accounts_other": "{{count}} comptes d'IA"
     },
     "notReported": "Aucun quota indiqué par le fournisseur.",
+    "ring": {
+      "ok": "Limites des forfaits : {{percent}} % utilisés sur {{account}}, le compte le plus proche de sa limite",
+      "almost": "Limites des forfaits : {{account}} presque à la limite, {{percent}} % utilisés",
+      "limited": "Limites des forfaits : {{account}} à la limite",
+      "none": "Limites des forfaits : aucun de vos comptes n’indique de limites",
+      "title": "Limites des forfaits"
+    },
     "recent": {
       "title": "Usage récent",
       "day": "Dernières 24 heures",

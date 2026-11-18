@@ -2183,6 +2183,7 @@ export const ptBR = {
       tasks: { title: "Tarefas", help: "Tarefa para você, comentários e quando muda de etapa" },
       routines: { title: "Rotinas e missões", help: "Quando param, falham ou esperam o computador" },
       computers: { title: "Computadores", help: "Um computador novo entrou ou o do workspace ficou pronto" },
+      plans: { title: "Limites dos planos", help: "Quando uma conta de IA chega a 90% de um limite" },
       reactions: { title: "Reações", help: "Quando reagem a uma mensagem sua" },
     },
   },
@@ -5672,6 +5673,9 @@ export const ptBR = {
       planLent_female: "<b>{{name}}</b> conectou o seu plano do {{plan}} à\u00a0<b>{{agent}}</b>",
       /** The person's plan now serves everyone in the workspace (`plan_serves`): `plan` its maker ("Claude"). */
       planServes: "Seu {{plan}} agora atende o workspace todo",
+      /** An AI account reached 90% of a window (`plan_limit_near`): `window` its name, `resets` "renova às 15:40". */
+      planLimitNear: "<b>{{account}}</b> usou {{percent}}% do limite ({{window}}), {{resets}}",
+      planLimitNearOpen: "<b>{{account}}</b> usou {{percent}}% do limite ({{window}})",
       /** The agent's model left its plan's list (`plan_model_dropped`): `runs` the model it uses now. */
       planModelDropped:
         "O {{model}} saiu do {{plan}}. <b>{{name}}</b> está usando o {{runs}} até você escolher outro modelo.",
@@ -17785,6 +17789,14 @@ export const ptBR = {
       accounts_other: "{{count}} contas de IA",
     },
     notReported: "Sem cota informada pelo provedor.",
+    /** O anel de limites em todas as telas: o percentual da conta mais perto de um limite. */
+    ring: {
+      ok: "Limites dos planos: {{percent}}% usados em {{account}}, a conta mais perto do limite",
+      almost: "Limites dos planos: {{account}} quase no limite, {{percent}}% usados",
+      limited: "Limites dos planos: {{account}} no limite",
+      none: "Limites dos planos: nenhuma das suas contas informa limites",
+      title: "Limites dos planos",
+    },
     recent: {
       title: "Uso recente",
       day: "Últimas 24 horas",

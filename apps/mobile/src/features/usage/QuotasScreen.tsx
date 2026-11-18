@@ -19,10 +19,10 @@ import { AccountHead, PlanMeter, PlanModels } from "./parts";
 /*
  * Cotas (ADR 0063 addendum 2026-11-17), as the web's Uso › Cotas: every AI account the person sees, a list per maker,
  * each account with all its windows open (a model group's under its own heading) and when each renews, or, where the
- * provider reports no limits, its use over the last day, week and month. Pushed from the row on the home.
+ * provider reports no limits, its use over the last day, week and month. Pushed from the ring's sheet on the home.
  */
 
-export const openQuotas = () => router.push("/quotas" as never);
+export const openQuotas = () => router.push("/quotas");
 
 export function QuotasScreen() {
   const { t } = useTranslation();

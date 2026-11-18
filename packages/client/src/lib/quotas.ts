@@ -1,8 +1,8 @@
-import { planState } from "@agenteschat/ui/plan-state";
+import { limitRoom, PLAN_ALMOST, planLevel, planState, planWindows, windowExpired } from "@agenteschat/ui/plan-state";
 import type { TFunction } from "i18next";
-import type { PlanAccountUsage, RecentPeriod, RecentUse } from "../api/types";
+import type { AppNotification, PlanAccountUsage, RecentPeriod, RecentUse } from "../api/types";
 import { formatInt, formatTokensShort, formatUsd } from "./format";
-import { brandOf } from "./plan-usage";
+import { brandOf, planMeterText } from "./plan-usage";
 import { planOf } from "./plans";
 
 /**
@@ -102,6 +102,108 @@ export function quotaSummaryText(t: TFunction, summary: ReturnType<typeof quotaS
   ].filter(Boolean);
   if (parts.length > 0) return parts.join(" · ");
   return summary.known > 0 ? t("quotas.summary.ok") : t("quotas.summary.accounts", { count: summary.total });
+}
+
+/** How much of an account's limits is used now, and where that leaves it. */
+export interface QuotaRoom {
+  /** The tightest window's percent, whole; 100 at a limit, a refusal with no full window included. */
+  used: number;
+  standing: Exclude<QuotaStanding, "none">;
+}
+
+/**
+ * An account's room (`QuotaRoom`), from the windows that limit it (`limitWindows`) that haven't reset. Null where it
+ * reports no limits, and for an account signed out: nothing thinks with it, its last numbers only grow old.
+ */
+export function quotaRoom(a: Pick<PlanAccountUsage, "usage" | "signedOut">, now = Date.now()): QuotaRoom | null {
+  if (!a.usage || a.signedOut) return null;
+  const room = limitRoom(a.usage, now);
+  if (!room) return null;
+  const used = room.limited ? 100 : Math.round(room.used);
+  return { used, standing: used >= 100 ? "limited" : used >= PLAN_ALMOST ? "almost" : "ok" };
+}
+
+/** One window of an account in the ring's list; `resetsAt` only while it is still ahead. */
+export interface QuotaWindowLine {
+  key: string;
+  kind: string;
+  label?: string;
+  used: number;
+  resetsAt: string | null;
+}
+
+/** One account in the ring's list: its mark and maker, its room, and every window it reports. */
+export interface QuotaLine {
+  account: PlanAccountUsage;
+  maker: string;
+  brand: string;
+  room: QuotaRoom | null;
+  windows: QuotaWindowLine[];
+}
+
+export interface QuotaOverview {
+  /**
+   * The closest to a limit among the accounts that concern the viewer: theirs, or one their own agents or right hand
+   * think with (`forMe`). Someone else's private plan never colors their ring. Null while none of those reports limits.
+   */
+  tightest: (QuotaRoom & { account: PlanAccountUsage }) | null;
+  /** Every account: the closest to a limit first, those with no limits known after them in Cotas' order. */
+  lines: QuotaLine[];
+}
+
+/** The ring over every screen (ADR 0063 addendum 2026-11-18): the tightest account and each account's windows. */
+export function quotaOverview(accounts: readonly PlanAccountUsage[], now = Date.now()): QuotaOverview {
+  const lines = quotaSections(accounts, now)
+    .flatMap((s) => s.accounts)
+    .map((account): QuotaLine => {
+      const usage = account.usage;
+      const windows = usage ? planWindows(usage, now) : [];
+      return {
+        account,
+        maker: makerOf(account),
+        brand: brandOf(account),
+        room: quotaRoom(account, now),
+        windows: windows.map((w) => ({
+          key: `${w.kind}:${w.label ?? ""}`,
+          kind: w.kind,
+          ...(w.label ? { label: w.label } : {}),
+          // A reading with no reset, older than its window: nothing is known to be used now.
+          used: windowExpired(w, usage?.at, now) ? 0 : Math.round(w.used),
+          resetsAt: w.resetsAt && Date.parse(w.resetsAt) > now ? w.resetsAt : null,
+        })),
+      };
+    })
+    .sort((a, b) => (b.room?.used ?? -1) - (a.room?.used ?? -1));
+  const first = lines.find((l) => l.room && (l.account.mine || l.account.forMe));
+  return { tightest: first?.room ? { ...first.room, account: first.account } : null, lines };
+}
+
+/** The color level of a ring (`PLAN_TONE`, the web's `data-level`), as the meters color the same percent. */
+export const quotaLevel = (room: QuotaRoom | null) =>
+  room ? planLevel(room.used, room.standing === "limited") : ("ok" as const);
+
+/** The ring's name for a screen reader: the percent and the account, or that no account reports limits. */
+export function quotaRingLabel(t: TFunction, overview: QuotaOverview, name: (a: PlanAccountUsage) => string) {
+  const top = overview.tightest;
+  if (!top) return t("quotas.ring.none");
+  return t(`quotas.ring.${top.standing}`, { percent: top.used, account: name(top.account) });
+}
+
+/** What a `plan_limit_near` row says: the account, the percent, the window and, while it is ahead, its reset. */
+export function planLimitNotice(
+  t: TFunction,
+  locale: string,
+  n: Pick<AppNotification, "source" | "latest">,
+  now = new Date(),
+) {
+  const text = planMeterText(t, locale, now);
+  const { percent, window, resetsAt } = n.latest;
+  return {
+    account: n.source.label ?? "",
+    percent: Math.round(percent ?? 90),
+    window: window ? text.window(window) : "",
+    resets: resetsAt && Date.parse(resetsAt) > now.getTime() ? text.resets(resetsAt) : null,
+  };
 }
 
 const PERIODS: readonly RecentPeriod[] = ["day", "week", "month"];

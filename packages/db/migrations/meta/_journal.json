@@ -2073,6 +2073,13 @@
       "when": 1794997774645,
       "tag": "0300_two_factor",
       "breakpoints": true
+    },
+    {
+      "idx": 298,
+      "version": "7",
+      "when": 1795011121578,
+      "tag": "0301_plan_limit_alerts",
+      "breakpoints": true
     }
   ]
 }
