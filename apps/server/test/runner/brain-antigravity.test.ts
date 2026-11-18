@@ -866,52 +866,55 @@ test("an access token that expires under a turn never reads as signed out", () =
   });
 });
 
-test("a turn cut by an expired access token goes on in a new run, on the same conversation", async () => {
-  const root = tempDir("agy-token-");
-  dirs.push(root);
-  const { fn, calls } = scriptedSpawn([
-    [
-      { event: "init", conversation_id: FIRST, init: { tools: [] } },
-      {
-        event: "step_update",
-        step_update: {
-          step_type: "tool",
-          state: "DONE",
-          tool_name: `${CODEX_MCP_SERVER}__post_message`,
-          tool_info: { name: "post_message", output: "ok" },
+test.each([STALE_TOKEN, "INVALID_ARGUMENT (code 400): Request contains an invalid argument."])(
+  "a turn cut by a passing refusal goes on in a new run, on the same conversation: %s",
+  async (refusal) => {
+    const root = tempDir("agy-token-");
+    dirs.push(root);
+    const { fn, calls } = scriptedSpawn([
+      [
+        { event: "init", conversation_id: FIRST, init: { tools: [] } },
+        {
+          event: "step_update",
+          step_update: {
+            step_type: "tool",
+            state: "DONE",
+            tool_name: `${CODEX_MCP_SERVER}__post_message`,
+            tool_info: { name: "post_message", output: "ok" },
+          },
         },
+        { event: "result", result: { status: "ERROR", error: refusal } },
+      ],
+      [
+        { event: "init", conversation_id: FIRST, init: { tools: [] } },
+        { event: "result", result: { status: "SUCCESS", response: "Pronto." } },
+      ],
+    ]);
+    const events: CodexBrainEvent[] = [];
+    await runAntigravityTurn(
+      {
+        runId: RUN,
+        sessionId: SESSION,
+        cwd: root,
+        system: "You are Dev.",
+        prompt: "check the issues",
+        mcp: { token: "tok_run" },
+        account: { id: ACCOUNT, home: path.join(root, "home") },
       },
-      { event: "result", result: { status: "ERROR", error: STALE_TOKEN } },
-    ],
-    [
-      { event: "init", conversation_id: FIRST, init: { tools: [] } },
-      { event: "result", result: { status: "SUCCESS", response: "Pronto." } },
-    ],
-  ]);
-  const events: CodexBrainEvent[] = [];
-  await runAntigravityTurn(
-    {
-      runId: RUN,
-      sessionId: SESSION,
-      cwd: root,
-      system: "You are Dev.",
-      prompt: "check the issues",
-      mcp: { token: "tok_run" },
-      account: { id: ACCOUNT, home: path.join(root, "home") },
-    },
-    {
-      chats: new CodexThreads(path.join(root, "chats.json")),
-      emit: (e) => events.push(e),
-      signal: new AbortController().signal,
-      bin: "/usr/bin/agy",
-      spawn: fn,
-      platform: "linux",
-    },
-  );
-  expect(calls).toHaveLength(2);
-  const again = calls[1] ?? [];
-  expect(again[again.indexOf("-p") + 1]).toBe(AGY_TOKEN_RESUME);
-  expect(again.join(" ")).toContain(`--conversation ${FIRST}`);
-  expect(events.some((e) => e.type === "error")).toBe(false);
-  expect(events.at(-1)).toEqual({ type: "done", text: "Pronto.", session: { id: SESSION } });
-});
+      {
+        chats: new CodexThreads(path.join(root, "chats.json")),
+        emit: (e) => events.push(e),
+        signal: new AbortController().signal,
+        bin: "/usr/bin/agy",
+        spawn: fn,
+        platform: "linux",
+      },
+    );
+    expect(calls).toHaveLength(2);
+    const again = calls[1] ?? [];
+    expect(again[again.indexOf("-p") + 1]).toBe(AGY_TOKEN_RESUME);
+    expect(again.join(" ")).toContain(`--conversation ${FIRST}`);
+    expect(events.some((e) => e.type === "error")).toBe(false);
+    expect(events.at(-1)).toEqual({ type: "done", text: "Pronto.", session: { id: SESSION } });
+  },
+);
