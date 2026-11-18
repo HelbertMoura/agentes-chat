@@ -2067,6 +2067,10 @@
         "title": "Komputer",
         "help": "Komputer baru bergabung atau komputer ruang kerja sudah siap"
       },
+      "plans": {
+        "title": "Batas paket",
+        "help": "Saat akun AI mencapai 90% dari suatu batas"
+      },
       "reactions": {
         "title": "Reaksi",
         "help": "Saat seseorang bereaksi pada pesanmu"
@@ -5222,6 +5226,8 @@
       "desktopTaken": "<b>{{name}}</b> mengambil alih layar komputer <b>{{agent}}</b>",
       "planLent": "<b>{{name}}</b> menghubungkan paket {{plan}} kamu ke <b>{{agent}}</b>",
       "planServes": "{{plan}} kamu sekarang melayani seluruh workspace",
+      "planLimitNear": "<b>{{account}}</b> memakai {{percent}}% batasnya ({{window}}), {{resets}}",
+      "planLimitNearOpen": "<b>{{account}}</b> memakai {{percent}}% batasnya ({{window}})",
       "planModelDropped": "{{model}} keluar dari {{plan}}. <b>{{name}}</b> memakai {{runs}} sampai kamu memilih model lain.",
       "routineWaitingPlan": "<b>{{name}}</b> menunggu paketnya direset untuk menjalankan rutinitas",
       "planResetUnknown": "{{plan}} tidak memberi tahu kapan batasnya direset. Pekerjaan <b>{{name}}</b> masih menunggu.",
@@ -17526,6 +17532,13 @@
       "accounts_other": "{{count}} akun AI"
     },
     "notReported": "Penyedia tidak melaporkan kuota.",
+    "ring": {
+      "ok": "Batas paket: {{percent}}% terpakai di {{account}}, akun yang paling dekat dengan batas",
+      "almost": "Batas paket: {{account}} hampir mencapai batas, {{percent}}% terpakai",
+      "limited": "Batas paket: {{account}} mencapai batas",
+      "none": "Batas paket: tidak ada akun yang melaporkan batas",
+      "title": "Batas paket"
+    },
     "recent": {
       "title": "Penggunaan terbaru",
       "day": "24 jam terakhir",

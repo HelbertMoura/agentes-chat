@@ -234,6 +234,13 @@ export const NOTIFICATION_KINDS = [
    */
   "usage_limit",
   /**
+   * An AI account reached 90% of a window (ADR 0063 addendum 2026-11-18, `plan-limit-alerts.ts`): who connected it and
+   * whose agents think with it, once per account, window and reset period. `source.label` the account's name,
+   * `source.machineId` and `source.accountId` (none for a computer's own sign-in), `latest.percent`, `latest.window` and
+   * `latest.resetsAt`. Opens Cotas.
+   */
+  "plan_limit_near",
+  /**
    * "Quem aprova por mim" (ADR 0139): the person chosen to cover someone hears it (`latest.statusTo` the mode,
    * `always` or `while_out`, and `latest.expiresAt` its end), and the covered person hears when the cover said no
    * (`declined`) or an admin ended it (`ended`). The covered person or who ended it is the actor. Inbox only.
@@ -431,8 +438,11 @@ export interface NotificationLatest {
   plan?: string;
   /** `plan_model_dropped`: the model the agent's turns run now. */
   nowModel?: string;
-  /** `usage_limit`: the share of the person's limit used. */
+  /** `usage_limit`: the share of the person's limit used; `plan_limit_near`: of the window's. */
   percent?: number;
+  /** `plan_limit_near`: the window, as the plan's meters name it, and when it resets (absent: not said). */
+  window?: { kind: string; label?: string };
+  resetsAt?: string;
   /** `usage_limit` to who decides: the limit, what "Aumentar" raises it to, where it comes from, this month's requests. */
   limitUsd?: number;
   raiseToUsd?: number;

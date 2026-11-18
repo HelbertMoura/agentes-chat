@@ -2,10 +2,12 @@ import { describe, expect, test } from "bun:test";
 import type { TFunction } from "i18next";
 import type { PlanAccountUsage, PlanUsage } from "../src/api/types";
 import { formatUsd } from "../src/lib/format";
+import { openTarget, targetPath } from "../src/lib/notifications";
 import { groupUsageAccounts } from "../src/lib/plan-usage";
 import {
   limitsReported,
   noQuotaText,
+  planLimitNotice,
   quotaLevel,
   quotaOverview,
   quotaRingLabel,
@@ -290,5 +292,26 @@ describe("the limits ring", () => {
     expect(quotaRingLabel(t, quotaOverview([a], NOW), (x) => x.key)).toBe(
       'quotas.ring.almost {"percent":92,"account":"Work"}',
     );
+  });
+});
+
+describe("the alert at 90%", () => {
+  const n = {
+    kind: "plan_limit_near",
+    source: { label: "Trabalho" },
+    latest: { percent: 91.4, window: { kind: "five_hour" }, resetsAt: IN_2H },
+    actors: [],
+  } as unknown as Parameters<typeof openTarget>[0];
+
+  test("says the account, the percent, the window and the reset while it is ahead", () => {
+    const now = new Date(NOW);
+    expect(planLimitNotice(t, "en", n, now)).toMatchObject({ account: "Trabalho", percent: 91 });
+    expect(planLimitNotice(t, "en", n, now).resets).toContain("aiAccounts.usage.resetsAt");
+    expect(planLimitNotice(t, "en", n, new Date(Date.parse(IN_2H) + 1)).resets).toBeNull();
+  });
+
+  test("opens Cotas", () => {
+    const target = openTarget(n);
+    expect(target && targetPath("o1", target)).toBe("/org/o1/settings/usage?view=quotas");
   });
 });

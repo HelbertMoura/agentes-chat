@@ -1,8 +1,8 @@
 import { limitWindows, PLAN_ALMOST, planLevel, planState, planWindows } from "@agenteschat/ui/plan-state";
 import type { TFunction } from "i18next";
-import type { PlanAccountUsage, RecentPeriod, RecentUse } from "../api/types";
+import type { AppNotification, PlanAccountUsage, RecentPeriod, RecentUse } from "../api/types";
 import { formatInt, formatTokensShort, formatUsd } from "./format";
-import { brandOf } from "./plan-usage";
+import { brandOf, planMeterText } from "./plan-usage";
 import { planOf } from "./plans";
 
 /**
@@ -183,6 +183,23 @@ export function quotaRingLabel(t: TFunction, overview: QuotaOverview, name: (a: 
   const top = overview.tightest;
   if (!top) return t("quotas.ring.none");
   return t(`quotas.ring.${top.standing}`, { percent: top.used, account: name(top.account) });
+}
+
+/** What a `plan_limit_near` row says: the account, the percent, the window and, while it is ahead, its reset. */
+export function planLimitNotice(
+  t: TFunction,
+  locale: string,
+  n: Pick<AppNotification, "source" | "latest">,
+  now = new Date(),
+) {
+  const text = planMeterText(t, locale, now);
+  const { percent, window, resetsAt } = n.latest;
+  return {
+    account: n.source.label ?? "",
+    percent: Math.round(percent ?? 90),
+    window: window ? text.window(window) : "",
+    resets: resetsAt && Date.parse(resetsAt) > now.getTime() ? text.resets(resetsAt) : null,
+  };
 }
 
 const PERIODS: readonly RecentPeriod[] = ["day", "week", "month"];

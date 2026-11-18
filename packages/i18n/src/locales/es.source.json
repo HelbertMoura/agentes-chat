@@ -5279,6 +5279,12 @@
   "noticePrefs.category.computers.help": {
     "value": "A new computer joined or the workspace's one is ready"
   },
+  "noticePrefs.category.plans.title": {
+    "value": "Plan limits"
+  },
+  "noticePrefs.category.plans.help": {
+    "value": "When an AI account reaches 90% of a limit"
+  },
   "noticePrefs.category.reactions.title": {
     "value": "Reactions"
   },
@@ -13254,6 +13260,12 @@
   },
   "notifications.what.planServes": {
     "value": "Your {{plan}} now serves the whole workspace"
+  },
+  "notifications.what.planLimitNear": {
+    "value": "<b>{{account}}</b> used {{percent}}% of its limit ({{window}}), {{resets}}"
+  },
+  "notifications.what.planLimitNearOpen": {
+    "value": "<b>{{account}}</b> used {{percent}}% of its limit ({{window}})"
   },
   "notifications.what.planModelDropped": {
     "value": "{{model}} left {{plan}}. <b>{{name}}</b> is using {{runs}} until you choose another model."
@@ -44490,6 +44502,21 @@
   },
   "quotas.notReported": {
     "value": "No quota reported by the provider."
+  },
+  "quotas.ring.ok": {
+    "value": "Plan limits: {{percent}}% used on {{account}}, the account closest to its limit"
+  },
+  "quotas.ring.almost": {
+    "value": "Plan limits: {{account}} almost at the limit, {{percent}}% used"
+  },
+  "quotas.ring.limited": {
+    "value": "Plan limits: {{account}} at the limit"
+  },
+  "quotas.ring.none": {
+    "value": "Plan limits: no account reports limits"
+  },
+  "quotas.ring.title": {
+    "value": "Plan limits"
   },
   "quotas.recent.title": {
     "value": "Recent use"

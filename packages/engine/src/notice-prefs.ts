@@ -18,6 +18,7 @@ export const NOTICE_CATEGORIES = [
   "tasks",
   "routines",
   "computers",
+  "plans",
   "reactions",
 ] as const;
 export type NoticeCategory = (typeof NOTICE_CATEGORIES)[number];
@@ -38,6 +39,7 @@ export const NOTICE_KINDS: Record<NoticeCategory, readonly NotificationKind[]> =
     "routine_waiting_plan",
   ],
   computers: ["machine_connected", "computer_ready", "plan_reset_unknown", "device.in_use", "device.waiting"],
+  plans: ["plan_limit_near"],
   reactions: ["reaction"],
 };
 
@@ -49,6 +51,7 @@ export const NOTICE_DEFAULTS: Record<NoticeCategory, boolean> = {
   tasks: false,
   routines: true,
   computers: true,
+  plans: true,
   reactions: false,
 };
 
