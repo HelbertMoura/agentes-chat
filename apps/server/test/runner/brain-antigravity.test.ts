@@ -35,6 +35,7 @@ import {
 } from "../../runner/agy-home";
 import {
   AGY_FOLLOW_UP,
+  AGY_TOKEN_RESUME,
   AGY_WORK_SETTINGS,
   type AntigravityBrainContext,
   type AntigravityBrainTurnRequest,
@@ -972,4 +973,67 @@ test("a turn that used tools and wrote nothing gets one follow-up on its convers
     { type: "usage", input: 15, output: 15, source: "plan", model: "gemini-4-hydrogen-high" },
   ]);
   expect(events.at(-1)).toEqual({ type: "done", text: "Feito: 1 item.", session: { id: SESSION } });
+});
+
+const STALE_TOKEN =
+  "UNAUTHENTICATED (code 401): Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential.";
+
+test("an access token that expires under a turn never reads as signed out", () => {
+  expect(antigravityProblem(STALE_TOKEN, { auth: true })[0]).toMatchObject({
+    code: "antigravity_failed",
+    retryable: true,
+  });
+  expect(antigravityProblem("oauth2: invalid_grant: invalid token", { auth: true })[0]).toMatchObject({
+    code: "not_logged_in",
+  });
+});
+
+test("a turn cut by an expired access token goes on in a new run, on the same conversation", async () => {
+  const root = tempDir("agy-token-");
+  dirs.push(root);
+  const { fn, calls } = scriptedSpawn([
+    [
+      { event: "init", conversation_id: FIRST, init: { tools: [] } },
+      {
+        event: "step_update",
+        step_update: {
+          step_type: "tool",
+          state: "DONE",
+          tool_name: `${CODEX_MCP_SERVER}__post_message`,
+          tool_info: { name: "post_message", output: "ok" },
+        },
+      },
+      { event: "result", result: { status: "ERROR", error: STALE_TOKEN } },
+    ],
+    [
+      { event: "init", conversation_id: FIRST, init: { tools: [] } },
+      { event: "result", result: { status: "SUCCESS", response: "Pronto." } },
+    ],
+  ]);
+  const events: CodexBrainEvent[] = [];
+  await runAntigravityTurn(
+    {
+      runId: RUN,
+      sessionId: SESSION,
+      cwd: root,
+      system: "You are Dev.",
+      prompt: "check the issues",
+      mcp: { token: "tok_run" },
+      account: { id: ACCOUNT, home: path.join(root, "home") },
+    },
+    {
+      chats: new CodexThreads(path.join(root, "chats.json")),
+      emit: (e) => events.push(e),
+      signal: new AbortController().signal,
+      bin: "/usr/bin/agy",
+      spawn: fn,
+      platform: "linux",
+    },
+  );
+  expect(calls).toHaveLength(2);
+  const again = calls[1] ?? [];
+  expect(again[again.indexOf("-p") + 1]).toBe(AGY_TOKEN_RESUME);
+  expect(again.join(" ")).toContain(`--conversation ${FIRST}`);
+  expect(events.some((e) => e.type === "error")).toBe(false);
+  expect(events.at(-1)).toEqual({ type: "done", text: "Pronto.", session: { id: SESSION } });
 });
