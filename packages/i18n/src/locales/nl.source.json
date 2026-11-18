@@ -43086,7 +43086,7 @@
     "value": "Plan limits: {{account}} at the limit"
   },
   "quotas.ring.none": {
-    "value": "Plan limits: no account reports limits"
+    "value": "Plan limits: none of your accounts reports limits"
   },
   "quotas.ring.title": {
     "value": "Plan limits"

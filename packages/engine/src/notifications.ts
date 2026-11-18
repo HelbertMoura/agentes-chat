@@ -3,6 +3,7 @@ import {
   and,
   type Database,
   desc,
+  type Executor,
   eq,
   gt,
   gte,
@@ -22,7 +23,7 @@ import { NotFoundError, ValidationError } from "./errors";
 import { publishUserEvent } from "./events";
 import { cutText } from "./format";
 import type { PreviewMeta } from "./message-preview";
-import { noticeOn, noticePrefsOf, readNoticePrefs } from "./notice-prefs";
+import { type NoticePrefs, noticeOn, noticePrefsOf, readNoticePrefs } from "./notice-prefs";
 import { listMemberships, requirePermission } from "./organizations";
 import { enqueuePush } from "./push";
 import type { ApprovalOrigin } from "./tools/run-policy";
@@ -602,6 +603,20 @@ export interface NotifyInput {
  * action that caused it.
  */
 export async function notify(deps: NotificationDeps, input: NotifyInput): Promise<NotificationView[]> {
+  return announceNotifications(deps, await writeNotifications(deps, input));
+}
+
+/** A row `writeNotifications` created or merged, with what its person chose to hear. */
+export interface WrittenNotification {
+  row: Row;
+  prefs: NoticePrefs;
+}
+
+/** The rows alone, on `db` (a transaction's, for what must commit with them); `announceNotifications` tells people. */
+export async function writeNotifications(
+  deps: { db: Executor; now?: () => Date },
+  input: NotifyInput,
+): Promise<WrittenNotification[]> {
   const actorUser = input.actor?.type === "user" ? input.actor.id : null;
   const wanted = [...new Set([...input.userIds].filter((u): u is string => !!u && u !== actorUser))];
   if (wanted.length === 0) return [];
@@ -610,31 +625,46 @@ export async function notify(deps: NotificationDeps, input: NotifyInput): Promis
     .select({ userId: organizationMembers.userId, prefs: organizationMembers.noticePrefs })
     .from(organizationMembers)
     .where(and(eq(organizationMembers.orgId, input.orgId), inArray(organizationMembers.userId, wanted)));
-  const out: NotificationView[] = [];
+  const out: WrittenNotification[] = [];
   for (const member of members) {
-    const { userId } = member;
-    const row = await upsertOne(deps, input, userId);
-    if (!row) continue;
-    const view = notificationView(row);
-    out.push(view);
-    // Whether it reaches their devices as a notification (ADR 0071 §8): the desktop app's banner reads `alert`.
-    const prefs = noticePrefsOf(member.prefs);
-    const snoozed = row.snoozedUntil && row.snoozedUntil.getTime() > nowOf(deps).getTime();
-    if (!snoozed)
-      await publishUserEvent(deps.pubsub, input.orgId, userId, {
-        type: "notification.upserted",
-        notification: view,
-        alert: noticeOn(prefs, row.kind, row.waiting),
-      });
-    await publishCounts(deps, input.orgId, userId);
-    // Their phone and browsers too (ADR 0035, 0071), through the outbox; never undoes the notification. A group pushes
-    // once while unread: only the event that opened its row.
-    if (row.count === 1) await enqueuePush(deps.db, row, nowOf(deps), prefs).catch(() => false);
+    const row = await upsertOne(deps, input, member.userId);
+    if (row) out.push({ row, prefs: noticePrefsOf(member.prefs) });
   }
   return out;
 }
 
-async function upsertOne(deps: NotificationDeps, input: NotifyInput, userId: string): Promise<Row | null> {
+/** Tells each person of their written row, on their screens and (`push`, unless already queued) their devices. */
+export async function announceNotifications(
+  deps: NotificationDeps,
+  written: readonly WrittenNotification[],
+  { push = true }: { push?: boolean } = {},
+): Promise<NotificationView[]> {
+  const out: NotificationView[] = [];
+  for (const { row, prefs } of written) {
+    const userId = row.userId;
+    const view = notificationView(row);
+    out.push(view);
+    // Whether it reaches their devices as a notification (ADR 0071 §8): the desktop app's banner reads `alert`.
+    const snoozed = row.snoozedUntil && row.snoozedUntil.getTime() > nowOf(deps).getTime();
+    if (!snoozed)
+      await publishUserEvent(deps.pubsub, row.orgId, userId, {
+        type: "notification.upserted",
+        notification: view,
+        alert: noticeOn(prefs, row.kind, row.waiting),
+      });
+    await publishCounts(deps, row.orgId, userId);
+    // Their phone and browsers too (ADR 0035, 0071), through the outbox; never undoes the notification. A group pushes
+    // once while unread: only the event that opened its row.
+    if (push && row.count === 1) await enqueuePush(deps.db, row, nowOf(deps), prefs).catch(() => false);
+  }
+  return out;
+}
+
+async function upsertOne(
+  deps: { db: Executor; now?: () => Date },
+  input: NotifyInput,
+  userId: string,
+): Promise<Row | null> {
   const { db } = deps;
   const now = nowOf(deps);
   const source = compact(input.source) as Record<string, unknown>;

@@ -18066,7 +18066,7 @@
       "ok": "Limiti dei piani: {{percent}}% usato su {{account}}, l’account più vicino al limite",
       "almost": "Limiti dei piani: {{account}} quasi al limite, {{percent}}% usato",
       "limited": "Limiti dei piani: {{account}} al limite",
-      "none": "Limiti dei piani: nessun account indica limiti",
+      "none": "Limiti dei piani: nessuno dei tuoi account indica limiti",
       "title": "Limiti dei piani"
     },
     "recent": {

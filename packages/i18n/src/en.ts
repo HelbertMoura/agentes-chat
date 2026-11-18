@@ -17886,7 +17886,7 @@ export const en = {
       ok: "Plan limits: {{percent}}% used on {{account}}, the account closest to its limit",
       almost: "Plan limits: {{account}} almost at the limit, {{percent}}% used",
       limited: "Plan limits: {{account}} at the limit",
-      none: "Plan limits: no account reports limits",
+      none: "Plan limits: none of your accounts reports limits",
       title: "Plan limits",
     },
     recent: {

@@ -18624,7 +18624,7 @@
       "ok": "Limity planów: wykorzystano {{percent}}% na koncie {{account}}, najbliższym limitu",
       "almost": "Limity planów: {{account}} blisko limitu, wykorzystano {{percent}}%",
       "limited": "Limity planów: {{account}} osiąga limit",
-      "none": "Limity planów: żadne konto nie podaje limitów",
+      "none": "Limity planów: żadne z Twoich kont nie podaje limitów",
       "title": "Limity planów"
     },
     "recent": {

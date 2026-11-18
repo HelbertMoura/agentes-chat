@@ -1,4 +1,4 @@
-import { limitWindows, PLAN_ALMOST, planLevel, planState, planWindows } from "@agenteschat/ui/plan-state";
+import { limitRoom, PLAN_ALMOST, planLevel, planState, planWindows, windowExpired } from "@agenteschat/ui/plan-state";
 import type { TFunction } from "i18next";
 import type { AppNotification, PlanAccountUsage, RecentPeriod, RecentUse } from "../api/types";
 import { formatInt, formatTokensShort, formatUsd } from "./format";
@@ -117,10 +117,9 @@ export interface QuotaRoom {
  */
 export function quotaRoom(a: Pick<PlanAccountUsage, "usage" | "signedOut">, now = Date.now()): QuotaRoom | null {
   if (!a.usage || a.signedOut) return null;
-  const rows = limitWindows(a.usage, now);
-  const limited = planState(a.usage, now).state === "limited";
-  if (rows.length === 0 && !limited) return null;
-  const used = limited ? 100 : Math.round(rows[0]?.used ?? 0);
+  const room = limitRoom(a.usage, now);
+  if (!room) return null;
+  const used = room.limited ? 100 : Math.round(room.used);
   return { used, standing: used >= 100 ? "limited" : used >= PLAN_ALMOST ? "almost" : "ok" };
 }
 
@@ -143,7 +142,10 @@ export interface QuotaLine {
 }
 
 export interface QuotaOverview {
-  /** The account closest to a limit; null while none reports limits. */
+  /**
+   * The closest to a limit among the accounts that concern the viewer: theirs, or one their own agents or right hand
+   * think with (`forMe`). Someone else's private plan never colors their ring. Null while none of those reports limits.
+   */
   tightest: (QuotaRoom & { account: PlanAccountUsage }) | null;
   /** Every account: the closest to a limit first, those with no limits known after them in Cotas' order. */
   lines: QuotaLine[];
@@ -154,7 +156,8 @@ export function quotaOverview(accounts: readonly PlanAccountUsage[], now = Date.
   const lines = quotaSections(accounts, now)
     .flatMap((s) => s.accounts)
     .map((account): QuotaLine => {
-      const windows = account.usage ? planWindows(account.usage, now) : [];
+      const usage = account.usage;
+      const windows = usage ? planWindows(usage, now) : [];
       return {
         account,
         maker: makerOf(account),
@@ -164,13 +167,14 @@ export function quotaOverview(accounts: readonly PlanAccountUsage[], now = Date.
           key: `${w.kind}:${w.label ?? ""}`,
           kind: w.kind,
           ...(w.label ? { label: w.label } : {}),
-          used: Math.round(w.used),
+          // A reading with no reset, older than its window: nothing is known to be used now.
+          used: windowExpired(w, usage?.at, now) ? 0 : Math.round(w.used),
           resetsAt: w.resetsAt && Date.parse(w.resetsAt) > now ? w.resetsAt : null,
         })),
       };
     })
     .sort((a, b) => (b.room?.used ?? -1) - (a.room?.used ?? -1));
-  const first = lines[0];
+  const first = lines.find((l) => l.room && (l.account.mine || l.account.forMe));
   return { tightest: first?.room ? { ...first.room, account: first.account } : null, lines };
 }
 

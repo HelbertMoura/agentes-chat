@@ -18052,7 +18052,7 @@
       "ok": "Limites des forfaits : {{percent}} % utilisés sur {{account}}, le compte le plus proche de sa limite",
       "almost": "Limites des forfaits : {{account}} presque à la limite, {{percent}} % utilisés",
       "limited": "Limites des forfaits : {{account}} à la limite",
-      "none": "Limites des forfaits : aucun compte n’indique de limites",
+      "none": "Limites des forfaits : aucun de vos comptes n’indique de limites",
       "title": "Limites des forfaits"
     },
     "recent": {

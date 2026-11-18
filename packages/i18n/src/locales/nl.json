@@ -17558,7 +17558,7 @@
       "ok": "Abonnementslimieten: {{percent}}% gebruikt op {{account}}, het account het dichtst bij de limiet",
       "almost": "Abonnementslimieten: {{account}} bijna aan de limiet, {{percent}}% gebruikt",
       "limited": "Abonnementslimieten: {{account}} aan de limiet",
-      "none": "Abonnementslimieten: geen enkel account meldt limieten",
+      "none": "Abonnementslimieten: geen van je accounts meldt limieten",
       "title": "Abonnementslimieten"
     },
     "recent": {

@@ -1,4 +1,4 @@
-import { and, type Database, eq, schema, sql } from "@agenteschat/db";
+import { and, type Database, type Executor, eq, schema, sql } from "@agenteschat/db";
 import type { NotificationKind } from "./notifications";
 import { requirePermission } from "./organizations";
 
@@ -80,7 +80,7 @@ export function noticePrefsOf(raw: unknown): NoticePrefs {
   return out;
 }
 
-export async function readNoticePrefs(db: Database, orgId: string, userId: string): Promise<NoticePrefs> {
+export async function readNoticePrefs(db: Executor, orgId: string, userId: string): Promise<NoticePrefs> {
   const [row] = await db
     .select({ prefs: organizationMembers.noticePrefs })
     .from(organizationMembers)

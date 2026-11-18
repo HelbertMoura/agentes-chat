@@ -17983,7 +17983,7 @@
       "ok": "Límites de los planes: {{percent}}% usado en {{account}}, la cuenta más cerca de su límite",
       "almost": "Límites de los planes: {{account}} casi en el límite, {{percent}}% usado",
       "limited": "Límites de los planes: {{account}} en el límite",
-      "none": "Límites de los planes: ninguna cuenta informa límites",
+      "none": "Límites de los planes: ninguna de tus cuentas informa límites",
       "title": "Límites de los planes"
     },
     "recent": {

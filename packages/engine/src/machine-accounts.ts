@@ -202,6 +202,8 @@ const SIGNING_IN_KEEP_MS = ACCOUNT_LOGIN_TTL_MS + 60_000;
 export interface MachineAccountDeps {
   db: Database;
   pubsub?: PubSub;
+  /** What must not stop usage from being stored is logged here (a plan's alert). */
+  log?: { warn(message: string, data?: Record<string, unknown>): void };
 }
 
 export interface MachineAccountHubDeps extends MachineAccountDeps {
@@ -1032,7 +1034,7 @@ export async function syncMachineAccounts(
   await wakeAgentsBrainWaits(deps, orgId, out.released);
   if (out.changed) await publishAccountsChanged(deps.pubsub, orgId, machineId);
   if (accounts.some((a) => a.usage && windowsNearLimit(a.usage).length > 0))
-    await alertPlanLimits(deps, orgId, machineId).catch(() => undefined);
+    await alertPlanLimits(deps, orgId, machineId);
   return out.remove;
 }
 
@@ -1059,7 +1061,7 @@ export async function storeOwnUsage(deps: MachineAccountDeps, orgId: string, mac
   }
   if (moved.length) await publishAccountsChanged(deps.pubsub, orgId, machineId);
   if (ACCOUNT_KINDS.some((k) => own[k] && windowsNearLimit(own[k]).length > 0))
-    await alertPlanLimits(deps, orgId, machineId).catch(() => undefined);
+    await alertPlanLimits(deps, orgId, machineId);
 }
 
 /**
