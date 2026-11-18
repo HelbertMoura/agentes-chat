@@ -87,3 +87,10 @@ On Android the app now draws Google's own symbols, as it draws Apple's on iOS.
 - **How.** The symbols are path data, not a font: `scripts/material-icons.ts` generates `icons.material.data.ts` from the `@material-symbols/svg-600` npm package (Apache-2.0, credited in NOTICE). Only the 95 symbols the app names are included. `Icon` draws them with react-native-svg on the symbols' own grid. Weight 600 at the package's 48 optical size comes to 2-point strokes on a 24-point icon, the weight of the system's own icons. An outline is drawn by default; the filled form goes on a colored tile and on the selected tab. The tab bar rasterizes Google's symbols for every tab except Agentes, which keeps our agent.
 - **Only Android carries them.** `icons.material.ios.ts` has no paths, so none of the data reaches the iPhone's bundle.
 
+## Addendum (2026-11-18): Android's tab bar floats
+
+Android's system tab bar (Material bottom navigation, what `NativeTabs` draws there) runs edge to edge and can't float. On Android the tabs are now the router's JavaScript tabs (`expo-router/js-tabs`) with our own bar; iOS keeps `NativeTabs` unchanged. Both read the one tab list in `app/(app)/(main)/(tabs)/_layout.tsx`.
+
+- **The bar.** `apps/mobile/src/features/tab-bar/FloatingTabBar.tsx`: a capsule over the screen, icons alone, the selected tab on a lozenge, the kit's glass (opaque on Android). Conversas has its "new" button beside the capsule, and gives up the "+" in its header on Android.
+- **What the system bar did and we now do.** `backBehavior="initialRoute"` and `lazy: false` keep its back button and its tabs ready from the start. `useScrollToTop` in `LargeTitleScreen` keeps a tap on the current tab scrolling up. The bar leaves with the keyboard.
+- **Room.** Screens now run under the bar: `floatingBarRoom` (`src/lib/nav.ts`) is what a tab root keeps clear at its list's end and where the work-along strip stands.
