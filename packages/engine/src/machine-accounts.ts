@@ -93,7 +93,7 @@ import {
 } from "./machines";
 import { recordAccountFailure } from "./operator-events";
 import { can, requirePermission } from "./organizations";
-import { alertPlanLimits, windowsNearLimit } from "./plan-limit-alerts";
+import { checkPlanLimits } from "./plan-limit-alerts";
 import { runnerUpdateWay } from "./runner-update";
 import { scrubSignIns } from "./tool-detail";
 import { agentsMovedOnto, usageWaitKey, wakeAgentsBrainWaits, wakeOnRoom } from "./usage-pause";
@@ -1054,8 +1054,12 @@ export async function syncMachineAccounts(
   forgetAgents(orgId, out.released);
   await wakeAgentsBrainWaits(deps, orgId, out.released);
   if (out.changed) await publishAccountsChanged(deps.pubsub, orgId, machineId);
-  if (accounts.some((a) => a.usage && windowsNearLimit(a.usage).length > 0))
-    await alertPlanLimits(deps, orgId, machineId);
+  await checkPlanLimits(
+    deps,
+    orgId,
+    machineId,
+    accounts.map((a) => a.usage),
+  );
   return out.remove;
 }
 
@@ -1081,8 +1085,7 @@ export async function storeOwnUsage(deps: MachineAccountDeps, orgId: string, mac
     if (usage) await wakeOnRoom(deps.db, orgId, machineId, k, undefined, usage).catch(() => []);
   }
   if (moved.length) await publishAccountsChanged(deps.pubsub, orgId, machineId);
-  if (ACCOUNT_KINDS.some((k) => own[k] && windowsNearLimit(own[k]).length > 0))
-    await alertPlanLimits(deps, orgId, machineId);
+  await checkPlanLimits(deps, orgId, machineId, Object.values(own));
 }
 
 /**

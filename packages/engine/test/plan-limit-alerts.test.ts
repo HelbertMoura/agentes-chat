@@ -1,8 +1,10 @@
-import { afterEach, expect, test } from "bun:test";
+import { afterEach, expect, spyOn, test } from "bun:test";
 import { ACCOUNTS_PROTOCOL, type PlanUsage, type RunnerAccountInfo } from "@agenteschat/adapters";
 import { eq, schema, sql } from "@agenteschat/db";
 import { createOrganization, noticeOn, setNoticePref, storeOwnUsage, syncMachineAccounts } from "../src";
-import { alertPlanLimits } from "../src/plan-limit-alerts";
+import { notify } from "../src/notifications";
+import { alertPlanLimits, checkPlanLimits } from "../src/plan-limit-alerts";
+import { renderPush } from "../src/push-messages";
 import { addMember, type Fixture, setup } from "./fixtures";
 import { pairMachine } from "./machine-fixtures";
 
@@ -405,4 +407,149 @@ test("with the alert on, it goes to the phone through the usual job", async () =
   await phone();
   await sync(machineId, report(ACCOUNT, reading(92)));
   expect(await f.db.select().from(schema.outbox).where(eq(schema.outbox.kind, "push.send"))).toHaveLength(1);
+});
+
+const MINUTE = 60_000;
+const pushJobs = () => f.db.select().from(schema.outbox).where(eq(schema.outbox.kind, "push.send"));
+
+test("a reset that runs ahead of every reading is one alert while the account stays over the line", async () => {
+  f = await setup();
+  const machineId = await computer();
+  await addAccount(machineId);
+  await phone();
+  const t = Date.now();
+  // Past the first reset too: seven hours of readings, each resetting five hours after itself.
+  for (let i = 0; i <= 84; i++) {
+    const now = t + i * 5 * MINUTE;
+    await readAt(machineId, now, reading(95, iso(now + 5 * HOUR), "five_hour", iso(now)));
+  }
+  expect(await told()).toHaveLength(1);
+  expect(await pushJobs()).toHaveLength(1);
+});
+
+test("a reset sliding a minute per reading is one alert too", async () => {
+  f = await setup();
+  const machineId = await computer();
+  await addAccount(machineId);
+  const t = Date.now();
+  for (let i = 0; i <= 24; i++) {
+    const now = t + i * 5 * MINUTE;
+    await readAt(machineId, now, reading(95, iso(t + 3 * HOUR + i * MINUTE), "five_hour", iso(now)));
+  }
+  expect(await told()).toHaveLength(1);
+});
+
+test("seen below the line, the next crossing is told, within the same reset too", async () => {
+  f = await setup();
+  const machineId = await computer();
+  await addAccount(machineId);
+  const t = Date.now();
+  const reset = iso(t + 4 * HOUR);
+  const report_ = (percent: number, minutes: number) =>
+    sync(machineId, report(ACCOUNT, reading(percent, reset, "five_hour", iso(t - HOUR + minutes * MINUTE))));
+  await report_(95, 0);
+  await report_(96, 1);
+  expect(await told()).toHaveLength(1);
+  await report_(80, 2);
+  expect(await f.db.select().from(schema.planLimitAlerts)).toHaveLength(0);
+  await report_(91, 3);
+  expect(await told()).toHaveLength(2);
+});
+
+test("an older reading below the line ends nothing", async () => {
+  f = await setup();
+  const one = await computer("one");
+  const two = await computer("two");
+  await addAccount(one);
+  await addAccount(two, SECOND);
+  const t = Date.now();
+  const reset = iso(t + 3 * HOUR);
+  await readAt(one, t, reading(95, reset, "five_hour", iso(t)));
+  await readAt(two, t + 1000, reading(70, reset, "five_hour", iso(t - MINUTE)), SECOND);
+  await readAt(one, t + 2000, reading(96, reset, "five_hour", iso(t + 2000)));
+  expect(await told()).toHaveLength(1);
+});
+
+test("a report below the line with nothing told of costs one read", async () => {
+  f = await setup();
+  const machineId = await computer();
+  const select = spyOn(f.db, "select");
+  await checkPlanLimits(deps(), f.org.id, machineId, [reading(40)]);
+  expect(select).toHaveBeenCalledTimes(1);
+  select.mockRestore();
+});
+
+test("two computers reporting at once tell it once", async () => {
+  f = await setup();
+  const one = await computer("one");
+  const two = await computer("two");
+  await addAccount(one);
+  await addAccount(two, SECOND);
+  const usage = reading(95);
+  await setUsage(usage);
+  await setUsage(usage, SECOND);
+  await Promise.all([alertPlanLimits(deps(), f.org.id, one), alertPlanLimits(deps(), f.org.id, two)]);
+  expect(await told()).toHaveLength(1);
+});
+
+test("the push never carries the account's email: its given name, else its maker", async () => {
+  f = await setup();
+  const machineId = await computer();
+  await addAccount(machineId, ACCOUNT, { label: "Claude 2" });
+  await addAccount(machineId, SECOND, { label: "Trabalho", email: "bia@example.com" });
+  await setUsage(reading(95));
+  await setUsage(reading(95), SECOND);
+  await alertPlanLimits(deps(), f.org.id, machineId);
+  const rows = await told();
+  const push = (accountId: string) => {
+    const r = rows.find((x) => x.source.accountId === accountId);
+    return renderPush("pt-BR", {
+      kind: "plan_limit_near",
+      waiting: false,
+      label: r?.source.label as string,
+      title: r?.latest.title as string,
+      percent: 95,
+    });
+  };
+  // The inbox line may keep the owner's address; what leaves for the phone does not.
+  expect(rows.find((x) => x.source.accountId === ACCOUNT)?.source.label).toBe("ana@example.com");
+  expect(push(ACCOUNT).title).toBe("Claude: 95% do limite usado");
+  expect(push(SECOND).title).toBe("Trabalho: 95% do limite usado");
+});
+
+test("notify tells each person in turn: one failing leaves the one before fully told", async () => {
+  f = await setup();
+  const bia = await addMember(f.db, f.org.id, "member", "Bia");
+  const members = await f.db
+    .select({ userId: schema.organizationMembers.userId })
+    .from(schema.organizationMembers)
+    .where(eq(schema.organizationMembers.orgId, f.org.id));
+  const [first, second] = members.map((m) => m.userId).filter((id) => id === f.owner.id || id === bia.id);
+  await f.db.insert(schema.pushDevices).values({
+    userId: first as string,
+    platform: "android",
+    token: "phone-token",
+    locale: "pt-BR",
+  });
+  await f.db.execute(
+    sql.raw(`create function refuse_second() returns trigger language plpgsql as $$
+      begin if new.user_id = '${second}' then raise exception 'no room'; end if; return new; end $$`),
+  );
+  await f.db.execute(
+    sql.raw(
+      "create trigger refuse_second before insert on notifications for each row execute function refuse_second()",
+    ),
+  );
+  const input = {
+    orgId: f.org.id,
+    userIds: [first, second],
+    kind: "machine_connected" as const,
+    groupKey: "machine_connected:test",
+    source: { label: "mac" },
+  };
+  await expect(notify(deps(), input)).rejects.toThrow();
+  expect(await pushJobs()).toHaveLength(1);
+  await f.db.execute(sql.raw("drop trigger refuse_second on notifications"));
+  expect(await notify(deps(), input)).toHaveLength(1);
+  expect(await pushJobs()).toHaveLength(1);
 });

@@ -98,7 +98,7 @@ import {
   notifyComputerNoChrome,
 } from "./notification-producers";
 import { enqueue } from "./outbox";
-import { alertPlanLimits } from "./plan-limit-alerts";
+import { checkPlanLimits } from "./plan-limit-alerts";
 import { isRightHand } from "./right-hand";
 import { assertCanWork, standingRefusal } from "./standing";
 
@@ -858,7 +858,8 @@ export function createMachineHub(deps: MachineHubDeps) {
           )
         : [];
     // The own sign-ins' usage this hello brought (stored above): near a limit, their person hears it, once.
-    if (frame.ownUsage) await alertPlanLimits({ db, pubsub, ...logged }, machine.orgId, machine.id);
+    if (frame.ownUsage)
+      await checkPlanLimits({ db, pubsub, ...logged }, machine.orgId, machine.id, Object.values(frame.ownUsage));
     conn.lastSeenWrite = Date.now();
     conn.lastPong = Date.now();
     send(conn, {

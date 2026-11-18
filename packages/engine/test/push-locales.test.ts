@@ -85,7 +85,15 @@ test("a language without a word says it in English", () => {
 test("a plan near its limit names the account and how long until it resets, in the device's language", () => {
   const now = Date.parse("2026-11-18T12:00:00.000Z");
   const near = (locale: Parameters<typeof renderPush>[0], resetsAt: string | null) =>
-    renderPush(locale, { kind: "plan_limit_near", waiting: false, label: "Trabalho", percent: 91.6, resetsAt, now });
+    renderPush(locale, {
+      kind: "plan_limit_near",
+      waiting: false,
+      title: "Trabalho",
+      label: "ana@example.com",
+      percent: 91.6,
+      resetsAt,
+      now,
+    });
   expect(near("pt-BR", "2026-11-18T15:00:00.000Z")).toEqual({
     title: "Trabalho: 92% do limite usado",
     body: "Renova em 3 horas.",
