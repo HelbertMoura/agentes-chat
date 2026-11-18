@@ -1,11 +1,13 @@
 import type { BlobStore, HumanCheck, PubSub, RateLimiter } from "@agenteschat/adapters";
 import type { Config } from "@agenteschat/config";
 import type { Database } from "@agenteschat/db";
-import { type MachineHub, type SessionScreening, safeEqual } from "@agenteschat/engine";
+import { type MachineHub, type SessionScreening, SURFACE_PREFIX, safeEqual } from "@agenteschat/engine";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import type { Context } from "hono";
 import { apiError, domainErrorResponse, routeOf, validationHook } from "../http/errors";
 import type { Logger } from "../logger";
+import type { AppDeps } from "../routes/app/context";
+import { createSurfaceApp } from "../surface/app";
 import { registerOperatorAccess } from "./access";
 import { registerOperatorAnalytics } from "./analytics";
 import { registerOperatorClaudeAuth } from "./claude-auth";
@@ -49,6 +51,8 @@ export interface OperatorDeps {
   rateLimiter?: RateLimiter;
   /** Screened sessions (ADR 0076), read through the review door; absent: none, so every one is a 404. */
   sessions?: Pick<SessionScreening, "segment"> | null;
+  /** What the chat surface bridge (ADR 0187) posts and reads with; served only with `SURFACE_BRIDGE_TOKEN`. */
+  surface?: AppDeps;
 }
 
 /**
@@ -142,11 +146,29 @@ export function createOperatorApp(deps: OperatorDeps, token: string, readToken?:
   return app;
 }
 
-/** The operator API's own listener, only when `OPERATOR_API_TOKEN` is set: without it nothing listens. */
-export function serveOperatorApi(deps: OperatorDeps, port = deps.config.OPERATOR_API_PORT) {
-  const token = deps.config.OPERATOR_API_TOKEN;
-  if (!token) return null;
+/**
+ * What the operator listener answers: `/api/surface/v1` goes to the chat surface bridge and everything else to the
+ * operator API, each only with its own token set (absent: 404). Null when neither token is set.
+ */
+export function operatorFetch(deps: OperatorDeps): ((req: Request) => Response | Promise<Response>) | null {
+  const { OPERATOR_API_TOKEN: token, SURFACE_BRIDGE_TOKEN: bridgeToken } = deps.config;
+  if (!token && !bridgeToken) return null;
   const { OPERATOR_API_READ_TOKEN, OPERATOR_API_REVEAL_TOKEN } = deps.config;
-  const app = createOperatorApp(deps, token, OPERATOR_API_READ_TOKEN, OPERATOR_API_REVEAL_TOKEN);
-  return Bun.serve({ hostname: deps.config.HOST, port, fetch: (req) => app.fetch(req) });
+  const operator = token ? createOperatorApp(deps, token, OPERATOR_API_READ_TOKEN, OPERATOR_API_REVEAL_TOKEN) : null;
+  const surface = bridgeToken && deps.surface ? createSurfaceApp(deps.surface, bridgeToken, deps.version) : null;
+  const missing = () => Response.json({ error: { code: "not_found", message: "Route not found" } }, { status: 404 });
+  return (req) => {
+    const { pathname } = new URL(req.url);
+    const bridge = pathname === SURFACE_PREFIX || pathname.startsWith(`${SURFACE_PREFIX}/`);
+    const app = bridge ? surface : operator;
+    return app ? app.fetch(req) : missing();
+  };
+}
+
+/** The operator listener, only when `OPERATOR_API_TOKEN` or `SURFACE_BRIDGE_TOKEN` is set: without both nothing listens. */
+export function serveOperatorApi(deps: OperatorDeps, port = deps.config.OPERATOR_API_PORT) {
+  const fetch = operatorFetch(deps);
+  if (!fetch) return null;
+  // The bridge takes a message with its files and a voice note: up to 100 MiB, and room for the multipart framing.
+  return Bun.serve({ hostname: deps.config.HOST, port, fetch, maxRequestBodySize: 101 * 1024 * 1024 });
 }

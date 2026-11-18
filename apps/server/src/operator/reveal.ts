@@ -90,7 +90,7 @@ export function registerOperatorReveal(api: OpenAPIHono, { db, rateLimiter }: Op
       tags,
       summary: "Read one field of one record of what a workspace wrote, with a reason",
       description:
-        `Only with \`OPERATOR_API_REVEAL_TOKEN\`. One record a call, at most ${REVEAL_MAX_CHARS} characters, for one of two purposes that a record of the workspace proves. For \`member_request\`: the support request is this workspace's and recent (403 \`reveal.no_request\`), its member still is one (\`reveal.requester\`) and reads the record in the app now (\`reveal.not_visible\`). For \`fault\`: the run failed or got stuck in its days (\`reveal.no_fault\`), the record is its step, the message that started it or one it wrote, its agent's instructions, its routine or a task it started, or, for a run that went on past a failed step, that step's \`error\` and its call's \`input\` alone (\`reveal.not_the_fault\`), and it is not of a direct conversation (\`reveal.direct_conversation\`). ` +
+        `Only with \`OPERATOR_API_REVEAL_TOKEN\`. One record a call, at most ${REVEAL_MAX_CHARS} characters, for one of two purposes that a record of the workspace proves. For \`member_request\`: the support request is this workspace's and recent (403 \`reveal.no_request\`), its member still is one (\`reveal.requester\`) and reads the record in the app now (\`reveal.not_visible\`). For \`fault\`: the run failed or got stuck in its days (\`reveal.no_fault\`), the record is its step, the message that started it or one it wrote, its agent's instructions, its routine or a task it started, or, for a run that went on past a failed step, that step's \`error\` and its call's \`input\` alone (\`reveal.not_the_fault\`), and it is not of a direct conversation (\`reveal.direct_conversation\`). What a run of a confidential thread holds opens under neither purpose: its steps and a task it started answer 403 \`reveal.confidential\` where the proof would have opened them, and a message of such a thread reads as its stub. ` +
         "Before any text is read, the read is recorded: a `content.viewed` event with the reason, and an entry in the workspace's own audit log (`operator.content_read`) with what was read, the purpose and its proof, never the reason. A record of another workspace, a deleted one and one nobody has answer the same 404. An `error` of something that did not fail is 409 `reveal.no_error`. " +
         `At most ${REVEAL_PER_MINUTE.limit} calls a minute (429 \`reveal.limit_minute\`) and ${REVEAL_PER_WORKSPACE_DAY} reads of one workspace in 24 hours (\`reveal.limit_workspace\`).`,
       request: { params: OrgParams, body: body(RevealRequest) },
@@ -98,7 +98,9 @@ export function registerOperatorReveal(api: OpenAPIHono, { db, rateLimiter }: Op
         200: json(Revealed),
         400: errorResponse("Invalid request"),
         401: errorResponse("Missing or wrong token"),
-        403: errorResponse("Not the reveal token, the door is closed, or the purpose's proof does not open this"),
+        403: errorResponse(
+          "Not the reveal token, the door is closed, the purpose's proof does not open this, or a confidential thread keeps it",
+        ),
         404: errorResponse("No such record in this workspace"),
         409: errorResponse("It holds no error (`reveal.no_error`)"),
         429: errorResponse("Past the door's own limits"),
