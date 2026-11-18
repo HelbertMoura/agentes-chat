@@ -51,6 +51,7 @@ const PlanAccountUsage = PlanAccountInfo.extend({
     .openapi({ description: "The plan's windows as last reported; null: not known yet." }),
   agents: z.array(z.object({ agentId: z.uuid(), name: z.string(), tokens: z.number(), now: z.boolean() })),
   monthTokens: z.number(),
+  forMe: z.boolean().optional().openapi({ description: "The caller's own agents or right hand think with it now." }),
   kinds: z
     .array(
       z.object({

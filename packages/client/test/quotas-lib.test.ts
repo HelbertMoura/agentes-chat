@@ -276,6 +276,41 @@ describe("the limits ring", () => {
     expect(quotaLevel(quotaRoom(agy, NOW))).toBe("critical");
   });
 
+  test("a single model's week never leads while the plan reports its own windows", () => {
+    const a = account("a", {
+      usage: usage([
+        { kind: "five_hour", usedPercent: 20, resetsAt: IN_2H },
+        { kind: "seven_day_opus", usedPercent: 100, resetsAt: IN_2H },
+        { kind: "seven_day_sonnet", usedPercent: 97, resetsAt: IN_2H },
+      ]),
+    });
+    expect(quotaRoom(a, NOW)).toEqual({ used: 20, standing: "ok" });
+  });
+
+  test("a reading with no reset counts no longer than its window lasts", () => {
+    const old = (hours: number) => ({
+      ...usage([{ kind: "five_hour", usedPercent: 95 }]),
+      at: new Date(NOW - hours * 3_600_000).toISOString(),
+    });
+    expect(quotaRoom(account("a", { usage: old(4) }), NOW)).toEqual({ used: 95, standing: "almost" });
+    const stale = account("b", { usage: old(6) });
+    expect(quotaRoom(stale, NOW)).toBeNull();
+    expect(quotaOverview([stale], NOW).lines[0]?.windows[0]?.used).toBe(0);
+  });
+
+  test("only accounts that concern the viewer color the ring; the others stay listed", () => {
+    const theirs = account("theirs", {
+      mine: false,
+      usage: usage([{ kind: "five_hour", usedPercent: 100, resetsAt: IN_2H }]),
+    });
+    const mine = account("mine", { usage: usage([{ kind: "five_hour", usedPercent: 10, resetsAt: IN_2H }]) });
+    const o = quotaOverview([theirs, mine], NOW);
+    expect(o.tightest).toMatchObject({ used: 10, standing: "ok", account: { key: "mine" } });
+    expect(o.lines.map((l) => l.account.key)).toEqual(["theirs", "mine"]);
+    expect(quotaOverview([theirs], NOW).tightest).toBeNull();
+    expect(quotaOverview([{ ...theirs, forMe: true }, mine], NOW).tightest?.account.key).toBe("theirs");
+  });
+
   test("a signed-out account stays listed but never leads", () => {
     const out = account("out", {
       signedOut: true,

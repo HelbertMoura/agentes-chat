@@ -582,6 +582,7 @@ function mergeLogin(x: PlanAccountUsage, y: PlanAccountUsage): PlanAccountUsage 
     ...a,
     logins: (a.logins ?? 1) + (b.logins ?? 1),
     signedOut: a.signedOut && b.signedOut,
+    ...(a.forMe || b.forMe ? { forMe: true } : {}),
     usage: usage
       ? {
           ...usage,

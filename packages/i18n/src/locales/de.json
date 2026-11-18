@@ -18098,7 +18098,7 @@
       "ok": "Tariflimits: {{percent}} % genutzt bei {{account}}, dem Konto am nächsten am Limit",
       "almost": "Tariflimits: {{account}} fast am Limit, {{percent}} % genutzt",
       "limited": "Tariflimits: {{account}} am Limit",
-      "none": "Tariflimits: Kein Konto meldet Limits",
+      "none": "Tariflimits: Keines deiner Konten meldet Limits",
       "title": "Tariflimits"
     },
     "recent": {

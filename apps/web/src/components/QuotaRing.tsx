@@ -37,6 +37,9 @@ export function QuotaRing({ side = "top" }: { side?: "top" | "bottom" | "right" 
   const [focused, setFocused] = useState(false);
   const open = card.open || (focused ? "hover" : false);
   const body = useRef<HTMLDivElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
+  // Closed with the focus here or in the card: the focus comes back to the ring and doesn't open it again.
+  const closing = useRef(false);
   useEffect(() => {
     if (open === "press") body.current?.querySelector("a")?.focus();
   }, [open]);
@@ -50,7 +53,12 @@ export function QuotaRing({ side = "top" }: { side?: "top" | "bottom" | "right" 
       hover={card}
       open={open !== false}
       onOpenChange={(o) => {
-        if (!o) setFocused(false);
+        if (o) return;
+        setFocused(false);
+        // The card itself holds the focus where nothing in it took it.
+        const inCard = body.current?.parentElement?.contains(document.activeElement) === true;
+        closing.current = inCard || document.activeElement === button.current;
+        if (inCard) button.current?.focus();
       }}
       moveFocus={open === "press"}
       label={t("quotas.ring.title")}
@@ -59,6 +67,7 @@ export function QuotaRing({ side = "top" }: { side?: "top" | "bottom" | "right" 
       className="quota-pop"
       trigger={
         <button
+          ref={button}
           type="button"
           className="quota-ring"
           data-level={quotaLevel(top)}
@@ -72,9 +81,11 @@ export function QuotaRing({ side = "top" }: { side?: "top" | "bottom" | "right" 
             card.onOpenChange(true);
           }}
           onFocus={() => {
-            if (!open && movesByKeys()) setFocused(true);
+            if (closing.current) closing.current = false;
+            else if (!open && movesByKeys()) setFocused(true);
           }}
           onBlur={(e) => {
+            closing.current = false;
             if (!(e.relatedTarget instanceof Node && body.current?.contains(e.relatedTarget))) setFocused(false);
           }}
         >

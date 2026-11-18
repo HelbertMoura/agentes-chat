@@ -16,7 +16,8 @@ import { requirePermission } from "./organizations";
 import { agentBudgetsThisMonth, budgetPercent, canViewCost, monthStartUtc } from "./usage";
 import { WEB_USAGE_PROVIDER } from "./web-tools";
 
-const { usageRecords, agents, agentRuns, agentConsultations, machines, machineAccounts, users } = schema;
+const { usageRecords, agents, agentRuns, agentConsultations, machines, machineAccounts, rightHandBrains, users } =
+  schema;
 
 /*
  * The usage views (ADR 0063): Configurações › Uso (every plan account by
@@ -95,6 +96,8 @@ const USE_KINDS: readonly UseKind[] = ["handoffs", "people", "routines"];
 const HANDOFF_HINT_PERCENT = 30;
 
 export interface PlanAccountUsage extends PlanAccountInfo {
+  /** The viewer's own agents or right hand think with it now (`orgPlanUsage`): its limits concern them. */
+  forMe?: boolean;
   /**
    * The plan's windows as last reported, each with the agents' parts, and the models at a limit of their own that
    * still hold (`models`: the quota per model, which the windows can't show); null: not known yet.
@@ -755,7 +758,7 @@ export async function orgPlanUsage(
   const found = [...keys].flatMap((k) => accountOf(ctx, k, userId) ?? []);
   // Recent use is what Cotas shows in place of limits: read only while an account has none known.
   const unknown = (u: PlanUsage | null) => !u || (u.windows.length === 0 && u.limited !== true);
-  const [hourly, mayTalk, recent] = await Promise.all([
+  const [hourly, mayTalk, recent, ownAi] = await Promise.all([
     hourlySince(
       db,
       orgId,
@@ -764,10 +767,24 @@ export async function orgPlanUsage(
     ),
     talkableBy(db, orgId, ctx, userId),
     found.some((a) => unknown(a.usage)) ? readRecent(db, orgId, now) : null,
+    db
+      .select({ accountId: rightHandBrains.brainAccountId })
+      .from(rightHandBrains)
+      .where(and(eq(rightHandBrains.orgId, orgId), eq(rightHandBrains.userId, userId))),
   ]);
+  const forMe = new Set<string>();
+  for (const [id, a] of ctx.agents) {
+    const key = a.ownerId === userId ? currentKey(ctx, id) : null;
+    if (key) forMe.add(key);
+  }
+  for (const { accountId } of ownAi) {
+    const row = accountId ? ctx.accounts.get(accountId)?.row : undefined;
+    if (row) forMe.add(sourceKeyOf(row.machineId, row.kind, row.id));
+  }
   const accounts = found
     .map((a) => ({
       ...accountUsage(ctx, a, money, month, hourly, now, mayTalk),
+      ...(forMe.has(a.info.key) ? { forMe: true } : {}),
       ...(recent && unknown(a.usage) ? { recent: recentOf(a.info.key, recent, money) } : {}),
     }))
     .sort(

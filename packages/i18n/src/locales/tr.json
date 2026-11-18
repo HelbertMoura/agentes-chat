@@ -18027,7 +18027,7 @@
       "ok": "Plan limitleri: limite en yakın hesap {{account}}, %{{percent}} kullanıldı",
       "almost": "Plan limitleri: {{account}} limite yakın, %{{percent}} kullanıldı",
       "limited": "Plan limitleri: {{account}} limitte",
-      "none": "Plan limitleri: limit bildiren hesap yok",
+      "none": "Plan limitleri: hesaplarınızın hiçbiri limit bildirmiyor",
       "title": "Plan limitleri"
     },
     "recent": {

@@ -423,6 +423,7 @@ export const planLimitAlerts = pgTable(
     /** The window's kind and, for `other`, the provider's name for it. */
     windowKey: text().notNull(),
     resetsAt: timestamp({ withTimezone: true }),
+    /** When the reading that raised the alert was taken: a later report of an older reading never takes the row. */
     alertedAt: timestamp({ withTimezone: true }).notNull(),
   },
   (t) => [primaryKey({ columns: [t.orgId, t.accountKey, t.windowKey] })],

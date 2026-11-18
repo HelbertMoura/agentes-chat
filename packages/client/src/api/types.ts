@@ -7535,6 +7535,7 @@ export type NoticeCategory =
   | "tasks"
   | "routines"
   | "computers"
+  | "plans"
   | "reactions";
 
 export interface NoticePrefs {
@@ -8295,6 +8296,8 @@ export interface PlanAccountInfo {
 export type PlanUseKind = "handoffs" | "people" | "routines";
 
 export interface PlanAccountUsage extends PlanAccountInfo {
+  /** The caller's own agents or right hand think with it now (`GET …/usage/plans` only). */
+  forMe?: boolean;
   /** Its windows as last reported, each with the agents' parts; null: not known yet. */
   usage: (Omit<PlanUsage, "windows"> & { windows: PlanWindowParts[] }) | null;
   /** This month per agent; `now`: it thinks with this account today. */

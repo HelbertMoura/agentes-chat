@@ -569,6 +569,7 @@ export interface MachineBrowserHooks {
 
 export function createMachineHub(deps: MachineHubDeps) {
   const { db, pubsub } = deps;
+  const logged = deps.log ? { log: deps.log } : {};
   const replicaId = deps.replicaId ?? crypto.randomUUID();
   const heartbeatMs = deps.heartbeatMs ?? HEARTBEAT_MS;
   const helloTimeoutMs = deps.helloTimeoutMs ?? HELLO_TIMEOUT_MS;
@@ -849,13 +850,15 @@ export function createMachineHub(deps: MachineHubDeps) {
     // and must land after this older list, never under it.
     const removed =
       frame.protocol >= ACCOUNTS_PROTOCOL && frame.accounts
-        ? await syncMachineAccounts({ db, pubsub }, machine.orgId, machine.id, frame.accounts).catch((error) => {
-            deps.log?.warn("account sync failed", { machineId: machine.id, error: String(error) });
-            return [];
-          })
+        ? await syncMachineAccounts({ db, pubsub, ...logged }, machine.orgId, machine.id, frame.accounts).catch(
+            (error) => {
+              deps.log?.warn("account sync failed", { machineId: machine.id, error: String(error) });
+              return [];
+            },
+          )
         : [];
     // The own sign-ins' usage this hello brought (stored above): near a limit, their person hears it, once.
-    if (frame.ownUsage) await alertPlanLimits({ db, pubsub }, machine.orgId, machine.id).catch(() => undefined);
+    if (frame.ownUsage) await alertPlanLimits({ db, pubsub, ...logged }, machine.orgId, machine.id);
     conn.lastSeenWrite = Date.now();
     conn.lastPong = Date.now();
     send(conn, {
@@ -1626,13 +1629,15 @@ export function createMachineHub(deps: MachineHubDeps) {
         if (conn.machineId && conn.orgId) {
           const machineId = conn.machineId;
           const orgId = conn.orgId;
-          const remove = await syncMachineAccounts({ db, pubsub }, orgId, machineId, frame.accounts).catch((error) => {
-            deps.log?.warn("account sync failed", { machineId, error: String(error) });
-            return [];
-          });
+          const remove = await syncMachineAccounts({ db, pubsub, ...logged }, orgId, machineId, frame.accounts).catch(
+            (error) => {
+              deps.log?.warn("account sync failed", { machineId, error: String(error) });
+              return [];
+            },
+          );
           removeAccounts(conn, remove);
           if (frame.ownUsage) {
-            await storeOwnUsage({ db, pubsub }, orgId, machineId, frame.ownUsage).catch((error) =>
+            await storeOwnUsage({ db, pubsub, ...logged }, orgId, machineId, frame.ownUsage).catch((error) =>
               deps.log?.warn("own usage failed", { machineId, error: String(error) }),
             );
           }

@@ -18489,7 +18489,7 @@ export const ptBR = {
       ok: "Limites dos planos: {{percent}}% usados em {{account}}, a conta mais perto do limite",
       almost: "Limites dos planos: {{account}} quase no limite, {{percent}}% usados",
       limited: "Limites dos planos: {{account}} no limite",
-      none: "Limites dos planos: nenhuma conta informa limites",
+      none: "Limites dos planos: nenhuma das suas contas informa limites",
       title: "Limites dos planos",
     },
     recent: {
