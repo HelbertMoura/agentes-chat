@@ -8616,7 +8616,7 @@ html:not([data-pointer]) .izoom__stage:focus-visible {
   width: 100%;
   height: 100%;
 }
-/* Two-step sign-in (ADR 0195): the key to type by hand, and the recovery codes, two per row. */
+/* Two-step sign-in (ADR 0201): the key to type by hand, and the recovery codes, two per row. */
 .two-factor__key {
   font-family: var(--font-mono);
   font-size: 13px;
@@ -11156,6 +11156,10 @@ html:not([data-pointer]) .agp-cell:focus-visible {
       "key label tail"
       "value value value";
     row-gap: 2px;
+  }
+  /* The value runs under the key, so the hairline does too: from the key's edge to the row's end. */
+  .agp-ficha__card .agp-frow + .agp-frow::before {
+    left: 12px;
   }
   /* The usage's words stay, its bar goes: a narrow card has no room for both on the value's line. */
   .agp-frow__usage .ac-meter {

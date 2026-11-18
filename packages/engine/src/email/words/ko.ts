@@ -554,4 +554,23 @@ export const words: EmailWords = {
       picture: "더 이상 휴대폰에 없는 어시스턴트",
     },
   },
+  supportReply: {
+    subject: "도움 요청에 대한 답변",
+    preheader: "agentes.chat에서 요청하신 도움에 대한 답변이에요.",
+    headline: "도움 요청에 대한 답변",
+    answers: {
+      received: "요청을 받았고 지금 살펴보고 있어요.",
+      need_more:
+        "도와드리려면 정보가 더 필요해요. 무엇을 하고 있었는지, 어떻게 되길 기대했는지, 실제로 어떻게 됐는지가 필요해요.",
+      resolved: "알려 주신 문제를 고쳤어요.",
+      handed_over: "이제 담당자가 요청을 맡아 답변드릴 거예요.",
+    },
+    from: (host) =>
+      host
+        ? ["이 답변은 ", { nobr: host }, "의 agentes.chat 서버 운영자가 보냈어요."]
+        : "이 답변은 agentes.chat에서 보냈어요.",
+    ai: "이 답변은 AI 어시스턴트가 작성했어요.",
+    reply: (address) => ["답장하려면 ", { mail: address }, "(으)로 연락해 주세요."],
+    why: "agentes.chat에서 도움을 요청하셔서 이 메일을 보내 드렸어요.",
+  },
 };

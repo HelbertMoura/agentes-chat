@@ -38,13 +38,14 @@ import {
   type Scene,
   type Text,
 } from "./email/layout";
-import { wordsFor } from "./email/words";
+import { type Words, wordsFor } from "./email/words";
 import { dayAndTime } from "./format";
 import { adminIds } from "./gateway";
 import { publicHostAddress, type ResolveHost, resolveHostDns } from "./net-guard";
 import { enqueue, PermanentJobError } from "./outbox";
 import { billingHold } from "./standing";
 import { isAgentesCloud } from "./telemetry";
+import { withoutTrailingSlashes } from "./url-text";
 import { budgetPercent } from "./usage";
 import { isPersonalWorkspace } from "./workspace-mode";
 
@@ -312,7 +313,7 @@ export type EmailTemplate =
    * the people who run the server. `url`: the server's own address, for the pictures.
    */
   /**
-   * The account's two-step sign-in changed (ADR 0195): turned on (every other device signed out), turned off, or new
+   * The account's two-step sign-in changed (ADR 0201): turned on (every other device signed out), turned off, or new
    * recovery codes. `support`: where to write if it wasn't them.
    */
   | {
@@ -366,6 +367,21 @@ export type EmailTemplate =
       personal?: true;
     }
   /**
+   * The answer of whoever runs the server to a member's support request (ADR 0056), to the address of their account:
+   * one of our own sentences (`reply`), or the operator's words (`text`), which are another party's and print inert,
+   * line by line. With neither, the words were sent already (`forgetReplyWords`). `support`: where to answer back
+   * (`SUPPORT_EMAIL`), or nowhere. `url`: the server's own address, for the pictures.
+   */
+  | {
+      kind: "support_reply";
+      locale: EmailLocale;
+      reply?: keyof Words["supportReply"]["answers"];
+      text?: string;
+      assistedByAi: boolean;
+      support: string | null;
+      url: string;
+    }
+  /**
    * The daily stall-and-noise report to the people who run the server (`OPS_REPORT_EMAIL`, `autonomy-report.ts`):
    * each count of the UTC `day` against its daily average over the 7 days before, and the workspaces with the most.
    * Workspace names and counts only. `url`: the server's own address, for the pictures.
@@ -391,7 +407,7 @@ export interface PlanAudience {
 }
 
 export function emailArtAt(publicUrl: string): EmailArt {
-  const home = publicUrl.replace(/\/+$/, "");
+  const home = withoutTrailingSlashes(publicUrl);
   return { home, base: `${home}/email/`, files: null };
 }
 
@@ -494,6 +510,8 @@ const JOIN_NAME_SHOWN = 60;
 const OUTSIDE_OF_SHOWN = 80;
 /** An admin's reason for denying a request to join, as long as it is kept. */
 const JOIN_REASON_SHOWN = 300;
+/** The operator's own words in a reply to a support request, shown whole: the route takes no more. */
+export const REPLY_TEXT_MAX = 2000;
 
 /**
  * The template's stamp for a personal workspace (ADR 0159), spread into it where it is queued: the mode it had then
@@ -509,6 +527,20 @@ export const modeStamp = async (db: Executor, orgId: string): Promise<{ personal
  */
 const inMode = <G extends { personal: object }>(group: G, personal: boolean | undefined): G =>
   personal ? deepMerge(group, group.personal) : group;
+
+const LINE_BREAKS = new Set(["\n", "\r", "\u2028", "\u2029"]);
+
+/**
+ * `url` without its query and fragment, cut where `/[?#].*$/` cuts it: at the first `?` or `#` past its last line
+ * break (`.` doesn't cross one). Read by index: that pattern reads the rest of the text again from each `?` or `#`
+ * that a line break follows, quadratic in its length.
+ */
+function withoutQuery(url: string): string {
+  let from = url.length;
+  while (from > 0 && !LINE_BREAKS.has(url.charAt(from - 1))) from--;
+  for (let i = from; i < url.length; i++) if (url.charAt(i) === "?" || url.charAt(i) === "#") return url.slice(0, i);
+  return url;
+}
 
 /**
  * One email's content: our words in the subject, preheader, headline and buttons; what people typed or
@@ -741,7 +773,7 @@ function docOf(t: EmailTemplate, sender: string | null): EmailDoc {
         ? [...(t.needsAi ? (["ai"] as const) : []), "task", "watch"]
         : ["create", ...(t.needsAi ? (["ai"] as const) : [])];
       // `url` is the workspace in every job, however old: the button's address follows its step.
-      const home = t.url.replace(/[?#].*$/, "").replace(/\/$/, "");
+      const home = withoutQuery(t.url).replace(/\/$/, "");
       const url = { ai: `${t.keptUrl ?? home}?connect=ai`, task: t.keptUrl ?? home, create: `${home}/agents/new` }[
         first
       ];
@@ -1118,6 +1150,28 @@ function docOf(t: EmailTemplate, sender: string | null): EmailDoc {
         c.why,
       );
     }
+    case "support_reply": {
+      const c = w.supportReply;
+      // A line break ends a paragraph, as it was written: each line is inert on its own.
+      const answer = t.reply
+        ? [c.answers[t.reply]]
+        : (t.text ?? "")
+            .split(/[\r\n\u2028\u2029]+/)
+            .map((line) => inertText(line, REPLY_TEXT_MAX))
+            .filter(Boolean);
+      return doc(
+        c.subject,
+        c.preheader,
+        c.headline,
+        [
+          ...answer.map((p): Block => ({ p })),
+          { small: c.from(sender) },
+          ...(t.assistedByAi ? [{ small: c.ai }] : []),
+          ...(t.support ? [{ small: c.reply(t.support) }] : []),
+        ],
+        c.why,
+      );
+    }
   }
 }
 
@@ -1278,7 +1332,10 @@ export async function sendPlanWaitingEmail(db: Database, publicUrl: string, orgI
 export async function sendQueuedEmail(sender: EmailSender, payload: Record<string, unknown>, art?: EmailArt) {
   const to = Array.isArray(payload.to) ? payload.to.map(String) : [];
   if (to.length === 0) throw new PermanentJobError("email without recipients");
-  const { subject, html, text, inline } = renderEmail(payload.template as EmailTemplate, art);
+  const template = payload.template as EmailTemplate;
+  // A reply whose words are gone was sent, or given up: its job run again (a lease lost after the send) sends nothing.
+  if (template.kind === "support_reply" && !template.reply && template.text === undefined) return;
+  const { subject, html, text, inline } = renderEmail(template, art);
   await sender
     .send({
       subject,
@@ -1287,7 +1344,7 @@ export async function sendQueuedEmail(sender: EmailSender, payload: Record<strin
       ...(inline.length > 0 ? { inline } : {}),
       to,
       idempotencyKey: String(payload.key),
-      tags: [{ name: "kind", value: (payload.template as EmailTemplate).kind }],
+      tags: [{ name: "kind", value: template.kind }],
     })
     .catch(rethrowEmailError);
 }

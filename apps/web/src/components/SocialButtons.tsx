@@ -66,7 +66,7 @@ export function LastUsed({ id }: { id: string }) {
  * "Continuar com Google/GitHub/Apple": the brand's mark and the words centred, as on every button, "Último usado" on
  * the corner of the one used last. `onSocial` takes over the redirect (the Mac app signs in through the browser).
  * `earlyAccess`: the early-access link's token, for the sign-up it opens. `errorCallbackURL`: the sign-in page a refusal
- * (or the account's second step, ADR 0195) comes back to, when not the plain one.
+ * (or the account's second step, ADR 0201) comes back to, when not the plain one.
  */
 export function SocialButtons({
   callbackURL,

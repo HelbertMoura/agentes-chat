@@ -178,10 +178,10 @@ export function AgentsScreen() {
     ]),
   );
   const total = listed.length;
-  // Archived agents have no profile: admins bring them back, or delete them for good (ADR 0082), from here.
-  const admin = can(org, "manage_agents");
+  // Archived agents have no profile: who manages each one brings it back, or deletes it for good (ADR 0082), from here;
+  // the server's `canManage` on it (ADR 0085 addendum of 2026-11-17), so someone's private agent stays out of reach.
   const archived = findAgents(
-    (useFormerAgents(orgId).data ?? []).filter((a) => admin && !a.deleted),
+    (useFormerAgents(orgId).data ?? []).filter((a) => a.canManage === true && !a.deleted),
     q,
   );
   const restore = useUnarchiveAgent(orgId);

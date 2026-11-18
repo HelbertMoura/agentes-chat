@@ -60,7 +60,7 @@ function useStep(action: HumanAction | null) {
     /** "Use another email": back down to the e-mail's screen, past every step over it. */
     toEmail: () => router.dismiss(depth),
     /** Better Auth's refusal → the sentence to show (never the server's raw text). */
-    failed: (refusal: { status: number; code?: string }) =>
+    failed: (refusal: { status: number; code?: string; retryIn?: number }) =>
       setError(refusal.status ? refusalText(t, refusal) : t("mobile.auth.errors.network")),
     /**
      * What a throw means: only a request that never got an answer (fetch's "Network request failed") is "No
@@ -122,7 +122,7 @@ export function PasswordStep() {
         },
         flow?.options?.pass,
       );
-      // The account's second step (ADR 0195): its code, on a screen of its own.
+      // The account's second step (ADR 0201): its code, on a screen of its own.
       if (!refused && code) {
         void writeValue(LAST_EMAIL, email);
         router.push(twoFactorStepHref("email") as never);
@@ -191,7 +191,7 @@ export function PasswordStep() {
 }
 
 /**
- * The second step of a sign-in (ADR 0195): the six digits the authenticator app shows, or a recovery code. Right, the
+ * The second step of a sign-in (ADR 0201): the six digits the authenticator app shows, or a recovery code. Right, the
  * app is signed in (the session arrives with the answer); a challenge that ended (too many tries, ten minutes) goes
  * back to sign in again.
  */

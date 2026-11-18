@@ -5,7 +5,7 @@ import { readValueSync, readValueSyncOrUnknown, STORED, writeValue } from "@/lib
 import { availabilityOf, type LockAfter, type LockAvailability, lockAfterOf, locksOnReturn } from "./logic";
 
 /**
- * The app lock (ADR 0196), kept on this phone: off by default, on only after the person proved it once. While on, the
+ * The app lock (ADR 0202), kept on this phone: off by default, on only after the person proved it once. While on, the
  * app opens locked and locks again when it comes back after the time the person picked (`lockAfter`, one minute
  * unless changed). Out of sight (the app
  * switcher, the background) the lock screen covers it without asking anything, so its picture shows no conversation.

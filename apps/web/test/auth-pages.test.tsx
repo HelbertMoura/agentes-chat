@@ -14,7 +14,7 @@ import { STORAGE_KEYS, storage } from "@/lib/storage";
 import { ADA_ID, createFakeApi, fakeMachinesOf, ORG_ID, seedState } from "./fake-api";
 import { createFakeAuth } from "./fake-auth";
 import { installTurnstile, removeTurnstile } from "./fake-turnstile";
-import { renderApp, screen, settle } from "./render";
+import { renderApp, screen, settle, showIn } from "./render";
 
 afterEach(() => {
   cleanup();
@@ -102,6 +102,36 @@ describe("the sign-in forms when the server doesn't answer", () => {
   });
 });
 
+describe("an account out of password tries", () => {
+  test("says when to try again, in minutes from the server's wait, never as a wrong password", async () => {
+    const real = globalThis.fetch;
+    globalThis.fetch = (async () =>
+      Response.json(
+        { code: "TOO_MANY_PASSWORD_TRIES", message: "Too many password tries for this account.", retryIn: 790 },
+        { status: 429, headers: { "retry-after": "790" } },
+      )) as unknown as typeof fetch;
+    try {
+      const { api } = authApi(ACCOUNT);
+      const { services } = await renderApp("/login", { api, auth: createBetterAuthClient("http://localhost:3000") });
+      await type("E-mail", "marina@example.com");
+      await press(/^Continuar(?! com)/);
+      await type("Senha", "correct horse");
+      await press(/^Entrar/);
+      expect(screen().getByRole("alert").textContent).toBe(
+        "Muitas tentativas de senha nesta conta. Tente de novo em 14 minutos.",
+      );
+      expect(heading()).toBe("Bom te ver de novo.");
+      await showIn(services, "en");
+      await press(/^Sign in/);
+      expect(screen().getByRole("alert").textContent).toBe(
+        "Too many password tries on this account. Try again in 14 minutes.",
+      );
+    } finally {
+      globalThis.fetch = real;
+    }
+  });
+});
+
 describe("Entrar (e-mail primeiro)", () => {
   test("the e-mail has a password: a wrong one frowns and offers a link; the right one enters", async () => {
     const state = seedState({ me: null });
@@ -150,7 +180,7 @@ describe("Entrar (e-mail primeiro)", () => {
     expect(router.state.location.pathname).toBe(`/org/${ORG_ID}/drive`);
   });
 
-  test("two-step sign-in (ADR 0195): the password asks for the app's code, a wrong one frowns, a recovery code works", async () => {
+  test("two-step sign-in (ADR 0201): the password asks for the app's code, a wrong one frowns, a recovery code works", async () => {
     const state = seedState({ me: null });
     const signedIn = seedState().me;
     let codes = 0;

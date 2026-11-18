@@ -509,4 +509,20 @@ export const words: EmailWords = {
       picture: "你的助手，已不在你的手机上",
     },
   },
+  supportReply: {
+    subject: "你的求助有了回复",
+    preheader: "关于你在 agentes.chat 上请求的帮助。",
+    headline: "你的求助有了回复",
+    answers: {
+      received: "我们已收到你的请求，正在查看。",
+      need_more: "我们需要了解更多信息才能帮到你：你当时在做什么、预期的结果是什么，以及实际发生了什么。",
+      resolved: "你报告的问题已经修复。",
+      handed_over: "现在已有专人接手你的请求，并会回复你。",
+    },
+    from: (host) =>
+      host ? ["由 ", { nobr: host }, " 上 agentes.chat 服务器的管理人员回复。"] : "由 agentes.chat 回复。",
+    ai: "这条回复由 AI 助手撰写。",
+    reply: (address) => ["如需回复，请写信至 ", { mail: address }, "。"],
+    why: "你收到这封邮件，是因为你在 agentes.chat 上请求了帮助。",
+  },
 };

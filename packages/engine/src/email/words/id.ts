@@ -568,4 +568,21 @@ export const words: EmailWords = {
       picture: "Asistenmu, tidak lagi di ponselmu",
     },
   },
+  supportReply: {
+    subject: "Jawaban untuk permintaan bantuanmu",
+    preheader: "Tentang bantuan yang kamu minta di agentes.chat.",
+    headline: "Jawaban untuk permintaan bantuanmu",
+    answers: {
+      received: "Kami sudah menerima permintaanmu dan sedang memeriksanya.",
+      need_more:
+        "Kami perlu tahu lebih banyak untuk membantu: apa yang sedang kamu lakukan, apa yang kamu harapkan, dan apa yang terjadi.",
+      resolved: "Yang kamu laporkan sudah diperbaiki.",
+      handed_over: "Sekarang permintaanmu ditangani seseorang, dan dia akan membalasmu.",
+    },
+    from: (host) =>
+      host ? atHost("Dijawab oleh pengelola server agentes.chat", "di", host) : "Dijawab oleh agentes.chat.",
+    ai: "Jawaban ini ditulis oleh asisten AI.",
+    reply: (address) => ["Untuk membalas, kirim email ke ", { mail: address }, "."],
+    why: "Kamu menerima email ini karena kamu meminta bantuan di agentes.chat.",
+  },
 };

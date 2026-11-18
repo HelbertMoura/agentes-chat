@@ -597,4 +597,22 @@ export const words: EmailWords = {
       picture: "Je assistent, niet meer op je telefoon",
     },
   },
+  supportReply: {
+    subject: "Een antwoord op je hulpvraag",
+    preheader: "Over de hulp die je vroeg op agentes.chat.",
+    headline: "Een antwoord op je hulpvraag",
+    answers: {
+      received: "We hebben je vraag ontvangen en kijken ernaar.",
+      need_more: "We hebben meer informatie nodig om je te helpen: wat je deed, wat je verwachtte en wat er gebeurde.",
+      resolved: "Wat je meldde is opgelost.",
+      handed_over: "Een persoon heeft je vraag nu en geeft je antwoord.",
+    },
+    from: (host) =>
+      host
+        ? atHost("Beantwoord door de beheerders van de agentes.chat-server", "op", host)
+        : "Beantwoord door agentes.chat.",
+    ai: "Een AI-assistent schreef dit antwoord.",
+    reply: (address) => ["Wil je antwoorden? Schrijf naar ", { mail: address }, "."],
+    why: "Je krijgt deze e-mail omdat je om hulp vroeg op agentes.chat.",
+  },
 };

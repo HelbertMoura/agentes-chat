@@ -10,14 +10,21 @@ import { createAuthClient } from "better-auth/client";
 import { announceAccountChange, leaveFor, loadAs } from "@/lib/accounts";
 import type { AuthClient, AuthResult, TwoFactorSetup } from "./client";
 
-type Refusal = { status?: number; message?: string; code?: string; kind?: unknown; cloud?: unknown } | null;
+type Refusal = {
+  status?: number;
+  message?: string;
+  code?: string;
+  kind?: unknown;
+  cloud?: unknown;
+  retryIn?: unknown;
+} | null;
 
 /** No answer at all (the fetch threw): status 0, which `authErrorText` says as offline or out of reach. */
 const NO_ANSWER: AuthResult = { ok: false, status: 0, code: "network", message: "" };
 
 /**
  * A call's refusal as the pages read it; one that got no answer settles as `NO_ANSWER`, so no page spins forever. A
- * sign-in that waits for the account's second step (ADR 0195) answers `twoFactorRedirect`, signed in to nothing yet:
+ * sign-in that waits for the account's second step (ADR 0201) answers `twoFactorRedirect`, signed in to nothing yet:
  * a refusal with its code, so no page goes on as if signed in.
  */
 async function toResult(call: Promise<{ data?: unknown; error?: Refusal }>): Promise<AuthResult> {
@@ -39,6 +46,7 @@ async function toResult(call: Promise<{ data?: unknown; error?: Refusal }>): Pro
         ...(error.code ? { code: error.code } : {}),
         ...(typeof error.kind === "string" ? { kind: error.kind } : {}),
         ...(error.cloud === true ? { cloud: true } : {}),
+        ...(typeof error.retryIn === "number" ? { retryIn: error.retryIn } : {}),
       }
     : { ok: true };
 }

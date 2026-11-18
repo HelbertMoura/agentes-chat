@@ -53,7 +53,7 @@ export function PhoneLive({ phone: p, host }: { phone: PhoneDevice; host: string
   const active = useAppActive();
   const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<DesktopMode>("watch");
-  // The app lock (ADR 0196) closes control: its full-screen window is the system's own, over the lock on Android.
+  // The app lock (ADR 0202) closes control: its full-screen window is the system's own, over the lock on Android.
   const locked = useAppLock().locked;
   useEffect(() => {
     if (locked) setMode("watch");

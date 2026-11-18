@@ -135,7 +135,7 @@ export function SocialButtons({
         ...requests.browser(provider, callbackURL),
         errorCallbackURL: "/",
       });
-      // The account's second step (ADR 0195): its code is asked on a screen of its own.
+      // The account's second step (ADR 0201): its code is asked on a screen of its own.
       if (res.twoFactor) {
         router.push(twoFactorStepHref(provider) as never);
         return;

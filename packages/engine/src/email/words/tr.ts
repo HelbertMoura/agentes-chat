@@ -594,4 +594,21 @@ export const words: EmailWords = {
       picture: "Asistanın, artık telefonunda değil",
     },
   },
+  supportReply: {
+    subject: "Yardım talebinize bir yanıt",
+    preheader: "agentes.chat'te istediğiniz yardım hakkında.",
+    headline: "Yardım talebinize bir yanıt",
+    answers: {
+      received: "Talebinizi aldık ve inceliyoruz.",
+      need_more:
+        "Yardımcı olabilmemiz için daha fazla bilgiye ihtiyacımız var: ne yaptığınız, ne beklediğiniz ve ne olduğu.",
+      resolved: "Bildirdiğiniz sorun düzeltildi.",
+      handed_over: "Talebinizle artık bir kişi ilgileniyor ve size yanıt verecek.",
+    },
+    from: (host) =>
+      host ? atHost("agentes.chat sunucusunu yönetenler yanıtladı.", "Sunucu:", host) : "agentes.chat yanıtladı.",
+    ai: "Bu yanıtı bir yapay zeka asistanı yazdı.",
+    reply: (address) => ["Yanıtlamak için ", { mail: address }, " adresine yazın."],
+    why: "Bu e-postayı, agentes.chat'te yardım istediğiniz için aldınız.",
+  },
 };

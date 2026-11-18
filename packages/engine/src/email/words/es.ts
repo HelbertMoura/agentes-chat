@@ -591,4 +591,22 @@ export const words: EmailWords = {
       picture: "Tu asistente, ya no en tu teléfono",
     },
   },
+  supportReply: {
+    subject: "Una respuesta a tu solicitud de ayuda",
+    preheader: "Sobre la ayuda que pediste en agentes.chat.",
+    headline: "Una respuesta a tu solicitud de ayuda",
+    answers: {
+      received: "Recibimos tu solicitud y la estamos revisando.",
+      need_more: "Necesitamos saber más para ayudarte: qué estabas haciendo, qué esperabas y qué pasó.",
+      resolved: "Lo que reportaste ya está corregido.",
+      handed_over: "Una persona ya tiene tu solicitud y te va a responder.",
+    },
+    from: (host) =>
+      host
+        ? atHost("Respondido por quienes administran el servidor de agentes.chat", "en", host)
+        : "Respondido por agentes.chat.",
+    ai: "Un asistente de IA escribió esta respuesta.",
+    reply: (address) => ["Para responder, escribe a ", { mail: address }, "."],
+    why: "Recibiste este correo porque pediste ayuda en agentes.chat.",
+  },
 };
