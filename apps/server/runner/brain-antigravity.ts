@@ -207,11 +207,11 @@ export const AGY_AUTH =
  */
 export const AGY_STALE_TOKEN = /Expected OAuth 2 access token/i;
 /**
- * What a new run gets past: the expired token, and the model service's passing errors between two tool calls (seen as
- * 400, 404 and 500, several turns at once for under a minute). Limits and refused permissions are not here.
+ * What a new run gets past: the expired token, and the model service's passing errors between two tool calls (seen as a
+ * 400). Limits, refused permissions and a 404 are not here: a plan that just ended answers 404.
  */
 const AGY_PASSING = new RegExp(
-  `${AGY_STALE_TOKEN.source}|\\b(?:INVALID_ARGUMENT|NOT_FOUND|UNAVAILABLE|INTERNAL|DEADLINE_EXCEEDED|ABORTED|UNKNOWN) \\(code \\d+\\)`,
+  `${AGY_STALE_TOKEN.source}|\\b(?:INVALID_ARGUMENT|UNAVAILABLE|INTERNAL|DEADLINE_EXCEEDED|ABORTED|UNKNOWN) \\(code \\d+\\)`,
   "i",
 );
 /** How long a turn waits before each new run after a passing error. */
