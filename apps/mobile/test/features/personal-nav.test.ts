@@ -15,7 +15,10 @@ describe("the tabs of a personal workspace", () => {
     expect(tabs).toMatch(
       /\{\s*name: "threads",\s*glyph: "threads",\s*label: "mobile\.tabs\.threads",\s*sf: \{[^}]*\},\s*teamOnly: true,\s*\}/,
     );
-    expect(tabs).toContain("hidden={tabHidden(tab.name, personal, middle)}");
+    // One rule for both bars: the system's `hidden` on iOS, the router's `href: null` on Android.
+    expect(tabs).toContain("hidden: tabHidden(tab.name, personal, middle),");
+    expect(tabs).toContain("hidden={hidden}");
+    expect(tabs).toContain("...(hidden ? { href: null } : {}),");
     for (const middle of ["threads", "manage"] as const) {
       expect(tabHidden("threads", true, middle)).toBe(true);
       expect(tabHidden("manage", true, middle)).toBe(true);
