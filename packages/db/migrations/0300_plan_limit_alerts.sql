@@ -4,6 +4,7 @@ CREATE TABLE "plan_limit_alerts" (
 	"window_key" text NOT NULL,
 	"resets_at" timestamp with time zone,
 	"alerted_at" timestamp with time zone NOT NULL,
+	"rearmed_at" timestamp with time zone,
 	CONSTRAINT "plan_limit_alerts_org_id_account_key_window_key_pk" PRIMARY KEY("org_id","account_key","window_key")
 );
 --> statement-breakpoint

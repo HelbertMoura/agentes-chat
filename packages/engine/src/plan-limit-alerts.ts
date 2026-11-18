@@ -1,7 +1,13 @@
 import { isAccountKind } from "@agenteschat/adapters";
 import { and, type Database, eq, inArray, isNull, lt, schema } from "@agenteschat/db";
 import { isPlanId, planOf } from "@agenteschat/providers/plans";
-import { limitWindows, PLAN_CRITICAL, type PlanMeterUsage, windowLengthMs } from "@agenteschat/ui/plan-state";
+import {
+  limitWindows,
+  PLAN_ALMOST,
+  PLAN_CRITICAL,
+  type PlanMeterUsage,
+  windowLengthMs,
+} from "@agenteschat/ui/plan-state";
 import { BRAIN_PLAN_NAMES, isComputerBrain } from "./brains/types";
 import { sha256 } from "./crypto";
 import { isDefaultAccountLabel } from "./machine-accounts";
@@ -17,10 +23,10 @@ const { agents, machineAccounts, machines, planLimitAlerts, rightHandBrains } = 
 
 /**
  * A plan near its limit reaches the people it matters to (ADR 0063 addendum 2026-11-18): when a reading shows a window
- * at `PLAN_CRITICAL` or past it, once per crossing of each account's window, whichever computer reported it and however
- * often. `plan_limit_alerts` holds what was told until the window is seen below the line or its period ends; the claim,
- * the inbox rows and their push jobs commit together, so a crash or a failure tells nobody and the next reading tries
- * again.
+ * at `PLAN_CRITICAL` or past it, once per limit period of each account's window, whichever computer reported it and
+ * however often. `plan_limit_alerts` holds what was told, for good: a new period marks its row (`rearmed_at`) or takes it
+ * over. The claim, the inbox rows and their push jobs commit together, so a crash or a failure tells nobody and the next
+ * reading tries again.
  */
 
 /** A reset this close to the one told of is the same reset, read again (some providers count it from the reading). */
@@ -84,8 +90,9 @@ const readingTime = (usage: Pick<PlanMeterUsage, "at">, nowMs: number) =>
   Math.min(Date.parse(usage.at) || nowMs, nowMs);
 
 /**
- * What a reading at the line does to a window already told of (times in ms; null: no reset said). One alert per
- * crossing: while the window stays at the line only the end of its period tells again.
+ * What a reading at the line does to a window already told of (times in ms; null: no reset said). One alert per limit
+ * period. Marked as in a new period (`showsNewPeriod`), a reading after that mark tells, unless it still has the old
+ * reset: a computer's old number.
  *
  * The reading's own reset decides. A reset brought earlier is a new period: nothing slides backwards. One that moved
  * later while the last is still ahead is the same period (a rolling window's reset runs ahead of every reading), so the
@@ -93,10 +100,16 @@ const readingTime = (usage: Pick<PlanMeterUsage, "at">, nowMs: number) =>
  * this reading has passed means a period really ended. With no reset either side, the window's length is the period.
  */
 export function afterToldWindow(
-  told: { readAt: number; resetsAt: number | null },
+  told: { readAt: number; resetsAt: number | null; rearmedAt?: number | null },
   reading: { readAt: number; resetsAt: number | null; lengthMs: number },
 ): "alert" | "follow" | "keep" {
   if (reading.readAt <= told.readAt) return "keep";
+  if (told.rearmedAt != null) {
+    if (reading.readAt <= told.rearmedAt) return "keep";
+    const oldReset =
+      reading.resetsAt !== null && told.resetsAt !== null && reading.resetsAt - told.resetsAt <= SAME_RESET_MS;
+    return oldReset ? "keep" : "alert";
+  }
   if (reading.resetsAt === null) {
     if (told.resetsAt !== null) return told.resetsAt <= reading.readAt ? "alert" : "keep";
     return reading.readAt >= told.readAt + reading.lengthMs ? "alert" : "keep";
@@ -131,11 +144,15 @@ async function alertAccount(deps: PlanAlertDeps, a: Alert, now: Date) {
         const [told] = await tx.select().from(t).where(row).for("update");
         if (!told) return [];
         const step = afterToldWindow(
-          { readAt: told.alertedAt.getTime(), resetsAt: told.resetsAt?.getTime() ?? null },
+          {
+            readAt: told.alertedAt.getTime(),
+            resetsAt: told.resetsAt?.getTime() ?? null,
+            rearmedAt: told.rearmedAt?.getTime() ?? null,
+          },
           { readAt: readMs, resetsAt: resetsAt?.getTime() ?? null, lengthMs: windowLengthMs(w) },
         );
         if (step === "keep") return [];
-        await tx.update(t).set({ resetsAt, alertedAt: readAt }).where(row);
+        await tx.update(t).set({ resetsAt, alertedAt: readAt, rearmedAt: null }).where(row);
         if (step === "follow") return [];
       }
       const out: WrittenNotification[] = [];
@@ -147,7 +164,7 @@ async function alertAccount(deps: PlanAlertDeps, a: Alert, now: Date) {
               orgId: a.orgId,
               userIds,
               kind: "plan_limit_near",
-              // The reading that crossed: a crossing again within one reset is an alert of its own.
+              // The reading that crossed: each period's alert is its own row.
               groupKey: `plan_limit_near:${a.accountKey}:${windowKey}:${readMs}`,
               source: { machineId: a.machineId, ...(a.accountId ? { accountId: a.accountId } : {}), label },
               latest: {
@@ -169,9 +186,28 @@ async function alertAccount(deps: PlanAlertDeps, a: Alert, now: Date) {
   }
 }
 
-type ToldWindow = Pick<typeof planLimitAlerts.$inferSelect, "accountKey" | "windowKey" | "alertedAt">;
+type ToldWindow = Pick<
+  typeof planLimitAlerts.$inferSelect,
+  "accountKey" | "windowKey" | "alertedAt" | "resetsAt" | "rearmedAt"
+>;
 
-/** A newer reading below the line ends the crossing it was told of: the next one is told again. */
+/**
+ * Whether a reading shows that a told window's limit period is over and there is room again: newer than what was told,
+ * clearly under the line (`PLAN_ALMOST`, so a number going round 90% is one crossing) and with a reset of its own later
+ * than the kept one. A computer's old number never passes: the runner keeps a window it didn't hear about under the
+ * reading's new time, but with its old reset.
+ */
+export const showsNewPeriod = (
+  told: { readAt: number; resetsAt: number | null },
+  reading: { readAt: number; resetsAt: number | null; used: number },
+) =>
+  reading.used < PLAN_ALMOST &&
+  reading.readAt > told.readAt &&
+  told.resetsAt !== null &&
+  reading.resetsAt !== null &&
+  reading.resetsAt - told.resetsAt > SAME_RESET_MS;
+
+/** Marks the windows this reading shows in a new period. The row stays: what it holds keeps ordering later reports. */
 async function rearmWindows(
   deps: PlanAlertDeps,
   orgId: string,
@@ -180,25 +216,29 @@ async function rearmWindows(
   told: readonly ToldWindow[],
   nowMs: number,
 ) {
-  const readAt = new Date(readingTime(usage, nowMs));
-  const below = new Set(
-    limitWindows(usage, nowMs)
-      .filter((w) => w.used < PLAN_CRITICAL)
-      .map((w) => `${w.kind}:${w.label ?? ""}`),
-  );
-  const over = told.filter((r) => r.accountKey === accountKey && below.has(r.windowKey) && r.alertedAt < readAt);
-  if (over.length === 0) return;
-  await deps.db.delete(planLimitAlerts).where(
-    and(
-      eq(planLimitAlerts.orgId, orgId),
-      eq(planLimitAlerts.accountKey, accountKey),
-      inArray(
-        planLimitAlerts.windowKey,
-        over.map((r) => r.windowKey),
-      ),
-      lt(planLimitAlerts.alertedAt, readAt),
-    ),
-  );
+  const readMs = readingTime(usage, nowMs);
+  const mine = told.filter((r) => r.accountKey === accountKey && !r.rearmedAt);
+  if (mine.length === 0) return;
+  for (const w of limitWindows(usage, nowMs)) {
+    const windowKey = `${w.kind}:${w.label ?? ""}`;
+    const row = mine.find((r) => r.windowKey === windowKey);
+    if (!row) continue;
+    const reading = { readAt: readMs, resetsAt: w.resetsAt ? Date.parse(w.resetsAt) : null, used: w.used };
+    if (!showsNewPeriod({ readAt: row.alertedAt.getTime(), resetsAt: row.resetsAt?.getTime() ?? null }, reading))
+      continue;
+    await deps.db
+      .update(planLimitAlerts)
+      .set({ rearmedAt: new Date(readMs) })
+      .where(
+        and(
+          eq(planLimitAlerts.orgId, orgId),
+          eq(planLimitAlerts.accountKey, accountKey),
+          eq(planLimitAlerts.windowKey, windowKey),
+          isNull(planLimitAlerts.rearmedAt),
+          lt(planLimitAlerts.alertedAt, new Date(readMs)),
+        ),
+      );
+  }
 }
 
 /** Who hears an account near its limit, each with the name they know it by. */
@@ -260,6 +300,8 @@ export async function alertPlanLimits(deps: PlanAlertDeps, orgId: string, machin
         accountKey: planLimitAlerts.accountKey,
         windowKey: planLimitAlerts.windowKey,
         alertedAt: planLimitAlerts.alertedAt,
+        resetsAt: planLimitAlerts.resetsAt,
+        rearmedAt: planLimitAlerts.rearmedAt,
       })
       .from(planLimitAlerts)
       .where(eq(planLimitAlerts.orgId, orgId));

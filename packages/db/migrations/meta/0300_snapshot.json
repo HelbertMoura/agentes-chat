@@ -1,5 +1,5 @@
 {
-  "id": "b6ba50f9-12b5-4499-baf1-57ef55077ffe",
+  "id": "4763a454-8a3b-42a3-a7d3-b8c5eed5bbfa",
   "prevId": "13ecdbb7-388f-4d8e-8fee-7fd76fc3be9a",
   "version": "7",
   "dialect": "postgresql",
@@ -12049,6 +12049,12 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true
+        },
+        "rearmed_at": {
+          "name": "rearmed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
