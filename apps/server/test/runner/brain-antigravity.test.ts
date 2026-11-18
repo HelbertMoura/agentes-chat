@@ -988,7 +988,11 @@ test("an access token that expires under a turn never reads as signed out", () =
   });
 });
 
-test("a turn cut by an expired access token goes on in a new run, on the same conversation", async () => {
+test.each([
+  STALE_TOKEN,
+  "INVALID_ARGUMENT (code 400): Request contains an invalid argument.",
+  "NOT_FOUND (code 404): Requested entity was not found.",
+])("a turn cut by a passing refusal goes on in a new run, on the same conversation: %s", async (refusal) => {
   const root = tempDir("agy-token-");
   dirs.push(root);
   const { fn, calls } = scriptedSpawn([
@@ -1003,7 +1007,7 @@ test("a turn cut by an expired access token goes on in a new run, on the same co
           tool_info: { name: "post_message", output: "ok" },
         },
       },
-      { event: "result", result: { status: "ERROR", error: STALE_TOKEN } },
+      { event: "result", result: { status: "ERROR", error: refusal } },
     ],
     [
       { event: "init", conversation_id: FIRST, init: { tools: [] } },
@@ -1028,6 +1032,7 @@ test("a turn cut by an expired access token goes on in a new run, on the same co
       bin: "/usr/bin/agy",
       spawn: fn,
       platform: "linux",
+      retryWaitsMs: [0, 0],
     },
   );
   expect(calls).toHaveLength(2);

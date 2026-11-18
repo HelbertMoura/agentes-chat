@@ -90,7 +90,7 @@ export interface AntigravityBrainTurnRequest {
 export const AGY_FOLLOW_UP =
   "Write your final reply to the person now: what you found or did, item by item, and anything that failed. Don't call tools.";
 
-/** What a turn cut by a passing refusal (`AGY_RETRY_ONCE`) is told when it picks up on the same conversation. */
+/** What a turn cut by a passing refusal (`AGY_PASSING`) is told when it picks up on the same conversation. */
 export const AGY_TOKEN_RESUME =
   "Your last step failed only because of a temporary service error, and that is over. Continue the task from where you stopped; don't repeat what is already done.";
 
@@ -210,8 +210,16 @@ export const AGY_AUTH =
  * the token), so this never reads as signed out, which would stop every agent on the account until a new sign-in.
  */
 export const AGY_STALE_TOKEN = /Expected OAuth 2 access token/i;
-/** Refusals a new run gets past: the expired token, and the model service's occasional 400 between two tool calls. */
-const AGY_RETRY_ONCE = new RegExp(`${AGY_STALE_TOKEN.source}|INVALID_ARGUMENT`, "i");
+/**
+ * What a new run gets past: the expired token, and the model service's passing errors between two tool calls (seen as
+ * 400, 404 and 500, several turns at once for under a minute). Limits and refused permissions are not here.
+ */
+const AGY_PASSING = new RegExp(
+  `${AGY_STALE_TOKEN.source}|\\b(?:INVALID_ARGUMENT|NOT_FOUND|UNAVAILABLE|INTERNAL|DEADLINE_EXCEEDED|ABORTED|UNKNOWN) \\(code \\d+\\)`,
+  "i",
+);
+/** How long a turn waits before each new run after a passing error. */
+const AGY_RETRY_WAITS_MS = [5_000, 30_000];
 
 /** How a turn that went wrong ends: `limit` then `plan_limit`, `not_logged_in`, or `antigravity_failed`. */
 export function antigravityProblem(
@@ -258,6 +266,8 @@ export interface AntigravityTurnInput {
 }
 
 export interface AntigravityTurnOptions {
+  /** Tests: the waits before new runs after a passing error. */
+  retryWaitsMs?: number[];
   chats: CodexThreads;
   emit: (event: CodexBrainEvent) => void;
   signal: AbortSignal;
@@ -312,8 +322,9 @@ export async function runAntigravityTurn(input: AntigravityTurnInput, opts: Anti
 
   // The follow-up run's (`AGY_FOLLOW_UP`): set once the first run ends without a reply, with that run's usage.
   let followUp = false;
-  // One new run after a passing refusal (`AGY_RETRY_ONCE`); `resume`: this one had already worked.
-  let tokenRetried = false;
+  // New runs after a passing error (`AGY_PASSING`), each after its wait; `resume`: an earlier one had already worked.
+  const waits = opts.retryWaitsMs ?? AGY_RETRY_WAITS_MS;
+  let retries = 0;
   let resume = false;
   const carried = { input: 0, output: 0, cacheRead: 0 };
   // One retry, as a new chat, when the CLI doesn't have the conversation it was to resume.
@@ -386,7 +397,7 @@ export async function runAntigravityTurn(input: AntigravityTurnInput, opts: Anti
         const id = typeof ev.conversation_id === "string" ? ev.conversation_id : undefined;
         if (isRecord(ev.init) && typeof ev.init.model === "string") model = ev.init.model;
         // A resume the CLI didn't have comes back as a new conversation, without the context.
-        if (chat && id && id !== chat && (attempt === 0 || followUp || tokenRetried)) {
+        if (chat && id && id !== chat && (attempt === 0 || followUp || retries > 0)) {
           lost = true;
           killTree(child, "SIGKILL");
           return;
@@ -502,14 +513,22 @@ export async function runAntigravityTurn(input: AntigravityTurnInput, opts: Anti
       opts.emit({ type: "done", text, session: { id: input.sessionId } });
       return;
     }
-    if (
-      !tokenRetried &&
-      AGY_RETRY_ONCE.test(`${typeof r.error === "string" ? r.error : ""}
-${stderr}`)
-    ) {
-      tokenRetried = true;
-      resume = worked || streamed;
+    if (retries < waits.length && AGY_PASSING.test(`${typeof r.error === "string" ? r.error : ""}\n${stderr}`)) {
+      resume ||= worked || streamed;
       Object.assign(carried, u);
+      await new Promise<void>((done) => {
+        const timer = setTimeout(done, waits[retries]);
+        opts.signal.addEventListener(
+          "abort",
+          () => {
+            clearTimeout(timer);
+            done();
+          },
+          { once: true },
+        );
+      });
+      if (opts.signal.aborted) return fail("canceled", "The turn was canceled.");
+      retries++;
       continue;
     }
     emitUsage();
