@@ -215,7 +215,7 @@ function Home() {
     <LargeTitleScreen
       title={t("mobile.chats.title")}
       {...header}
-      lead={quotaRing}
+      apart={quotaRing}
       // The sky stands behind the bar and the large title and scrolls with them: the title is drawn with it.
       drawnTitle
       backdrop={
