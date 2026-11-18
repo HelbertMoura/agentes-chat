@@ -1,4 +1,4 @@
-import { planState } from "@agenteschat/ui/plan-state";
+import { limitWindows, PLAN_ALMOST, planLevel, planState, planWindows } from "@agenteschat/ui/plan-state";
 import type { TFunction } from "i18next";
 import type { PlanAccountUsage, RecentPeriod, RecentUse } from "../api/types";
 import { formatInt, formatTokensShort, formatUsd } from "./format";
@@ -102,6 +102,87 @@ export function quotaSummaryText(t: TFunction, summary: ReturnType<typeof quotaS
   ].filter(Boolean);
   if (parts.length > 0) return parts.join(" · ");
   return summary.known > 0 ? t("quotas.summary.ok") : t("quotas.summary.accounts", { count: summary.total });
+}
+
+/** How much of an account's limits is used now, and where that leaves it. */
+export interface QuotaRoom {
+  /** The tightest window's percent, whole; 100 at a limit, a refusal with no full window included. */
+  used: number;
+  standing: Exclude<QuotaStanding, "none">;
+}
+
+/**
+ * An account's room (`QuotaRoom`), from the windows that limit it (`limitWindows`) that haven't reset. Null where it
+ * reports no limits, and for an account signed out: nothing thinks with it, its last numbers only grow old.
+ */
+export function quotaRoom(a: Pick<PlanAccountUsage, "usage" | "signedOut">, now = Date.now()): QuotaRoom | null {
+  if (!a.usage || a.signedOut) return null;
+  const rows = limitWindows(a.usage, now);
+  const limited = planState(a.usage, now).state === "limited";
+  if (rows.length === 0 && !limited) return null;
+  const used = limited ? 100 : Math.round(rows[0]?.used ?? 0);
+  return { used, standing: used >= 100 ? "limited" : used >= PLAN_ALMOST ? "almost" : "ok" };
+}
+
+/** One window of an account in the ring's list; `resetsAt` only while it is still ahead. */
+export interface QuotaWindowLine {
+  key: string;
+  kind: string;
+  label?: string;
+  used: number;
+  resetsAt: string | null;
+}
+
+/** One account in the ring's list: its mark and maker, its room, and every window it reports. */
+export interface QuotaLine {
+  account: PlanAccountUsage;
+  maker: string;
+  brand: string;
+  room: QuotaRoom | null;
+  windows: QuotaWindowLine[];
+}
+
+export interface QuotaOverview {
+  /** The account closest to a limit; null while none reports limits. */
+  tightest: (QuotaRoom & { account: PlanAccountUsage }) | null;
+  /** Every account: the closest to a limit first, those with no limits known after them in Cotas' order. */
+  lines: QuotaLine[];
+}
+
+/** The ring over every screen (ADR 0063 addendum 2026-11-18): the tightest account and each account's windows. */
+export function quotaOverview(accounts: readonly PlanAccountUsage[], now = Date.now()): QuotaOverview {
+  const lines = quotaSections(accounts, now)
+    .flatMap((s) => s.accounts)
+    .map((account): QuotaLine => {
+      const windows = account.usage ? planWindows(account.usage, now) : [];
+      return {
+        account,
+        maker: makerOf(account),
+        brand: brandOf(account),
+        room: quotaRoom(account, now),
+        windows: windows.map((w) => ({
+          key: `${w.kind}:${w.label ?? ""}`,
+          kind: w.kind,
+          ...(w.label ? { label: w.label } : {}),
+          used: Math.round(w.used),
+          resetsAt: w.resetsAt && Date.parse(w.resetsAt) > now ? w.resetsAt : null,
+        })),
+      };
+    })
+    .sort((a, b) => (b.room?.used ?? -1) - (a.room?.used ?? -1));
+  const first = lines[0];
+  return { tightest: first?.room ? { ...first.room, account: first.account } : null, lines };
+}
+
+/** The color level of a ring (`PLAN_TONE`, the web's `data-level`), as the meters color the same percent. */
+export const quotaLevel = (room: QuotaRoom | null) =>
+  room ? planLevel(room.used, room.standing === "limited") : ("ok" as const);
+
+/** The ring's name for a screen reader: the percent and the account, or that no account reports limits. */
+export function quotaRingLabel(t: TFunction, overview: QuotaOverview, name: (a: PlanAccountUsage) => string) {
+  const top = overview.tightest;
+  if (!top) return t("quotas.ring.none");
+  return t(`quotas.ring.${top.standing}`, { percent: top.used, account: name(top.account) });
 }
 
 const PERIODS: readonly RecentPeriod[] = ["day", "week", "month"];

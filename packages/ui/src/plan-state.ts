@@ -190,6 +190,16 @@ export function planSections<W extends { kind: string; label?: string }>(rows: r
  */
 export const planOwn = (w: Pick<PlanMeterWindow, "kind">) => w.kind !== "other";
 
+/**
+ * The windows that say how much room an account has, tightest first: the whole plan's, or where it reports none (only
+ * its models' or model groups' quotas, Antigravity's) those. Never paid extra usage or OAuth apps, which limit nothing.
+ */
+export function limitWindows<W extends PlanMeterWindow>(usage: { windows: readonly W[] }, now = Date.now()) {
+  const rows = planWindows(usage, now);
+  const own = rows.filter(planOwn);
+  return own.length > 0 ? own : rows.filter(modelOwn);
+}
+
 /** A window of the whole plan is full now. */
 export const planFull = (usage: { windows: readonly PlanMeterWindow[] }, now = Date.now()) =>
   planWindows(usage, now).some((w) => planOwn(w) && w.used >= 100);
