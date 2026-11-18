@@ -115,18 +115,20 @@ export function useHeaderActionOptions({
           </BarPressable>
         ),
       };
-      // Out of the shared glass: it brings its own plate.
+      // Out of the shared glass: it brings its own plate. The gap is in the item: the bar places a `spacing` item after
+      // the native buttons, whatever its place in this list. Only the button inside takes presses.
       const apartItems = [
         {
           type: "custom" as const,
           element: (
             <BarPressable>
-              <HeaderSlot slot={apartSlot} />
+              <View style={styles.apartItem}>
+                <HeaderSlot slot={apartSlot} />
+              </View>
             </BarPressable>
           ),
           hidesSharedBackground: true,
         },
-        { type: "spacing" as const, spacing: APART_GAP },
       ];
       options.unstable_headerRightItems =
         actions.length || hasLead || hasApart
@@ -237,5 +239,6 @@ export function HeaderCapsule({ children }: { children: ReactNode }) {
 const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: 4 },
   apart: { flexDirection: "row", alignItems: "center", gap: APART_GAP },
+  apartItem: { paddingRight: APART_GAP },
   capsule: { gap: 0, borderRadius: 20 },
 });
