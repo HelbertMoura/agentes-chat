@@ -79,6 +79,10 @@ export interface AntigravityBrainTurnRequest {
   keepAlive?: boolean;
 }
 
+/** What a turn cut by an expired access token is told when it picks up on the same conversation. */
+export const AGY_TOKEN_RESUME =
+  "Your last step failed only because a sign-in token expired, and that is fixed. Continue the task from where you stopped; don't repeat what is already done.";
+
 /** Where our session → conversation ids live in the runner home. */
 export const antigravityChatsFile = (runnerHome: string) => path.join(runnerHome, "brain", "antigravity-chats.json");
 
@@ -177,6 +181,12 @@ const AGY_LIMIT = /quota|rate.?limit|usage limit|resource.?exhausted|weekly limi
 export const AGY_AUTH =
   /auth(?:entication)? required|not (?:authenticated|logged in|signed in)|unauthenticated|unauthori[sz]ed|\b401\b|invalid (?:token|credentials|grant)|license/i;
 
+/**
+ * Google refusing the hour-long access token a running CLI still holds. The sign-in is fine (the CLI's next run refreshes
+ * the token), so this never reads as signed out, which would stop every agent on the account until a new sign-in.
+ */
+export const AGY_STALE_TOKEN = /Expected OAuth 2 access token/i;
+
 /** How a turn that went wrong ends: `limit` then `plan_limit`, `not_logged_in`, or `antigravity_failed`. */
 export function antigravityProblem(
   problem: string,
@@ -189,6 +199,8 @@ export function antigravityProblem(
       { type: "error", code: "plan_limit", message: problem, retryable: true, worked: o.worked ?? false },
     ];
   }
+  if (AGY_STALE_TOKEN.test(problem))
+    return [{ type: "error", code: "antigravity_failed", message: problem, retryable: true }];
   if (o.auth || AGY_AUTH.test(problem))
     return [{ type: "error", code: "not_logged_in", message: problem, retryable: true }];
   return [{ type: "error", code: "antigravity_failed", message: problem, retryable: true }];
@@ -272,11 +284,15 @@ export async function runAntigravityTurn(input: AntigravityTurnInput, opts: Anti
   const clean = (text: string) => (opts.redact ? opts.redact(text) : text);
   const hold = opts.redact ? (opts.redactHold ?? 0) : 0;
 
+  // One new run when the access token expires under this one (`AGY_STALE_TOKEN`); `resume`: it had already worked.
+  let tokenRetried = false;
+  let resume = false;
+  const carried = { input: 0, output: 0, cacheRead: 0 };
   // One retry, as a new chat, when the CLI doesn't have the conversation it was to resume.
   for (let attempt = 0; ; attempt++) {
     const chat = opts.chats.get(chatKey);
     const args = antigravityTurnArgs({
-      prompt: cursorPrompt(input.system, input.prompt, !chat),
+      prompt: resume && chat ? AGY_TOKEN_RESUME : cursorPrompt(input.system, input.prompt, !chat),
       ...(chat ? { chat } : {}),
       ...(input.model ? { model: input.model } : {}),
       ...(input.effort ? { effort: input.effort } : {}),
@@ -338,7 +354,7 @@ export async function runAntigravityTurn(input: AntigravityTurnInput, opts: Anti
         const id = typeof ev.conversation_id === "string" ? ev.conversation_id : undefined;
         if (isRecord(ev.init) && typeof ev.init.model === "string") model = ev.init.model;
         // A resume the CLI didn't have comes back as a new conversation, without the context.
-        if (chat && id && id !== chat && attempt === 0) {
+        if (chat && id && id !== chat && (attempt === 0 || tokenRetried)) {
           lost = true;
           killTree(child, "SIGKILL");
           return;
@@ -422,7 +438,23 @@ export async function runAntigravityTurn(input: AntigravityTurnInput, opts: Anti
     }
     flush("", true);
     const r = result ?? {};
-    const u = used.steps === 0 && !chat && isRecord(r.usage) ? usageOf(r.usage) : used;
+    const run = used.steps === 0 && !chat && isRecord(r.usage) ? usageOf(r.usage) : used;
+    const u = {
+      input: carried.input + run.input,
+      output: carried.output + run.output,
+      cacheRead: carried.cacheRead + run.cacheRead,
+    };
+    const finished = r.status === "SUCCESS" && exit.code === 0;
+    if (
+      !finished &&
+      !tokenRetried &&
+      AGY_STALE_TOKEN.test(`${typeof r.error === "string" ? r.error : ""}\n${stderr}`)
+    ) {
+      tokenRetried = true;
+      resume = worked || streamed;
+      Object.assign(carried, u);
+      continue;
+    }
     if (u.input || u.output) {
       opts.emit({
         type: "usage",
@@ -434,7 +466,7 @@ export async function runAntigravityTurn(input: AntigravityTurnInput, opts: Anti
       });
     }
     const response = typeof r.response === "string" ? r.response : "";
-    if (r.status === "SUCCESS" && exit.code === 0) {
+    if (finished) {
       const text = clean(response.trimEnd());
       if (text && !streamed) opts.emit({ type: "text_delta", text });
       opts.emit({ type: "done", text, session: { id: input.sessionId } });
