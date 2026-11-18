@@ -15,15 +15,16 @@ import { useTranslation } from "react-i18next";
 import { StyleSheet, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import { useOrg } from "@/providers/org";
-import { ICON_BUTTON_SIZE, Icon, LIST_AVATAR, ListRow, PressScale, ProviderLogo, SHEET_X, Text } from "@/ui";
+import { Icon, IconButton, LIST_AVATAR, ListRow, ProviderLogo, SHEET_X, Text } from "@/ui";
 import { useColors } from "../shared/hooks";
 import { SheetTitle } from "../shared/PromptForm";
 import { useSheet } from "../shared/SheetHost";
+import { quotaRingFontSize } from "./logic";
 import { openQuotas } from "./QuotasScreen";
 
-/** The ring in its bar button: a little inside the 40-point target, as a bar button's glyph is. */
-const RING = 32;
-const STROKE = 2.5;
+/** The ring on its round bar button's plate, 3 points from the plate's edge. */
+const RING = 34;
+const STROKE = 3.5;
 const RADIUS = (RING - STROKE) / 2;
 const AROUND = 2 * Math.PI * RADIUS;
 
@@ -38,9 +39,10 @@ function useQuotaOverview() {
 }
 
 /**
- * The plan limits ring for the bar of Conversas (ADR 0063 addendum 2026-11-18), as beside the web's bell: the percent of
- * the account closest to a limit, written in the circle, in the color the meters give it. Pressed, the sheet with every
- * account. Null while the workspace has no AI account; a dash while none reports limits.
+ * The plan limits ring for the bar of Conversas (ADR 0063 addendum 2026-11-18), a round button of its own beside "+":
+ * the percent of the account closest to a limit, in the ink over the plate so it always reads, and an arc in the
+ * positive tone with room, then the tones the meters give near and at a limit. Pressed, the sheet with every account.
+ * Null while the workspace has no AI account; a dash while none reports limits.
  */
 export function useQuotaRing(): ReactNode {
   const { t } = useTranslation();
@@ -50,17 +52,20 @@ export function useQuotaRing(): ReactNode {
   if (overview.lines.length === 0) return null;
   const top = overview.tightest;
   const level = quotaLevel(top);
-  const tone = level === "ok" ? c.ink2 : c[PLAN_TONE[level]];
-  return (
-    <PressScale
-      to={0.9}
-      onPress={() => sheet.open(<QuotaSheet />)}
-      accessibilityRole="button"
-      accessibilityLabel={quotaRingLabel(t, overview, (a) => accountName(t, a))}
-      style={styles.button}
-    >
+  const tone = level === "ok" ? c.ok : c[PLAN_TONE[level]];
+  const number = top ? String(top.used) : "–";
+  const ring = (
+    <View style={styles.ring}>
       <Svg width={RING} height={RING} style={styles.turned}>
-        <Circle cx={RING / 2} cy={RING / 2} r={RADIUS} stroke={c.line} strokeWidth={STROKE} fill="none" />
+        <Circle
+          cx={RING / 2}
+          cy={RING / 2}
+          r={RADIUS}
+          stroke={c.ink}
+          strokeOpacity={0.16}
+          strokeWidth={STROKE}
+          fill="none"
+        />
         {top && top.used > 0 ? (
           <Circle
             cx={RING / 2}
@@ -75,11 +80,25 @@ export function useQuotaRing(): ReactNode {
         ) : null}
       </Svg>
       <View style={styles.number} pointerEvents="none">
-        <Text variant="caption" allowFontScaling={false} style={[styles.digits, { color: tone }]}>
-          {top ? top.used : "–"}
+        <Text
+          variant="caption"
+          allowFontScaling={false}
+          numberOfLines={1}
+          style={[styles.digits, { color: c.ink, fontSize: quotaRingFontSize(number) }]}
+        >
+          {number}
         </Text>
       </View>
-    </PressScale>
+    </View>
+  );
+  return (
+    <IconButton
+      plate
+      icon="chart"
+      mark={ring}
+      label={quotaRingLabel(t, overview, (a) => accountName(t, a))}
+      onPress={() => sheet.open(<QuotaSheet />)}
+    />
   );
 }
 
@@ -162,11 +181,11 @@ function QuotaSheetLine({ line }: { line: QuotaLine }) {
 }
 
 const styles = StyleSheet.create({
-  button: { width: ICON_BUTTON_SIZE, height: ICON_BUTTON_SIZE, alignItems: "center", justifyContent: "center" },
+  ring: { width: RING, height: RING },
   // The arc starts at the top.
   turned: { transform: [{ rotate: "-90deg" }] },
   number: { ...StyleSheet.absoluteFill, alignItems: "center", justifyContent: "center" },
-  digits: { fontSize: 10, lineHeight: 12, fontWeight: "600", fontVariant: ["tabular-nums"] },
+  digits: { lineHeight: 15, fontWeight: "700", fontVariant: ["tabular-nums"], textAlign: "center" },
   account: { gap: 4 },
   head: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: 8 },
   // The name and percent lead; the reset goes to the row's end, or under them on a narrow phone.

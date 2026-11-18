@@ -33,8 +33,8 @@ export interface LargeTitleScreenProps {
   subtitle?: string;
   /** Buttons in the bar (native bar buttons on iOS). */
   actions?: HeaderAction[];
-  /** A view of our own first among `actions`, in their group (Conversas: the plan limits ring). */
-  lead?: ReactNode;
+  /** A round button of our own before `actions`, apart from their group (Conversas: the plan limits ring). */
+  apart?: ReactNode;
   /** The bar's leading item (the person's avatar, which opens Você). */
   left?: ReactNode;
   /** Native buttons on the bar's leading side (iOS). */
@@ -97,7 +97,7 @@ function SystemTitleScreen({
   title,
   subtitle,
   actions,
-  lead,
+  apart,
   left,
   leftActions,
   below,
@@ -112,7 +112,7 @@ function SystemTitleScreen({
   const focused = useIsFocused();
   const foot = useContext(TabFoot);
   const bar = useScrollUnderPushedOptions();
-  const actionOptions = useHeaderActionOptions({ right: actions, lead, left, leftActions });
+  const actionOptions = useHeaderActionOptions({ right: actions, apart, left, leftActions });
   // Stable options: `setOptions` runs when the title or the actions change, not on every render.
   const options = useMemo<NativeStackNavigationOptions>(
     () => ({
@@ -164,7 +164,7 @@ function DrawnTitleScreen({
   title,
   subtitle,
   actions,
-  lead,
+  apart,
   left,
   leftActions,
   below,
@@ -189,7 +189,7 @@ function DrawnTitleScreen({
   // under the bar. Folded away for a search, there is no title to settle.
   const scroll = useLargeTitleScroll(IOS ? headerHeight : 0, { snap: !collapsed });
   const { y } = scroll;
-  const actionOptions = useHeaderActionOptions({ right: actions, lead, left, leftActions });
+  const actionOptions = useHeaderActionOptions({ right: actions, apart, left, leftActions });
   // Stable options: `setOptions` runs when the title or the actions change, not on every render.
   const options = useMemo<NativeStackNavigationOptions>(
     () => ({
