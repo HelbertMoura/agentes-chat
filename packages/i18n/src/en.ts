@@ -17877,6 +17877,15 @@ export const en = {
       accounts_other: "{{count}} AI accounts",
     },
     notReported: "No quota reported by the provider.",
+    /** The plan limits ring on every screen: the percent of the account closest to a limit. */
+    ring: {
+      ok: "Plan limits: {{percent}}% used on {{account}}, the account closest to its limit",
+      almost: "Plan limits: {{account}} almost at the limit, {{percent}}% used",
+      limited: "Plan limits: {{account}} at the limit",
+      none: "Plan limits: no account reports limits",
+      title: "Plan limits",
+      noLimits: "No limit reported",
+    },
     recent: {
       title: "Recent use",
       day: "Last 24 hours",

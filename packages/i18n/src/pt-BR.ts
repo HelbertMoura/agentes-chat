@@ -17742,6 +17742,15 @@ export const ptBR = {
       accounts_other: "{{count}} contas de IA",
     },
     notReported: "Sem cota informada pelo provedor.",
+    /** O anel de limites em todas as telas: o percentual da conta mais perto de um limite. */
+    ring: {
+      ok: "Limites dos planos: {{percent}}% usados em {{account}}, a conta mais perto do limite",
+      almost: "Limites dos planos: {{account}} quase no limite, {{percent}}% usados",
+      limited: "Limites dos planos: {{account}} no limite",
+      none: "Limites dos planos: nenhuma conta informa limites",
+      title: "Limites dos planos",
+      noLimits: "Sem limite informado",
+    },
     recent: {
       title: "Uso recente",
       day: "Últimas 24 horas",
