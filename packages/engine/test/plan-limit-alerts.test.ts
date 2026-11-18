@@ -1,6 +1,7 @@
 import { afterEach, expect, spyOn, test } from "bun:test";
 import { ACCOUNTS_PROTOCOL, type PlanUsage, type RunnerAccountInfo } from "@agenteschat/adapters";
 import { eq, schema, sql } from "@agenteschat/db";
+import { withRateLimit } from "../../../apps/server/runner/plan-usage";
 import { createOrganization, noticeOn, setNoticePref, storeOwnUsage, syncMachineAccounts } from "../src";
 import { notify } from "../src/notifications";
 import { alertPlanLimits, checkPlanLimits } from "../src/plan-limit-alerts";
@@ -439,21 +440,110 @@ test("a reset sliding a minute per reading is one alert too", async () => {
   expect(await told()).toHaveLength(1);
 });
 
-test("seen below the line, the next crossing is told, within the same reset too", async () => {
+test("a real drop with a new reset tells the next crossing, and the row stays", async () => {
+  f = await setup();
+  const machineId = await computer();
+  await addAccount(machineId);
+  const t = Date.now() - HOUR;
+  const first = iso(t + 4 * HOUR);
+  const next = iso(t + 90 * HOUR);
+  const send = (percent: number, reset: string, minutes: number) =>
+    sync(machineId, report(ACCOUNT, reading(percent, reset, "five_hour", iso(t + minutes * MINUTE))));
+  await send(95, first, 0);
+  await send(96, first, 1);
+  expect(await told()).toHaveLength(1);
+  await send(10, next, 2);
+  const [row] = await f.db.select().from(schema.planLimitAlerts);
+  expect(row?.rearmedAt?.toISOString()).toBe(iso(t + 2 * MINUTE));
+  expect(row?.alertedAt.toISOString()).toBe(iso(t));
+  expect(await told()).toHaveLength(1);
+  await send(91, next, 3);
+  expect(await told()).toHaveLength(2);
+  const [after] = await f.db.select().from(schema.planLimitAlerts);
+  expect(after?.rearmedAt).toBeNull();
+});
+
+test("a number going round the line within one reset is one alert", async () => {
   f = await setup();
   const machineId = await computer();
   await addAccount(machineId);
   const t = Date.now();
   const reset = iso(t + 4 * HOUR);
-  const report_ = (percent: number, minutes: number) =>
-    sync(machineId, report(ACCOUNT, reading(percent, reset, "five_hour", iso(t - HOUR + minutes * MINUTE))));
-  await report_(95, 0);
-  await report_(96, 1);
+  for (let i = 0; i < 24; i++) {
+    const now = t + i * 5 * MINUTE;
+    await readAt(machineId, now, reading(i % 2 ? 89 : 91, reset, "five_hour", iso(now)));
+  }
   expect(await told()).toHaveLength(1);
-  await report_(80, 2);
-  expect(await f.db.select().from(schema.planLimitAlerts)).toHaveLength(0);
-  await report_(91, 3);
+});
+
+test("under 80% with the same reset, or between 80% and the line with a new one, ends no period", async () => {
+  f = await setup();
+  const machineId = await computer();
+  await addAccount(machineId);
+  const t = Date.now();
+  const reset = t + 40 * HOUR;
+  await readAt(machineId, t, reading(95, iso(reset), "seven_day", iso(t)));
+  await readAt(machineId, t + MINUTE, reading(10, iso(reset), "seven_day", iso(t + MINUTE)));
+  await readAt(machineId, t + 2 * MINUTE, reading(85, iso(reset + 9 * HOUR), "seven_day", iso(t + 2 * MINUTE)));
+  const [row] = await f.db.select().from(schema.planLimitAlerts);
+  expect(row?.rearmedAt).toBeNull();
+  await readAt(machineId, t + 3 * MINUTE, reading(95, iso(reset), "seven_day", iso(t + 3 * MINUTE)));
+  expect(await told()).toHaveLength(1);
+});
+
+test("a second computer's old number, under a new reading's time, re-arms nothing", async () => {
+  f = await setup();
+  const a = await computer("a");
+  const b = await computer("b");
+  await addAccount(a);
+  await addAccount(b, SECOND);
+  const t = Date.now();
+  const reset = iso(t + 96 * HOUR);
+  // What the runner does (`withRateLimit`): the week it last knew, stamped with the time of an event about another window.
+  let onB = reading(85, reset, "seven_day", iso(t - 3 * HOUR));
+  for (let i = 0; i < 6; i++) {
+    const now = t + i * 10 * MINUTE;
+    await readAt(a, now, reading(92 + (i % 3), reset, "seven_day", iso(now)));
+    onB = withRateLimit(
+      onB,
+      { status: "allowed", rateLimitType: "five_hour", utilization: 0.2, resetsAt: Math.floor((t + 2 * HOUR) / 1000) },
+      now + MINUTE,
+    ) as PlanUsage;
+    await readAt(b, now + MINUTE, onB, SECOND);
+  }
+  expect(await told()).toHaveLength(1);
+});
+
+test("a late reading at the line after a new period was seen tells nothing", async () => {
+  f = await setup();
+  const a = await computer("a");
+  const b = await computer("b");
+  await addAccount(a);
+  await addAccount(b, SECOND);
+  const t = Date.now();
+  const reset = t + 96 * HOUR;
+  const newer = reset + 72 * HOUR;
+  await readAt(a, t, reading(95, iso(reset), "seven_day", iso(t)));
+  await readAt(a, t + 2 * HOUR, reading(10, iso(newer), "seven_day", iso(t + 2 * HOUR)));
+  await readAt(b, t + 3 * HOUR, reading(95, iso(newer), "seven_day", iso(t + HOUR)), SECOND);
+  expect(await told()).toHaveLength(1);
+  // A reading after the mark is the new crossing.
+  await readAt(a, t + 3 * HOUR, reading(96, iso(newer), "seven_day", iso(t + 3 * HOUR)));
   expect(await told()).toHaveLength(2);
+});
+
+test("after a new period, a computer still holding the old reset tells nothing", async () => {
+  f = await setup();
+  const a = await computer("a");
+  const b = await computer("b");
+  await addAccount(a);
+  await addAccount(b, SECOND);
+  const t = Date.now();
+  const reset = t + 96 * HOUR;
+  await readAt(a, t, reading(95, iso(reset), "seven_day", iso(t)));
+  await readAt(a, t + HOUR, reading(10, iso(reset + 72 * HOUR), "seven_day", iso(t + HOUR)));
+  await readAt(b, t + 2 * HOUR, reading(95, iso(reset), "seven_day", iso(t + 2 * HOUR)), SECOND);
+  expect(await told()).toHaveLength(1);
 });
 
 test("an older reading below the line ends nothing", async () => {
