@@ -54,7 +54,7 @@ export interface PushTextInput {
   /** `usage_limit`: what happened (`latest.statusTo`) and the share of the limit used. */
   status?: string | null;
   percent?: number | null;
-  /** `plan_limit_near`: when the window resets (`percent`: how much of it is used, `label`: the account). */
+  /** `plan_limit_near`: when the window resets (`percent`: how much of it is used, `title`: the account). */
   resetsAt?: string | null;
   /** The clock `resetsAt` is told from (tests). */
   now?: number;
@@ -155,10 +155,10 @@ function renderOne(locale: PushLocale, input: PushTextInput): { title: string; b
         s.planResetUnknownBody(input.label?.trim() || actor),
       );
     case "plan_limit_near": {
-      // The account's name (never its email), how much is used and how long until it resets.
+      // `title`: the account's name for a lock screen, never `label`, which may be its owner's email in their inbox.
       const when = input.resetsAt ? timeFromNow(locale, input.resetsAt, input.now ?? Date.now()) : null;
       return out(
-        s.planLimitNearTitle(input.label?.trim() || "AI", Math.round(input.percent ?? 90)),
+        s.planLimitNearTitle(input.title?.trim() || "AI", Math.round(input.percent ?? 90)),
         when ? s.planLimitNearBody(when) : s.planLimitNearOpen,
       );
     }

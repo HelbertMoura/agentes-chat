@@ -603,7 +603,24 @@ export interface NotifyInput {
  * action that caused it.
  */
 export async function notify(deps: NotificationDeps, input: NotifyInput): Promise<NotificationView[]> {
-  return announceNotifications(deps, await writeNotifications(deps, input));
+  const out: NotificationView[] = [];
+  // One person at a time: whoever got their row was told, whatever happens with the next.
+  for (const member of await membersToTell(deps, input)) {
+    const row = await upsertOne(deps, input, member.userId);
+    if (row) out.push(...(await announceNotifications(deps, [{ row, prefs: noticePrefsOf(member.prefs) }])));
+  }
+  return out;
+}
+
+/** The recipients who are people of this organization (an agent's id never matches a member), but the actor. */
+async function membersToTell(deps: { db: Executor }, input: NotifyInput) {
+  const actorUser = input.actor?.type === "user" ? input.actor.id : null;
+  const wanted = [...new Set([...input.userIds].filter((u): u is string => !!u && u !== actorUser))];
+  if (wanted.length === 0) return [];
+  return deps.db
+    .select({ userId: organizationMembers.userId, prefs: organizationMembers.noticePrefs })
+    .from(organizationMembers)
+    .where(and(eq(organizationMembers.orgId, input.orgId), inArray(organizationMembers.userId, wanted)));
 }
 
 /** A row `writeNotifications` created or merged, with what its person chose to hear. */
@@ -612,21 +629,16 @@ export interface WrittenNotification {
   prefs: NoticePrefs;
 }
 
-/** The rows alone, on `db` (a transaction's, for what must commit with them); `announceNotifications` tells people. */
+/**
+ * The rows alone, for who must commit them with something else (on a transaction's `db`), then call
+ * `announceNotifications`. Anyone else: `notify`.
+ */
 export async function writeNotifications(
   deps: { db: Executor; now?: () => Date },
   input: NotifyInput,
 ): Promise<WrittenNotification[]> {
-  const actorUser = input.actor?.type === "user" ? input.actor.id : null;
-  const wanted = [...new Set([...input.userIds].filter((u): u is string => !!u && u !== actorUser))];
-  if (wanted.length === 0) return [];
-  // People of this organization only (an agent's id never matches a member).
-  const members = await deps.db
-    .select({ userId: organizationMembers.userId, prefs: organizationMembers.noticePrefs })
-    .from(organizationMembers)
-    .where(and(eq(organizationMembers.orgId, input.orgId), inArray(organizationMembers.userId, wanted)));
   const out: WrittenNotification[] = [];
-  for (const member of members) {
+  for (const member of await membersToTell(deps, input)) {
     const row = await upsertOne(deps, input, member.userId);
     if (row) out.push({ row, prefs: noticePrefsOf(member.prefs) });
   }
