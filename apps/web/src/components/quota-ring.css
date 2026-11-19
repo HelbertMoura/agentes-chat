@@ -25,7 +25,7 @@
 }
 /* Off the account card (a personal workspace's top row): the size of the bell and the collapse beside it. */
 .sidebar:not([data-rail="true"]) .sidebar__org--person .quota-ring {
-  --quota-dial: 30px;
+  --quota-dial: 32px;
   align-self: center;
   width: var(--control-h-sm);
   height: var(--control-h-sm);
@@ -88,13 +88,13 @@
   --quota-hue: #a8a29e;
 }
 
-/* The dial: a circle per account in the tone of its level, the number in ink so it reads on any level. */
+/* The dial: a pixel circle per account in the tone of its level, the number in pixel digits. */
 .quota-dial {
   position: relative;
   flex: none;
   display: block;
-  width: var(--quota-dial, 38px);
-  height: var(--quota-dial, 38px);
+  width: var(--quota-dial, 36px);
+  height: var(--quota-dial, 36px);
   color: var(--ink);
 }
 .quota-dial,
@@ -115,58 +115,22 @@
   display: block;
   width: 100%;
   height: 100%;
-  transform: rotate(-90deg);
-}
-.quota-dial circle {
-  fill: none;
-}
-.quota-dial .quota-dial__disc {
-  fill: color-mix(in srgb, var(--quota-tone) 14%, transparent);
 }
 .quota-dial__track {
-  stroke: color-mix(in srgb, var(--ink) 12%, transparent);
-}
-.quota-dial__tick {
-  stroke: var(--muted);
+  fill: color-mix(in srgb, var(--ink) 22%, transparent);
 }
 .quota-dial__used {
-  stroke: var(--quota-tone);
-  stroke-linecap: round;
-  transition: stroke-dasharray 0.24s ease-out;
+  fill: var(--quota-tone);
+}
+.quota-dial__front {
+  fill: color-mix(in srgb, var(--quota-tone) 55%, transparent);
 }
 .quota-dial__num {
-  --quota-num: 0.36;
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(var(--quota-dial, 38px) * var(--quota-num));
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
-  line-height: 1;
+  fill: var(--ink);
 }
 /* Near a limit the number says so too. */
 .quota-dial:is([data-level="almost"], [data-level="critical"], [data-level="limited"]) .quota-dial__num {
-  color: var(--quota-tone);
-}
-.quota-dial[data-rings="2"] .quota-dial__num {
-  --quota-num: 0.31;
-}
-.quota-dial[data-rings="3"] .quota-dial__num {
-  --quota-num: 0.27;
-}
-.quota-dial[data-long] .quota-dial__num {
-  --quota-num: 0.3;
-}
-.quota-dial[data-long]:is([data-rings="2"], [data-rings="3"]) .quota-dial__num {
-  --quota-num: 0.22;
-}
-@media (prefers-reduced-motion: reduce) {
-  .quota-dial__used {
-    transition: none;
-  }
+  fill: var(--quota-tone);
 }
 
 .quota-pop.ac-popover {
@@ -182,7 +146,7 @@
 }
 /* The head: what the ring says, larger, with the window behind it. */
 .quota-pop__top {
-  --quota-dial: 64px;
+  --quota-dial: 72px;
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -376,4 +340,14 @@
 }
 .quota-pop__more:hover {
   background: color-mix(in srgb, var(--ink) 6%, var(--glass-solid));
+}
+/* The bell beside the ring, on the same pixel grid: 2 points a cell. */
+.pixel-bell {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+/* The ring and the bell: two tiles of one width, centered on one line. */
+.sidebar__me .quota-ring {
+  width: var(--control-h-md);
 }
