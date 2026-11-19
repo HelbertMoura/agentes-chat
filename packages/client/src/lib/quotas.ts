@@ -1,4 +1,12 @@
-import { limitRoom, PLAN_ALMOST, planLevel, planState, planWindows, windowExpired } from "@agenteschat/ui/plan-state";
+import {
+  limitRoom,
+  PLAN_ALMOST,
+  type PlanLevel,
+  planLevel,
+  planState,
+  planWindows,
+  windowExpired,
+} from "@agenteschat/ui/plan-state";
 import type { TFunction } from "i18next";
 import type { AppNotification, PlanAccountUsage, RecentPeriod, RecentUse } from "../api/types";
 import { formatInt, formatTokensShort, formatUsd } from "./format";
@@ -26,14 +34,16 @@ export function quotaStanding(a: Pick<PlanAccountUsage, "usage">, now = Date.now
 }
 
 /**
- * Whether the provider ever reports this account's limits here: not Cursor's, Grok Build's or the OpenCode CLI's
- * (their CLIs say nothing of a plan), not Antigravity's on the computer's own sign-in (read only per account), and not
- * a coding plan's whose maker has no usage endpoint (`plans.ts` `usage`).
+ * Whether the provider ever reports this account's limits here: not Cursor's or Grok Build's (their CLIs say nothing
+ * of a plan), the OpenCode CLI's only on an API key (`zen`: OpenCode Go's usage endpoint reads it), not Antigravity's
+ * on the computer's own sign-in (read only per account), and not a coding plan's whose maker has no usage endpoint
+ * (`plans.ts` `usage`).
  */
 export function limitsReported(a: Pick<PlanAccountUsage, "kind" | "provider" | "accountId">): boolean {
   const plan = planOf(a.provider);
   if (plan) return Boolean(plan.usage);
-  if (a.kind === "cursor" || a.kind === "grok" || a.kind === "opencode") return false;
+  if (a.kind === "opencode") return a.provider === "zen";
+  if (a.kind === "cursor" || a.kind === "grok") return false;
   return !(a.kind === "antigravity" && a.accountId === null);
 }
 
@@ -141,12 +151,46 @@ export interface QuotaLine {
   windows: QuotaWindowLine[];
 }
 
+/** How many accounts the ring draws. */
+export const QUOTA_RINGS = 3;
+
+/** One circle of the ring, in a 36-unit box; with room, each inner one fainter so they tell apart. */
+export interface QuotaRingLine {
+  account: PlanAccountUsage;
+  used: number;
+  level: PlanLevel;
+  /** The account's tightest window. */
+  window: QuotaWindowLine | null;
+  radius: number;
+  stroke: number;
+  fade: number;
+}
+
+const RING_SHAPES: readonly (readonly (readonly [radius: number, stroke: number])[])[] = [
+  [[15, 4]],
+  [
+    [15.6, 3.2],
+    [11.4, 3.2],
+  ],
+  [
+    [16, 2.6],
+    [12.7, 2.6],
+    [9.4, 2.6],
+  ],
+];
+const RING_FADE = [1, 0.72, 0.5];
+
+/** Each circle's radius and stroke for a ring of `count` (none yet: one empty circle). */
+export const quotaRingShape = (count: number) => RING_SHAPES[Math.max(count, 1) - 1] ?? RING_SHAPES[0] ?? [];
+
 export interface QuotaOverview {
   /**
    * The closest to a limit among the accounts that concern the viewer: theirs, or one their own agents or right hand
    * think with (`forMe`). Someone else's private plan never colors their ring. Null while none of those reports limits.
    */
   tightest: (QuotaRoom & { account: PlanAccountUsage }) | null;
+  /** The accounts the ring draws, the closest to a limit outermost: those same accounts, `QUOTA_RINGS` at most. */
+  rings: QuotaRingLine[];
   /** Every account: the closest to a limit first, those with no limits known after them in Cotas' order. */
   lines: QuotaLine[];
 }
@@ -174,8 +218,18 @@ export function quotaOverview(accounts: readonly PlanAccountUsage[], now = Date.
       };
     })
     .sort((a, b) => (b.room?.used ?? -1) - (a.room?.used ?? -1));
-  const first = lines.find((l) => l.room && (l.account.mine || l.account.forMe));
-  return { tightest: first?.room ? { ...first.room, account: first.account } : null, lines };
+  const concerning = lines.filter((l) => l.room && (l.account.mine || l.account.forMe)).slice(0, QUOTA_RINGS);
+  const shape = quotaRingShape(concerning.length);
+  const rings = concerning.flatMap((l, i): QuotaRingLine[] => {
+    const circle = shape[i];
+    if (!l.room || !circle) return [];
+    const level = quotaLevel(l.room);
+    const [radius, stroke] = circle;
+    const fade = level === "ok" ? (RING_FADE[i] ?? 1) : 1;
+    return [{ account: l.account, used: l.room.used, level, window: l.windows[0] ?? null, radius, stroke, fade }];
+  });
+  const first = concerning[0];
+  return { tightest: first?.room ? { ...first.room, account: first.account } : null, rings, lines };
 }
 
 /** The color level of a ring (`PLAN_TONE`, the web's `data-level`), as the meters color the same percent. */

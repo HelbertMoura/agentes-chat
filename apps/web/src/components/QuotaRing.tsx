@@ -2,13 +2,15 @@ import { useAiAccounts, usePlanUsage } from "@agenteschat/client";
 import {
   noQuotaText,
   type QuotaLine,
+  type QuotaRingLine,
   quotaLevel,
   quotaOverview,
   quotaRingLabel,
+  quotaRingShape,
   recentLines,
 } from "@agenteschat/client/lib/quotas";
 import { Icon, Meter, movesByKeys, Popover, ProviderLogo, useHoverCard } from "@agenteschat/ui";
-import { PLAN_ALMOST, type PlanLevel, planLevel } from "@agenteschat/ui/plan-state";
+import { PLAN_ALMOST, planLevel } from "@agenteschat/ui/plan-state";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -17,37 +19,79 @@ import { accountName, groupUsageAccounts, planMeterText } from "@/lib/plan-usage
 import { HOVER_OPEN_MS } from "./ProfileCard";
 import "./quota-ring.css";
 
-/** The dial's circle in its 36-unit box. */
+/** The middle of the dial's 36-unit box. */
 const CENTER = 18;
-const RADIUS = 15;
-const AROUND = 2 * Math.PI * RADIUS;
-/** The tick on the track where a plan counts as almost at its limit, as long as the stroke is wide. */
-const TICK = 1.6;
 
-/** The percent inside its arc, over a tint of the arc's tone, with a tick where "almost at the limit" starts. */
-function QuotaDial({ used, level }: { used: number | null; level: PlanLevel }) {
-  const number = used === null ? "–" : String(used);
+/** One account's circle: its track, a tick where "almost at the limit" starts, and the arc of what it has used. */
+function QuotaCircle({
+  radius,
+  stroke,
+  used,
+  level,
+  fade,
+}: {
+  radius: number;
+  stroke: number;
+  used: number;
+  level: QuotaRingLine["level"] | "none";
+  fade: number;
+}) {
+  const around = 2 * Math.PI * radius;
+  const circle = { cx: CENTER, cy: CENTER, r: radius, strokeWidth: stroke };
   return (
-    <span className="quota-dial" data-level={used === null ? "none" : level} data-long={number.length > 2 || undefined}>
-      <svg viewBox="0 0 36 36" aria-hidden="true">
-        <circle className="quota-dial__disc" cx={CENTER} cy={CENTER} r={RADIUS} />
-        <circle className="quota-dial__track" cx={CENTER} cy={CENTER} r={RADIUS} />
+    <g className="quota-dial__ring" data-level={level}>
+      <circle className="quota-dial__track" {...circle} />
+      <circle
+        className="quota-dial__tick"
+        {...circle}
+        strokeDasharray={`${stroke / 2} ${around}`}
+        strokeDashoffset={-(PLAN_ALMOST / 100) * around + stroke / 4}
+      />
+      {used > 0 && (
         <circle
-          className="quota-dial__tick"
+          className="quota-dial__used"
+          {...circle}
+          strokeOpacity={fade}
+          strokeDasharray={`${(Math.min(used, 100) / 100) * around} ${around}`}
+        />
+      )}
+    </g>
+  );
+}
+
+/** A circle per account, the closest to a limit outermost, and that one's percent in the middle over a tint of its tone. */
+function QuotaDial({ rings }: { rings: readonly QuotaRingLine[] }) {
+  const top = rings[0];
+  const number = top ? String(top.used) : "–";
+  const [radius = 15, stroke = 4] = quotaRingShape(0)[0] ?? [];
+  const last = rings.at(-1);
+  return (
+    <span
+      className="quota-dial"
+      data-level={top?.level ?? "none"}
+      data-rings={rings.length || 1}
+      data-long={number.length > 2 || undefined}
+    >
+      <svg viewBox="0 0 36 36" aria-hidden="true">
+        <circle
+          className="quota-dial__disc"
           cx={CENTER}
           cy={CENTER}
-          r={RADIUS}
-          strokeDasharray={`${TICK} ${AROUND}`}
-          strokeDashoffset={-(PLAN_ALMOST / 100) * AROUND + TICK / 2}
+          r={last ? last.radius - last.stroke / 2 : radius - stroke / 2}
         />
-        {used !== null && used > 0 && (
-          <circle
-            className="quota-dial__used"
-            cx={CENTER}
-            cy={CENTER}
-            r={RADIUS}
-            strokeDasharray={`${(Math.min(used, 100) / 100) * AROUND} ${AROUND}`}
-          />
+        {top ? (
+          rings.map((r) => (
+            <QuotaCircle
+              key={r.account.key}
+              radius={r.radius}
+              stroke={r.stroke}
+              used={r.used}
+              level={r.level}
+              fade={r.fade}
+            />
+          ))
+        ) : (
+          <QuotaCircle radius={radius} stroke={stroke} used={0} level="none" fade={1} />
         )}
       </svg>
       <span className="quota-dial__num" aria-hidden="true">
@@ -83,11 +127,8 @@ export function QuotaRing({ side = "top" }: { side?: "top" | "bottom" | "right" 
   if (accounts.length === 0) return null;
   const overview = quotaOverview(accounts);
   const top = overview.tightest;
-  const level = quotaLevel(top);
   const label = quotaRingLabel(t, overview, (a) => accountName(t, a));
-  // The head of the card: what the ring is showing, the window that sets it and when that renews.
   const text = planMeterText(t, i18n.language);
-  const window = top ? overview.lines.find((l) => l.account === top.account)?.windows[0] : undefined;
   return (
     <Popover
       hover={card}
@@ -110,7 +151,7 @@ export function QuotaRing({ side = "top" }: { side?: "top" | "bottom" | "right" 
           ref={button}
           type="button"
           className="quota-ring"
-          data-level={level}
+          data-level={quotaLevel(top)}
           aria-label={label}
           aria-haspopup="dialog"
           // Shown by the focus, Enter or Space keeps it open and moves in, instead of Radix's toggle closing it.
@@ -129,22 +170,29 @@ export function QuotaRing({ side = "top" }: { side?: "top" | "bottom" | "right" 
             if (!(e.relatedTarget instanceof Node && body.current?.contains(e.relatedTarget))) setFocused(false);
           }}
         >
-          <QuotaDial used={top ? top.used : null} level={level} />
+          <QuotaDial rings={overview.rings} />
         </button>
       }
     >
       <div ref={body} className="quota-pop__in">
         <div className="quota-pop__top">
-          {top && <QuotaDial used={top.used} level={level} />}
+          {top && <QuotaDial rings={overview.rings} />}
           <div className="quota-pop__lead">
             <p className="quota-pop__title">{t("quotas.ring.title")}</p>
             {top && (
-              <p className="quota-pop__tightest">
-                {accountName(t, top.account)}
-                {window ? ` · ${text.window(window)}` : ""}
-              </p>
+              <ul className="quota-pop__keys">
+                {overview.rings.map((r) => (
+                  <li key={r.account.key} className="quota-pop__key" data-level={r.level}>
+                    <i style={{ opacity: r.fade }} aria-hidden="true" />
+                    <span className="quota-pop__keyname">
+                      {accountName(t, r.account)}
+                      {r.window ? <small>{text.short(r.window)}</small> : null}
+                    </span>
+                    <b>{r.used}%</b>
+                  </li>
+                ))}
+              </ul>
             )}
-            {window?.resetsAt && <p className="quota-pop__renews">{text.resets(window.resetsAt)}</p>}
           </div>
         </div>
         <ul className="quota-pop__list">
