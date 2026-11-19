@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { signOut } from "@/features/account";
 import { AppLockAfterRow, AppLockRow } from "@/features/lock/AppLockRow";
 import { useAppLock } from "@/features/lock/store";
+import { setFestiveOn, useFestiveOn } from "@/lib/festive";
 import { type SoundChoice, setSoundChoice, useSoundChoice } from "@/lib/sounds";
 import { useOrg } from "@/providers/org";
 import { WorkspaceSky } from "@/sky/Sky";
@@ -188,6 +189,7 @@ function MePage() {
   const { changePhoto, uploading } = useChangePhoto();
   const sounds = useSoundChoice();
   const middleTab = useMiddleTab();
+  const festive = useFestiveOn();
   const styleLabel = useSoundLabel();
   const startLabel = useStartLabel();
   const withMe = openIssuesWithMe(issues.data, meId);
@@ -536,6 +538,15 @@ function MePage() {
             />
             {/* Mine over the workspace's (ADR 0193 addendum), kept in `chatPrefs`: not on a server without them. */}
             {org.org?.chatPrefs !== undefined ? accent.row : null}
+            {/* Special days dress the sky and the opening (lib/festive.ts): on this phone, on by default. */}
+            <GroupedRow
+              key="festive"
+              icon="sparkle"
+              label={t("mobile.me.festive")}
+              hint={{ name: t("common.about", { label: t("mobile.me.festive") }), text: t("mobile.me.festiveHint") }}
+              toggle={festive}
+              onPress={() => setFestiveOn(!festive)}
+            />
             {/* The app icon (ADR 0179): only where this build carries the others. */}
             {appIcon.supported && appIcon.icon ? (
               <GroupedRow

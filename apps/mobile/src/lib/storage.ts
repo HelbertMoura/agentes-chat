@@ -105,6 +105,10 @@ export const STORED = {
   appLockAfter: "app-lock-after",
   /** The tab bar's second place on this phone: "threads" (default) or "manage" (features/manage/middle-tab.ts). */
   middleTab: "middle-tab",
+  /** Festive moods turned off on this phone ("off"; lib/festive.ts). */
+  festive: "festive",
+  /** The app icon in use, as last asked of the system (its id): the launch splash draws its agent (features/me/app-icon.ts). */
+  appIcon: "app-icon",
 } as const;
 
 export async function clearStoredValues(): Promise<void> {
