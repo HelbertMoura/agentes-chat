@@ -210,6 +210,10 @@ export const ChatPrefs = z
       .record(z.string().max(200), z.enum(WALLPAPER_HUES))
       .optional()
       .openapi({ description: "The color of each AI account in the limits ring, by its key; absent: its maker's." }),
+    accent: AccentColor.nullable().optional().openapi({
+      description:
+        "Your own accent color (ADR 0193): it wins over the workspace's `accent` for you alone; absent: the workspace's. `null` in `PUT …/me/chat` takes it away.",
+    }),
   })
   .openapi("ChatPrefs");
 
