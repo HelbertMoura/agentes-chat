@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { inflateSync } from "node:zlib";
+import { dark as darkTokens } from "@agenteschat/tokens";
+import { DEFAULT_SKY, setSkyColors } from "@agenteschat/ui/agent/engine";
 import {
   LAUNCH,
   LOGO,
@@ -14,10 +17,35 @@ import {
   spriteY,
   waitLine,
 } from "../../src/features/launch/logic";
+import { iconGradient } from "../../src/features/me/app-icon-names";
 
 describe("launch splash", () => {
-  test("starts on the native image: the body is 400 of its 512 px at 120 pt", () => {
+  test("the agent's body is the logo's in a 120 pt image: 400 of its 512 px", () => {
     expect(LOGO).toBeCloseTo(93.75, 5);
+  });
+
+  test("the native launch image is the background alone, in light and dark, and the agent pops in over it", () => {
+    // Every pixel transparent: no mascot fixed at build time shows before the icon in use.
+    const png = readFileSync(join(import.meta.dir, "../../assets/images/splash-icon.png"));
+    expect(png.readUInt32BE(16)).toBe(512);
+    expect(png.readUInt32BE(20)).toBe(512);
+    const idat: Buffer[] = [];
+    for (let at = 8; at < png.length; ) {
+      const size = png.readUInt32BE(at);
+      if (png.toString("ascii", at + 4, at + 8) === "IDAT") idat.push(png.subarray(at + 8, at + 8 + size));
+      at += size + 12;
+    }
+    const rows = inflateSync(Buffer.concat(idat));
+    const alpha = [...rows].filter((_, i) => i % (512 * 4 + 1) !== 0 && (i % (512 * 4 + 1)) % 4 === 0);
+    expect(alpha.length).toBe(512 * 512);
+    expect(alpha.every((a) => a === 0)).toBe(true);
+    // Its background is the app's in both themes, so the hand-over to the splash's first frame doesn't show.
+    const config = readFileSync(join(import.meta.dir, "../../app.config.ts"), "utf8");
+    expect(config).toContain('backgroundColor: "#ffffff",');
+    expect(config).toContain(`dark: { image: "./assets/images/splash-icon.png", backgroundColor: "${darkTokens.bg}" }`);
+    const splash = readFileSync(join(import.meta.dir, "../../src/features/launch/LaunchSplash.tsx"), "utf8");
+    expect(splash).toContain("const arrive = useSharedValue(reduced ? 1 : 0);");
+    expect(LAUNCH.pop).toBeLessThan(LAUNCH.rise);
   });
 
   test("one line only once it's late: why it waits", () => {
@@ -27,7 +55,7 @@ describe("launch splash", () => {
   });
 
   test("the agent looks down at the sky, back up, smiles; closes its eyes offline; smiles leaving", () => {
-    // Native frame: facing ahead, eyes open, like the launch image.
+    // First frame: facing ahead, eyes open, as it pops in.
     expect(launchPose(0)).toEqual({ turn: [0, 0], blink: false });
     expect(launchPose(0.4).turn?.[1]).toBeGreaterThan(0.5);
     expect(launchPose(0.89).turn?.[1]).toBeLessThan(0);
@@ -110,6 +138,16 @@ describe("launch splash", () => {
       sky: "night",
     });
     expect(launchLookOf("made-night-amber-crown")).toMatchObject({ color: "amber", eyes: "round", accessory: "crown" });
+  });
+
+  test("the agent is drawn in the icon's own colors: sky stays the landing's blue under any accent", () => {
+    setSkyColors(["#ff8cff", "#d100d1"]);
+    try {
+      expect(iconGradient(launchLookOf(null).color)).toEqual(DEFAULT_SKY);
+      expect(iconGradient(launchLookOf("made-night-sky-round-peek").color)).toEqual(DEFAULT_SKY);
+    } finally {
+      setSkyColors(null);
+    }
   });
 
   test("a day sky's icon rises in its day blues in light; the night's keeps the logo's sky", () => {

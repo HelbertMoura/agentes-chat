@@ -507,7 +507,7 @@ function MePage() {
             {/* Special days dress the sky and the opening (lib/festive.ts): on this phone, on by default. */}
             <GroupedRow
               key="festive"
-              icon="sparkle"
+              icon="party"
               label={t("mobile.me.festive")}
               hint={{ name: t("common.about", { label: t("mobile.me.festive") }), text: t("mobile.me.festiveHint") }}
               toggle={festive}
