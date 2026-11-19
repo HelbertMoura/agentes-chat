@@ -38,6 +38,7 @@ import { FestiveLayer } from "@/sky/FestiveLayer";
 import { festiveTones, paletteUniform } from "@/sky/math";
 import { Text } from "@/ui";
 import { fonts, useReducedMotion, useTheme } from "@/ui/theme";
+import { iconGradient } from "../me/app-icon-names";
 import {
   LAUNCH,
   LOGO,
@@ -65,7 +66,7 @@ export interface LaunchSplashProps {
   ready: boolean;
   /** The brand fonts are in (the name waits for them). */
   fontsReady: boolean;
-  /** Its first frame is up: the native launch image can go (they look the same). */
+  /** Its first frame is up: the native launch image can go (both are the background alone). */
   onShown: () => void;
   /** It is gone. */
   onDone: () => void;
@@ -81,13 +82,13 @@ export interface LaunchSplashProps {
 }
 
 /**
- * Opening the app. It starts exactly on the native launch image (the logo
- * agent centered, 120 pt image), then the pixel sky rises from the bottom with little agents going up in it,
- * the agent hops, lifts and looks at them, and the name comes in. Once the app is ready and that has played (1.2 s at
- * least) the agent and the name go up and out, the sky sinks and the screen fades into the app. Slow: one
+ * Opening the app. It starts exactly on the native launch image (the background alone), the agent of the icon in use
+ * pops in and hops, then the pixel sky rises from the bottom with little agents going up in it, the agent lifts and
+ * looks at them, and the name comes in. Once the app is ready and that has played (1.2 s at least) the agent and the
+ * name go up and out, the sky sinks and the screen fades into the app. Slow: one
  * line says it's connecting; no network: one line says so. Waiting on the person (`waiting`: a server that
  * doesn't answer) the agent goes up and closes its eyes, the sprites keep above the panel that comes in at the
- * bottom, and the splash stays until the app is ready. Reduced motion: the logo still, a short fade.
+ * bottom, and the splash stays until the app is ready. Reduced motion: the agent there at once and still, a short fade.
  */
 export function LaunchSplash({
   ready,
@@ -141,17 +142,24 @@ export function LaunchSplash({
   const name = useSharedValue(0);
   const lineIn = useSharedValue(0);
   const shown = useSharedValue(1);
+  // The agent coming in over the blank first frame (0 → 1); with reduced motion it is there at once.
+  const arrive = useSharedValue(reduced ? 1 : 0);
   // Waiting on the person: the agent up (0 → 1), the panel in, and where the sprites start (above the panel).
   const up = useSharedValue(0);
   const floor = useSharedValue(0.95);
   const [panelTop, setPanelTop] = useState<number | null>(null);
 
   useEffect(() => {
-    if (reduced) return;
+    // The setting is read after the first frame: turned on then, the agent is there at once.
+    if (reduced) {
+      arrive.value = 1;
+      return;
+    }
     const rise = { duration: LAUNCH.rise * 1000, easing: Easing.out(Easing.cubic) };
+    arrive.value = withTiming(1, { duration: LAUNCH.pop * 1000, easing: Easing.out(Easing.back(1.6)) });
     level.value = withTiming(LAUNCH.sky, rise);
     lift.value = withTiming(1, rise);
-    // The agent gives a little hop as the sky reaches it: it starts exactly on the native image, at rest.
+    // The agent gives a little hop once it has popped in.
     hop.value = withDelay(
       180,
       withSequence(
@@ -160,7 +168,7 @@ export function LaunchSplash({
       ),
     );
     name.value = withDelay(LAUNCH.nameAt * 1000, withTiming(1, { duration: 420, easing: EASE_OUT }));
-  }, [reduced, level, lift, name, hop]);
+  }, [reduced, arrive, level, lift, name, hop]);
 
   useEffect(() => {
     lineIn.value = withTiming(line ? 1 : 0, { duration: 300 });
@@ -201,7 +209,7 @@ export function LaunchSplash({
     shown.value = withDelay(ms * 0.25, withTiming(0, { duration: ms * 0.75, easing: EASE_OUT }, end));
   }, [leaving, reduced, away, level, shown, finish]);
 
-  // The native image goes once this first frame is laid out (it looks the same).
+  // The native image goes once this first frame is laid out (the same background, no agent yet).
   const shownOnce = useRef(false);
   const onLayout = () => {
     if (shownOnce.current) return;
@@ -218,7 +226,7 @@ export function LaunchSplash({
     const rec = new RecordingContext();
     const pose = reduced ? {} : launchPose(a, { offline: offline || Boolean(eyesClosed), leaving });
     drawAgent(asCtx(rec), PAD, PAD, LOGO, {
-      color: look.color,
+      color: iconGradient(look.color),
       eyes: look.eyes,
       pose: look.expression && !pose.expression ? { ...pose, expression: look.expression } : pose,
       after: accessory === "none" ? undefined : (ctx, side, frame) => drawAccessory(ctx, side, accessory, frame),
@@ -235,6 +243,10 @@ export function LaunchSplash({
       { translateY: -LAUNCH.lift * lift.value - raise * up.value - 96 * away.value },
       { scale: (1 - 0.3 * away.value) * (1 + 0.1 * hop.value) },
     ],
+  }));
+  const popStyle = useAnimatedStyle(() => ({
+    opacity: Math.min(1, arrive.value),
+    transform: [{ scale: 0.6 + 0.4 * arrive.value }],
   }));
   const panelStyle = useAnimatedStyle(() => ({ opacity: up.value * (1 - away.value) }));
   const nameStyle = useAnimatedStyle(() => ({
@@ -264,9 +276,11 @@ export function LaunchSplash({
         style={[styles.mark, { left: width / 2 - BOX / 2, top: height / 2 - BOX / 2 }, mark]}
         pointerEvents="none"
       >
-        <Canvas style={styles.agent}>
-          <Picture picture={picture} />
-        </Canvas>
+        <Animated.View style={[styles.agent, popStyle]}>
+          <Canvas style={styles.agent}>
+            <Picture picture={picture} />
+          </Canvas>
+        </Animated.View>
         {fontsReady ? (
           <Animated.View style={[styles.name, reduced ? styles.still : nameStyle]}>
             <RNText allowFontScaling={false} style={[styles.word, { color: c.ink }]}>

@@ -2,11 +2,12 @@ import {
   isAppIcon,
   isMadeIconExpression,
   isMadeIconFace,
+  type MadeIconColor,
   type MadeIconExpression,
   type MadeIconSky,
   madeIconOf,
 } from "@agenteschat/client/lib/app-icons";
-import type { AgentAccessory, AgentColor, AgentEyes } from "@agenteschat/tokens/look";
+import type { AgentAccessory, AgentEyes } from "@agenteschat/tokens/look";
 import { idlePose, mixHex, type Pose } from "@agenteschat/ui/agent/engine";
 
 /**
@@ -22,6 +23,8 @@ export const LAUNCH = {
   exit: 0.55,
   /** Leaving with reduced motion: a short fade. */
   reducedExit: 0.25,
+  /** The agent popping in over the blank first frame, as the rise starts. */
+  pop: 0.32,
   /** When the name comes in. */
   nameAt: 0.45,
   /** How long it waits before one line says why it is still here. */
@@ -36,13 +39,16 @@ export const LAUNCH = {
   waitingSky: 0.56,
 } as const;
 
-/** The native launch image (assets/images/splash-icon.png, 512 px with the body at 56–456) is 120 pt wide. */
-export const NATIVE_IMAGE = 120;
-/** So the agent's body there is this wide, centered on the screen: the splash starts exactly on it. */
-export const LOGO = (NATIVE_IMAGE * 400) / 512;
+/**
+ * The agent's body, centered on the screen: as wide as the logo's body in a 120 pt image of 512 px with the body at
+ * 56–456. The native launch image (assets/images/splash-icon.png) is blank, the background alone: the splash's first
+ * frame is the same, then the agent pops in, so the icon fixed at build time never shows before the one in use.
+ */
+export const LOGO = (120 * 400) / 512;
 /** The splash's agent and sky: the app icon's in use, so the opening is the icon the person picked. */
 export interface LaunchLook {
-  color: AgentColor;
+  /** Drawn as the build draws the icon (`iconGradient`): `sky` is the landing's blue, never the accent. */
+  color: MadeIconColor;
   eyes: AgentEyes;
   /** A made icon's held face (a wink, a heart), when the choreography shows none of its own. */
   expression?: MadeIconExpression;
