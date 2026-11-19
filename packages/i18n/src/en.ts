@@ -18041,6 +18041,12 @@ export const en = {
       none: "Plan limits: none of your accounts reports limits",
       title: "Plan limits",
     },
+    /** A window's pace so far: when it reaches its limit before it resets ({{when}}: "at 3:10 PM", "Friday at 10:00 AM"), or the room left. */
+    pace: {
+      hits: "At this pace, it reaches 100% {{when}}",
+      room: "At this pace, there's room left: it ends near {{percent}}%",
+      head: "{{account}} reaches 100% {{when}} at this pace",
+    },
     recent: {
       title: "Recent use",
       day: "Last 24 hours",

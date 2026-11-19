@@ -17585,6 +17585,11 @@
       "none": "Tariflimits: Keines deiner Konten meldet Limits",
       "title": "Tariflimits"
     },
+    "pace": {
+      "hits": "Bei diesem Tempo sind {{when}} 100 % erreicht",
+      "room": "Bei diesem Tempo bleibt Luft: Ende bei etwa {{percent}} %",
+      "head": "{{account}} erreicht bei diesem Tempo {{when}} 100 %"
+    },
     "recent": {
       "title": "Letzte Nutzung",
       "day": "Letzte 24 Stunden",

@@ -7,6 +7,10 @@ import {
   quotaDigitPixels,
   quotaLevel,
   quotaOverview,
+  quotaPace,
+  quotaPaceAlert,
+  quotaPaceAlertText,
+  quotaPaceText,
   quotaPixels,
   quotaRingLabel,
   recentLines,
@@ -88,8 +92,10 @@ export function QuotaRing({ side = "top" }: { side?: "top" | "bottom" | "right" 
   const accounts = usage.data ? groupUsageAccounts(usage.data.accounts, mine.data) : [];
   if (accounts.length === 0) return null;
   const chosen = org.chatPrefs?.ringColors;
-  const overview = quotaOverview(accounts, Date.now(), chosen);
+  const now = Date.now();
+  const overview = quotaOverview(accounts, now, chosen);
   const top = overview.tightest;
+  const alert = quotaPaceAlert(overview, now);
   const label = quotaRingLabel(t, overview, (a) => accountName(t, a));
   const text = planMeterText(t, i18n.language);
   return (
@@ -142,6 +148,11 @@ export function QuotaRing({ side = "top" }: { side?: "top" | "bottom" | "right" 
           {top && <QuotaDial rings={overview.rings} />}
           <div className="quota-pop__lead">
             <p className="quota-pop__title">{t("quotas.ring.title")}</p>
+            {alert && (
+              <p className="quota-pop__pace" data-hits="">
+                {quotaPaceAlertText(t, i18n.language, alert, accountName(t, alert.account), now)}
+              </p>
+            )}
             {top && (
               <ul className="quota-pop__keys">
                 {overview.rings.map((r) => (
@@ -185,7 +196,7 @@ export function QuotaRing({ side = "top" }: { side?: "top" | "bottom" | "right" 
         </div>
         <ul className="quota-pop__list">
           {overview.lines.map((line) => (
-            <QuotaPopLine key={line.account.key} line={line} locale={i18n.language} />
+            <QuotaPopLine key={line.account.key} line={line} locale={i18n.language} now={now} />
           ))}
         </ul>
         <Link
@@ -206,8 +217,8 @@ export function QuotaRing({ side = "top" }: { side?: "top" | "bottom" | "right" 
   );
 }
 
-/** One account: its mark and name, then each window's percent and reset, or why it has none and its recent use. */
-function QuotaPopLine({ line, locale }: { line: QuotaLine; locale: string }) {
+/** One account: its mark and name, then each window's percent, reset and pace, or why it has none and its recent use. */
+function QuotaPopLine({ line, locale, now }: { line: QuotaLine; locale: string; now: number }) {
   const { t } = useTranslation();
   const text = planMeterText(t, locale);
   const { account, windows } = line;
@@ -221,14 +232,22 @@ function QuotaPopLine({ line, locale }: { line: QuotaLine; locale: string }) {
       </div>
       {windows.length > 0 ? (
         <ul className="quota-pop__windows">
-          {windows.map((w) => (
-            <li key={w.key} className="quota-pop__window" data-level={planLevel(w.used)}>
-              <span className="quota-pop__wname">{text.window(w)}</span>
-              <span className="quota-pop__pct">{w.used}%</span>
-              <Meter value={w.used} max={100} label={text.window(w)} marks={[PLAN_ALMOST]} />
-              {w.resetsAt && <span className="quota-pop__reset">{text.resets(w.resetsAt)}</span>}
-            </li>
-          ))}
+          {windows.map((w) => {
+            const pace = quotaPace(w, now);
+            return (
+              <li key={w.key} className="quota-pop__window" data-level={planLevel(w.used)}>
+                <span className="quota-pop__wname">{text.window(w)}</span>
+                <span className="quota-pop__pct">{w.used}%</span>
+                <Meter value={w.used} max={100} label={text.window(w)} marks={[PLAN_ALMOST]} />
+                {w.resetsAt && <span className="quota-pop__reset">{text.resets(w.resetsAt)}</span>}
+                {pace && (
+                  <span className="quota-pop__pace" data-hits={pace.kind === "hits" ? "" : undefined}>
+                    {quotaPaceText(t, locale, pace, now)}
+                  </span>
+                )}
+              </li>
+            );
+          })}
         </ul>
       ) : (
         <p className="quota-pop__none">{recent ? `${recent.label}: ${recent.value}` : noQuotaText(t, account)}</p>

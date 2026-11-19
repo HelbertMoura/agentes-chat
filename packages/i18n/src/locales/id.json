@@ -17036,6 +17036,11 @@
       "none": "Batas paket: tidak ada akunmu yang melaporkan batas",
       "title": "Batas paket"
     },
+    "pace": {
+      "hits": "Dengan laju ini, mencapai 100% {{when}}",
+      "room": "Dengan laju ini, masih ada ruang: berakhir di sekitar {{percent}}%",
+      "head": "{{account}} mencapai 100% {{when}} dengan laju ini"
+    },
     "recent": {
       "title": "Penggunaan terbaru",
       "day": "24 jam terakhir",

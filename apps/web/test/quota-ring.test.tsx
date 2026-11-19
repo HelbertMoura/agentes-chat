@@ -108,6 +108,13 @@ test("a press opens every account with its windows, recent use where none is rep
   expect(accounts).toEqual(["Trabalho", "Cursor Pro"]);
   expect([...pop.querySelectorAll(".quota-pop__pct")].map((n) => n.textContent)).toEqual(["85%", "10%"]);
   expect(pop.querySelectorAll(".quota-pop__reset")).toHaveLength(2);
+  // At its pace the 5-hour window reaches its limit before it resets, the week ends with room: said under each bar
+  // and, for the tightest account, at the card's head.
+  const paces = [...pop.querySelectorAll(".quota-pop__window .quota-pop__pace")];
+  expect(paces.map((p) => p.hasAttribute("data-hits"))).toEqual([true, false]);
+  expect(paces[0]?.textContent).toStartWith("At this pace, it reaches 100% at ");
+  expect(paces[1]?.textContent).toBe("At this pace, there's room left: it ends near 22%");
+  expect(pop.querySelector(".quota-pop__lead .quota-pop__pace")?.textContent).toStartWith("Trabalho reaches 100% at ");
   expect(pop.querySelector(".quota-pop__none")?.textContent).toBe("Last 30 days: 1,200 tokens · 3 calls");
   const link = within(pop).getByRole("link", { name: "See quotas" });
   expect(link.getAttribute("href")).toBe(`/org/${ORG_ID}/settings/usage?view=quotas`);

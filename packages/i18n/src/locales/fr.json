@@ -18154,6 +18154,11 @@
       "none": "Limites des forfaits : aucun de vos comptes n’indique de limites",
       "title": "Limites des forfaits"
     },
+    "pace": {
+      "hits": "À ce rythme, il atteint 100 % {{when}}",
+      "room": "À ce rythme, il reste de la marge : il finit vers {{percent}} %",
+      "head": "{{account}} atteint 100 % {{when}} à ce rythme"
+    },
     "recent": {
       "title": "Usage récent",
       "day": "Dernières 24 heures",
