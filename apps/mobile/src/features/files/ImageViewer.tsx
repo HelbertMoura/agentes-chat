@@ -208,24 +208,26 @@ function Viewer({
         {/* A shade behind the bar, fading into the picture past it: the name and × read over any picture, and the
             picture's edge melts into the black above it instead of meeting it in a line. */}
         <LinearGradient pointerEvents="none" colors={SHADE_DOWN} locations={SHADE_STOPS} style={styles.shadeTop} />
-        {/* × and, for who may delete the file, its trash at the other end: the file's other actions are the row at the
-            bottom (four, so their words fit a 320-point screen), never repeated in a "…" here. */}
+        {/* × on the left and, for who may delete the file, its trash on the right: the file's other actions are the row
+            at the bottom, never repeated in a "…" here. The name and its line in the bar's middle, one line each, a
+            long name shortened in its middle so its end (the kind of file) stays. */}
         <Round icon="x" label={t("mobile.common.close")} onPress={close} />
-        {actions.mayTrash ? (
-          <>
-            <View style={styles.grow} />
-            <Round icon="trash" label={t("artifacts.delete")} onPress={() => actions.trash(close)} />
-          </>
-        ) : null}
-        {/* The name and its line on a row of their own under the button, the screen's width: never cut beside it. */}
         <View style={styles.title}>
-          <Text variant="subhead" style={[styles.bold, { color: WHITE }]} numberOfLines={3}>
+          <Text variant="body" style={[styles.bold, { color: WHITE }]} numberOfLines={1} ellipsizeMode="middle">
             {info?.name ?? ""}
           </Text>
-          <Text variant="footnote" style={{ color: DIM }}>
-            {sub}
-          </Text>
+          {sub ? (
+            <Text variant="footnote" style={[styles.titleLine, { color: DIM }]} numberOfLines={1}>
+              {sub}
+            </Text>
+          ) : null}
         </View>
+        {/* The trash, or a space as wide as the ×, so the title stands in the screen's middle. */}
+        {actions.mayTrash ? (
+          <Round icon="trash" label={t("artifacts.delete")} onPress={() => actions.trash(close)} />
+        ) : (
+          <View pointerEvents="none" style={styles.round} />
+        )}
       </Chrome>
 
       {/* Gone while zoomed, as the swipe is: the fingers move the picture then. */}
@@ -602,14 +604,13 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     flexDirection: "row",
-    flexWrap: "wrap",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
     paddingHorizontal: 14,
     paddingBottom: 10,
   },
-  title: { flexBasis: "100%", gap: 2 },
-  grow: { flex: 1 },
+  title: { flex: 1, minWidth: 0, alignItems: "center" },
+  titleLine: { textAlign: "center" },
   shadeTop: { position: "absolute", top: 0, left: 0, right: 0, bottom: -SHADE_PAST },
   shadeBottom: { position: "absolute", top: -SHADE_PAST, left: 0, right: 0, bottom: 0 },
   bold: { fontWeight: "600" },

@@ -77,7 +77,7 @@ describe("agents it asked first: one pair row right before the reply, never insi
       ascending(at(row, ["const grouped = groupedIn && !pair;", "{pair}\n      {liveRef ? (", "{quote && !inBubble"])),
     ).toBe(true);
     const [bodyAt, endAt] = at(row, [
-      "<Animated.View style={[styles.body, { gap: rhythm.part }, inBubble && giveWay.style]}>",
+      "<Animated.View style={[styles.body, { gap: rhythm.part }, inBubble && giveWay.style, compact && slide]}>",
       "{foot}\n          </RowParts>\n          {hintNode}\n        </Animated.View>\n",
     ]);
     expect(row.slice(bodyAt, endAt)).not.toContain("Consult");

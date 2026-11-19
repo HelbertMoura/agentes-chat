@@ -263,7 +263,7 @@ import {
   stoppableInLine,
   workingEntries,
 } from "./logic";
-import { RowLookContext, useConversationLook, useConversationWallpaper, useRhythm } from "./look";
+import { RowLookContext, timesOnPull, useConversationLook, useConversationWallpaper, useRhythm } from "./look";
 import { MediaPickerSheet } from "./MediaPickerSheet";
 import { MentionPicker, useMentionMembers } from "./MentionPicker";
 import { MessageMenuFor } from "./MessageMenu";
@@ -763,8 +763,9 @@ function Chat({
       : t("mobile.chat.startedIn", { channel: thread.data?.channelName ?? channel?.name ?? "" })
     : "";
   const replyCount = thread.data?.replyCount;
-  // In bubbles the messages show no time (a pull does): a line says when the conversation picks up again (`PAUSE_MS`).
-  const timeLines = rowLook.style === "bubbles";
+  // In bubbles and compact the messages show no time (a pull does): a line says when the conversation picks up again
+  // (`PAUSE_MS`).
+  const timeLines = timesOnPull(rowLook.style);
   // The messages' rows, built again only when the messages (or the thread's head) change: an agent's run events, many a
   // second while it works, touch only the live rows after them.
   const messageRows = useMemo<Row[]>(() => {
@@ -1087,7 +1088,7 @@ function Chat({
   const stillRows = useReducedMotion();
   // The way to the times in a conversation of bubbles (they hold none): a pull to the left (`swipe-time.tsx`).
   const timePull = useSharedValue(0);
-  const timePan = useSwipeTimePan(timePull, rowLook.style === "bubbles", stillRows);
+  const timePan = useSwipeTimePan(timePull, timesOnPull(rowLook.style), stillRows);
   const isFresh = useCallback(
     (key: string) => {
       const t0 = freshRef.current.get(key);

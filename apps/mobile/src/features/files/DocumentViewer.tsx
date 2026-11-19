@@ -18,7 +18,7 @@ import { liveRoute } from "../live-files/routes";
 import { chooseAction } from "../settings/parts";
 import { LoadFailed } from "../shared/FirstUse";
 import { useColors, useDirectory, useOrgId } from "../shared/hooks";
-import { BarNote, copyText, goBack, MONO, PushedHeader, successHaptic } from "../shared/parts";
+import { copyText, goBack, MONO, PushedHeader, successHaptic } from "../shared/parts";
 import { AudioFile } from "./AudioFile";
 import { useFileActions } from "./actions";
 import { fileInfo, isCodeName, textChunks } from "./logic";
@@ -137,9 +137,12 @@ export function DocumentViewer({
 
   return (
     <>
-      {/* The file's name as the system's own title (centred by it); what it is and who sent it, a quiet line under. */}
-      <PushedHeader title={info?.name ?? ""} actions={bar} />
-      {info && detail ? <BarNote>{line(info, [dir.nameOf(detail.createdBy)])}</BarNote> : null}
+      {/* The file's name as the bar's title; what it is and who sent it, the line under it. */}
+      <PushedHeader
+        title={info?.name ?? ""}
+        subtitle={info && detail ? line(info, [dir.nameOf(detail.createdBy)]) : undefined}
+        actions={bar}
+      />
       {query.isError && !detail ? (
         <Middle>
           <LoadFailed onRetry={() => void query.refetch()} />

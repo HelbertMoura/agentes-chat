@@ -1,14 +1,17 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { inflateSync } from "node:zlib";
-import { dark as darkTokens } from "@agenteschat/tokens";
-import { DEFAULT_SKY, setSkyColors } from "@agenteschat/ui/agent/engine";
+import { inBody } from "@agenteschat/ui/agent/engine";
 import {
+  DIVE,
+  DIVE_TOTAL,
+  diveBody,
+  diveEyes,
+  diveName,
+  diveScale,
   LAUNCH,
   LOGO,
-  LOGO_LOOK,
-  launchLookOf,
+  launchesAtOnce,
   launchPose,
   launchSkyTones,
   SPRITES,
@@ -16,35 +19,10 @@ import {
   spriteY,
   waitLine,
 } from "../../src/features/launch/logic";
-import { iconGradient } from "../../src/features/me/app-icon-names";
 
 describe("launch splash", () => {
-  test("the agent's body is the logo's in a 120 pt image: 400 of its 512 px", () => {
+  test("starts on the native image: the body is 400 of its 512 px at 120 pt", () => {
     expect(LOGO).toBeCloseTo(93.75, 5);
-  });
-
-  test("the native launch image is the background alone, in light and dark, and the agent pops in over it", () => {
-    // Every pixel transparent: no mascot fixed at build time shows before the icon in use.
-    const png = readFileSync(join(import.meta.dir, "../../assets/images/splash-icon.png"));
-    expect(png.readUInt32BE(16)).toBe(512);
-    expect(png.readUInt32BE(20)).toBe(512);
-    const idat: Buffer[] = [];
-    for (let at = 8; at < png.length; ) {
-      const size = png.readUInt32BE(at);
-      if (png.toString("ascii", at + 4, at + 8) === "IDAT") idat.push(png.subarray(at + 8, at + 8 + size));
-      at += size + 12;
-    }
-    const rows = inflateSync(Buffer.concat(idat));
-    const alpha = [...rows].filter((_, i) => i % (512 * 4 + 1) !== 0 && (i % (512 * 4 + 1)) % 4 === 0);
-    expect(alpha.length).toBe(512 * 512);
-    expect(alpha.every((a) => a === 0)).toBe(true);
-    // Its background is the app's in both themes, so the hand-over to the splash's first frame doesn't show.
-    const config = readFileSync(join(import.meta.dir, "../../app.config.ts"), "utf8");
-    expect(config).toContain('backgroundColor: "#ffffff",');
-    expect(config).toContain(`dark: { image: "./assets/images/splash-icon.png", backgroundColor: "${darkTokens.bg}" }`);
-    const splash = readFileSync(join(import.meta.dir, "../../src/features/launch/LaunchSplash.tsx"), "utf8");
-    expect(splash).toContain("const arrive = useSharedValue(reduced ? 1 : 0);");
-    expect(LAUNCH.pop).toBeLessThan(LAUNCH.rise);
   });
 
   test("one line only once it's late: why it waits", () => {
@@ -54,7 +32,7 @@ describe("launch splash", () => {
   });
 
   test("the agent looks down at the sky, back up, smiles; closes its eyes offline; smiles leaving", () => {
-    // First frame: facing ahead, eyes open, as it pops in.
+    // Native frame: facing ahead, eyes open, like the launch image.
     expect(launchPose(0)).toEqual({ turn: [0, 0], blink: false });
     expect(launchPose(0.4).turn?.[1]).toBeGreaterThan(0.5);
     expect(launchPose(0.89).turn?.[1]).toBeLessThan(0);
@@ -100,58 +78,74 @@ describe("launch splash", () => {
     expect(blinks).toBeLessThan(20);
   });
 
-  test("it always plays its minimum, long enough for the sky and the name", () => {
-    expect(LAUNCH.min).toBeGreaterThanOrEqual(LAUNCH.nameAt + 0.42);
-    expect(LAUNCH.min).toBeGreaterThanOrEqual(LAUNCH.rise);
+  test("ready within its first frames it leaves at once; later its rise plays the minimum", () => {
+    expect(launchesAtOnce(0)).toBe(true);
+    expect(launchesAtOnce(LAUNCH.quick * 1000)).toBe(true);
+    expect(launchesAtOnce(LAUNCH.quick * 1000 + 1)).toBe(false);
+    expect(LAUNCH.quick).toBeLessThan(LAUNCH.min);
     const splash = readFileSync(join(import.meta.dir, "../../src/features/launch/LaunchSplash.tsx"), "utf8");
-    expect(splash).toContain("if (!played) return;");
+    expect(splash).toContain("if (!played && !launchesAtOnce(Date.now() - startedAt)) return;");
     // Leaving, the agent holds its last pose: no frames of it on the JS thread while the app arrives under it.
     expect(splash).toContain("const now = useFrameTime(!reduced && !leaving, heldAt);");
+  });
+
+  test("leaving, the agent's body becomes a window that grows faster and faster until it holds any screen", () => {
+    expect(diveScale(0)).toBe(1);
+    // A breath in before the dive.
+    expect(diveScale(DIVE.at)).toBeCloseTo(DIVE.shrink, 2);
+    expect(diveScale(DIVE_TOTAL)).toBeCloseTo(DIVE.far, 5);
+    // Ever faster: each step grows the window more than the one before.
+    const grows = [0.16, 0.24, 0.32, 0.4].map((e) => diveScale(e + 0.04) / diveScale(e));
+    for (let i = 1; i < grows.length; i++) expect(grows[i]).toBeGreaterThan(grows[i - 1] as number);
+    // At its end the body holds every corner of the screen around where the agent stands: the largest phone, a
+    // tablet either way up.
+    const size = LOGO * DIVE.far;
+    for (const [w, h] of [
+      [440, 956],
+      [1024, 1366],
+      [1366, 1024],
+    ] as const) {
+      const left = w / 2 - size / 2;
+      const top = h / 2 - LAUNCH.lift - size / 2;
+      for (const [x, y] of [
+        [0, 0],
+        [w, 0],
+        [0, h],
+        [w, h],
+      ] as const)
+        expect({ w, h, x, y, inside: inBody((x - left) / size, (y - top) / size) }).toEqual({
+          w,
+          h,
+          x,
+          y,
+          inside: true,
+        });
+    }
+    // The body's fill lets go first (the app shows through it), the eyes a moment later, the name before the dive.
+    expect(diveBody(DIVE.at)).toBe(1);
+    expect(diveBody(DIVE.at + 0.1)).toBe(0);
+    expect(diveEyes(DIVE.at + 0.1)).toBeGreaterThan(0.5);
+    expect(diveEyes(DIVE_TOTAL)).toBe(0);
+    expect(diveName(DIVE.nameOut)).toBe(0);
+  });
+
+  test("the dive runs on one clock on the UI thread, cut into the sky's canvas; the app is in view from its start", () => {
+    const splash = readFileSync(join(import.meta.dir, "../../src/features/launch/LaunchSplash.tsx"), "utf8");
+    expect(splash).toContain(
+      "dive.value = withTiming(DIVE_TOTAL, { duration: DIVE_TOTAL * 1000, easing: Easing.linear }, end);",
+    );
+    expect(splash).toContain("<Group clip={opening} invertClip>");
+    expect(splash).toContain("markRevealed();");
+    // Reduced motion keeps the short fade.
+    expect(splash).toContain("shown.value = withTiming(0, { duration: LAUNCH.reducedExit * 1000 }, end);");
+    // Conversas arrives as the window grows, not once the splash is gone.
+    const home = readFileSync(join(import.meta.dir, "../../src/features/chats/HomeEntrance.tsx"), "utf8");
+    expect(home).toContain("const inView = useRevealed();");
   });
 
   test("the sky starts from the screen's own background", () => {
     expect(launchSkyTones("#ffffff", false)[0]).toBe("#ffffff");
     expect(launchSkyTones("#0f0f0e", true)[0]).toBe("#0f0f0e");
     expect(launchSkyTones("#ffffff", false).length).toBeLessThanOrEqual(8);
-  });
-
-  test("the agent and the sky are the app icon's in use; nothing kept or unknown is the logo's", () => {
-    expect(launchLookOf(null)).toEqual(LOGO_LOOK);
-    expect(launchLookOf("not-an-icon")).toEqual(LOGO_LOOK);
-    expect(launchLookOf("peekNight")).toEqual(LOGO_LOOK);
-    expect(launchLookOf("moon").sky).toBe("night");
-    expect(launchLookOf("peekSky")).toEqual({ ...LOGO_LOOK, sky: "sky" });
-    expect(launchLookOf("made-sky-rose-heart")).toEqual({
-      color: "rose",
-      eyes: "round",
-      expression: "heart",
-      accessory: "none",
-      sky: "sky",
-    });
-    expect(launchLookOf("made-night-teal-sleepy-peek")).toEqual({
-      color: "teal",
-      eyes: "sleepy",
-      accessory: "none",
-      sky: "night",
-    });
-    expect(launchLookOf("made-night-amber-crown")).toMatchObject({ color: "amber", eyes: "round", accessory: "crown" });
-  });
-
-  test("the agent is drawn in the icon's own colors: sky stays the landing's blue under any accent", () => {
-    setSkyColors(["#ff8cff", "#d100d1"]);
-    try {
-      expect(iconGradient(launchLookOf(null).color)).toEqual(DEFAULT_SKY);
-      expect(iconGradient(launchLookOf("made-night-sky-round-peek").color)).toEqual(DEFAULT_SKY);
-    } finally {
-      setSkyColors(null);
-    }
-  });
-
-  test("a day sky's icon rises in its day blues in light; the night's keeps the logo's sky", () => {
-    expect(launchSkyTones("#ffffff", false, false, "night")).toEqual(launchSkyTones("#ffffff", false));
-    const day = launchSkyTones("#ffffff", false, false, "sky");
-    expect(day[0]).toBe("#ffffff");
-    expect(day).not.toEqual(launchSkyTones("#ffffff", false));
-    expect(launchSkyTones("#0f0f0e", true, false, "sky")).toEqual(launchSkyTones("#0f0f0e", true));
   });
 });

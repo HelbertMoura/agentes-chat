@@ -1,13 +1,3 @@
-import {
-  isAppIcon,
-  isMadeIconExpression,
-  isMadeIconFace,
-  type MadeIconColor,
-  type MadeIconExpression,
-  type MadeIconSky,
-  madeIconOf,
-} from "@agenteschat/client/lib/app-icons";
-import type { AgentAccessory, AgentEyes } from "@agenteschat/tokens/look";
 import { idlePose, mixHex, type Pose } from "@agenteschat/ui/agent/engine";
 
 /**
@@ -15,22 +5,23 @@ import { idlePose, mixHex, type Pose } from "@agenteschat/ui/agent/engine";
  * Native imports. Times in seconds.
  */
 export const LAUNCH = {
-  /** The shortest it plays before it may leave: the sky up, the agent's hop and its name, even with the app ready. */
-  min: 1.2,
+  /** The shortest it plays before it may leave, once its rise is under way. */
+  min: 0.9,
+  /**
+   * Ready this soon (its first frames: the session and the workspace kept from last time), it leaves at once, with no
+   * minimum to sit through: its rise had barely begun.
+   */
+  quick: 0.15,
   /** The sky rising and the agent lifting with it. */
   rise: 0.85,
-  /** Leaving: the agent and the name go up and out first, the sky sinks, the screen fades into the app. */
-  exit: 0.55,
   /** Leaving with reduced motion: a short fade. */
   reducedExit: 0.25,
-  /** The agent popping in over the blank first frame, as the rise starts. */
-  pop: 0.32,
   /** When the name comes in. */
   nameAt: 0.45,
   /** How long it waits before one line says why it is still here. */
   lineAfter: 2.5,
   /** How high the sky rises (share of the screen's height). */
-  sky: 0.56,
+  sky: 0.5,
   /** How far the agent lifts with it (points). */
   lift: 26,
   /** Waiting on something the person can act on (a server that doesn't answer): the agent's height, as a share of the screen. */
@@ -40,43 +31,86 @@ export const LAUNCH = {
 } as const;
 
 /**
- * The agent's body, centered on the screen: as wide as the logo's body in a 120 pt image of 512 px with the body at
- * 56–456. The native launch image (assets/images/splash-icon.png) is blank, the background alone: the splash's first
- * frame is the same, then the agent pops in, so the icon fixed at build time never shows before the one in use.
+ * Leaving into the app (motion on): the agent's body becomes a window onto the app, already drawn under the splash.
+ * The sky takes the whole screen in a moment (so the window opens on the sky, not on a white page), the agent draws
+ * in a little, then the window grows faster and faster until it covers the screen. All on the UI thread; times in
+ * seconds from the moment it leaves.
  */
-export const LOGO = (120 * 400) / 512;
-/** The splash's agent and sky: the app icon's in use, so the opening is the icon the person picked. */
-export interface LaunchLook {
-  /** Drawn as the build draws the icon (`iconGradient`): `sky` is the landing's blue, never the accent. */
-  color: MadeIconColor;
-  eyes: AgentEyes;
-  /** A made icon's held face (a wink, a heart), when the choreography shows none of its own. */
-  expression?: MadeIconExpression;
-  accessory: AgentAccessory;
-  sky: MadeIconSky;
-}
+export const DIVE = {
+  /** The agent draws in before it dives. */
+  breath: 0.12,
+  shrink: 0.9,
+  /** The dive itself: from the agent's size until its body covers the screen. */
+  at: 0.1,
+  span: 0.34,
+  /** How large the body ends, as a share of the logo: past the corners of any phone, or a tablet either way up. */
+  far: 18,
+  /** The name leaves first. */
+  nameOut: 0.12,
+  /** The sky takes the whole screen. */
+  flood: 0.16,
+  floodLevel: 1.35,
+  /** The sky goes a little way with the camera: its scale once the window covers the screen. */
+  camera: 1.45,
+} as const;
 
-/** The agent in the logo: the shipped icon's (on the night sky). */
-export const LOGO_LOOK: LaunchLook = { color: "sky", eyes: "round", accessory: "none", sky: "night" };
+/** From leaving until the app alone shows. */
+export const DIVE_TOTAL = DIVE.at + DIVE.span;
+
+const clamp01 = (x: number) => {
+  "worklet";
+  return x < 0 ? 0 : x > 1 ? 1 : x;
+};
+const smooth01 = (x: number) => {
+  "worklet";
+  const k = clamp01(x);
+  return k * k * (3 - 2 * k);
+};
+
+/** How far the dive is (0 → 1) `e` seconds after leaving. */
+export function diveZoom(e: number): number {
+  "worklet";
+  return clamp01((e - DIVE.at) / DIVE.span);
+}
 
 /**
- * The look of the icon in use, from its id as last read from the system (`STORED.appIcon`); the logo's when there is
- * none or it is unknown. The ready icons all have the logo's agent, on their sky.
+ * The agent's size as a share of the logo `e` seconds after leaving: a breath in, then ever faster (an exponential
+ * whose exponent eases in), so the window rushes at the camera.
  */
-export function launchLookOf(id: string | null): LaunchLook {
-  if (!id) return LOGO_LOOK;
-  if (isAppIcon(id)) return { ...LOGO_LOOK, sky: id === "sky" || id === "peekSky" ? "sky" : "night" };
-  const made = madeIconOf(id);
-  if (!made) return LOGO_LOOK;
-  const face = isMadeIconFace(made.look) ? made.look : "round";
-  return {
-    color: made.color,
-    eyes: isMadeIconExpression(face) ? "round" : face,
-    ...(isMadeIconExpression(face) ? { expression: face } : {}),
-    accessory: isMadeIconFace(made.look) ? "none" : made.look,
-    sky: made.sky,
-  };
+export function diveScale(e: number): number {
+  "worklet";
+  const shrink = 1 + (DIVE.shrink - 1) * (1 - (1 - clamp01(e / DIVE.breath)) ** 3);
+  const z = diveZoom(e);
+  return shrink * (DIVE.far / DIVE.shrink) ** (z * z);
 }
+
+/** The body's own fill as the dive starts (1 → 0): the app shows through it. */
+export function diveBody(e: number): number {
+  "worklet";
+  return 1 - smooth01((e - DIVE.at) / 0.1);
+}
+
+/** The eyes, a moment longer: they fly past. */
+export function diveEyes(e: number): number {
+  "worklet";
+  return 1 - smooth01((e - DIVE.at - 0.08) / 0.16);
+}
+
+/** The name, gone before the dive. */
+export function diveName(e: number): number {
+  "worklet";
+  return 1 - smooth01(e / DIVE.nameOut);
+}
+
+/** The native launch image (assets/images/splash-icon.png, 512 px with the body at 56–456) is 120 pt wide. */
+export const NATIVE_IMAGE = 120;
+/** So the agent's body there is this wide, centered on the screen: the splash starts exactly on it. */
+export const LOGO = (NATIVE_IMAGE * 400) / 512;
+/** The agent in the logo (the same as the app icon). */
+export const LOGO_LOOK = { color: "sky", eyes: "round" } as const;
+
+/** Whether the app, ready `readyMs` after the splash came up, skips its minimum (`LAUNCH.quick`). */
+export const launchesAtOnce = (readyMs: number) => readyMs <= LAUNCH.quick * 1000;
 
 /** The line under the name while it waits: none at first, then why (no network, or just slow). */
 export function waitLine(late: boolean, offline: boolean): "offline" | "slow" | null {
@@ -140,10 +174,9 @@ export const SPRITE_BODY = "#04203f";
 
 /**
  * The sky's tones, deep to light from the screen's background. `dusk`: the sky of a team's own server (lilac, as
- * the workspace's sky at dusk), so the splash that waits on that server says which one fell silent. `sky`: the app
- * icon's; a day sky's icon is its brighter blues in light (in dark the icons are all at night, as is this).
+ * the workspace's sky at dusk), so the splash that waits on that server says which one fell silent.
  */
-export function launchSkyTones(bg: string, dark: boolean, dusk = false, sky: MadeIconSky = "night"): string[] {
+export function launchSkyTones(bg: string, dark: boolean, dusk = false): string[] {
   if (dusk) {
     const [deep, light] = dark ? ["#4a40a8", "#7b6fe0"] : ["#c9c0ff", "#aaa6f5"];
     return dark
@@ -157,15 +190,6 @@ export function launchSkyTones(bg: string, dark: boolean, dusk = false, sky: Mad
       mixHex(bg, "#2b74e6", 0.3),
       mixHex(bg, "#2b74e6", 0.48),
       mixHex(bg, "#4b93ff", 0.66),
-    ];
-  if (sky === "sky")
-    return [
-      bg,
-      mixHex(bg, "#8cc3ff", 0.25),
-      mixHex(bg, "#8cc3ff", 0.55),
-      mixHex(bg, "#8cc3ff", 0.85),
-      "#8cc3ff",
-      "#4693e8",
     ];
   return [
     bg,

@@ -174,7 +174,7 @@ import {
 import { SecretCard } from "./SecretCard";
 import { ModelStandInLine, SpeedFallbackLine, StopPill } from "./StoppedLine";
 import { useStopMovedOn, useStoppedRun } from "./stopped-runs";
-import { SwipeSlide, SwipeTime, useGiveWay } from "./swipe-time";
+import { SwipeSlide, SwipeTime, useGiveWay, useSwipeSlide } from "./swipe-time";
 import { TeamChecks } from "./TeamChecks";
 import { SavedTools, TurnTools } from "./ToolCalls";
 import { keptTurn, stepLimitOf, stoppedOf, turnOpener } from "./turn";
@@ -575,6 +575,8 @@ function RowBody({
   // Someone else's bubble gives way to the times only when it is too wide for them (`useGiveWay`): its bubbles end
   // sooner than mine at the screen's edge, so that much room is there before it moves.
   const giveWay = useGiveWay(ROW_BODY_INSET.bubbles.right - BUBBLES_EDGE);
+  // A compact row runs to the screen's edge: its face and words slide over with the pull, for its time.
+  const slide = useSwipeSlide(compact);
 
   if (onRight) {
     // In bubbles the time and what became of the message are never in it (a mark coming in or swapping changed the
@@ -922,11 +924,6 @@ function RowBody({
           pressed && press && { backgroundColor: c.sunken },
         ]}
       >
-        {compact ? (
-          <Text variant="caption" tone="faint" style={lookRows.compactClock}>
-            {when.time(m.createdAt)}
-          </Text>
-        ) : null}
         {look.faces ? (
           <Animated.View
             style={[
@@ -934,6 +931,7 @@ function RowBody({
               bubbled && lookRows.bubblesSlot,
               compact && lookRows.compactSlot,
               inBubble && giveWay.style,
+              compact && slide,
             ]}
           >
             {grouped ? (
@@ -949,7 +947,7 @@ function RowBody({
           </Animated.View>
         ) : null}
         {/* Its face and its body give way together (`useGiveWay`), so the bubble never runs under the face. */}
-        <Animated.View style={[styles.body, { gap: rhythm.part }, inBubble && giveWay.style]}>
+        <Animated.View style={[styles.body, { gap: rhythm.part }, inBubble && giveWay.style, compact && slide]}>
           <RowParts top={partTop} part={bubblePart} head={bubbleHead}>
             {nameOrWords ? (
               <View onLayout={inBubble ? giveWay.onArea : undefined}>
@@ -1088,13 +1086,16 @@ function RowBody({
           </RowParts>
           {hintNode}
         </Animated.View>
-        {/* A bubble holds no time (its words alone set its width): a pull to the left shows it, in the row's gutter. */}
-        {inBubble ? (
+        {/* A bubble holds no time (its words alone set its width), nor does a compact row: a pull to the left shows it,
+            in the row's gutter (a compact row's mark stays on its first line). */}
+        {inBubble || compact ? (
           <SwipeTime>
             <Text variant="caption" tone="muted">
               {when.time(m.createdAt)}
             </Text>
-            {receipt || seenBy ? <ReceiptMark message={m} mine={mine} receipt={receipt} seenBy={seenBy} /> : null}
+            {inBubble && (receipt || seenBy) ? (
+              <ReceiptMark message={m} mine={mine} receipt={receipt} seenBy={seenBy} />
+            ) : null}
           </SwipeTime>
         ) : null}
         {popNode}
