@@ -117,13 +117,13 @@
   height: 100%;
 }
 .quota-dial__track {
-  fill: color-mix(in srgb, var(--ink) 22%, transparent);
+  fill: color-mix(in srgb, var(--ink) 34%, transparent);
 }
 .quota-dial__used {
   fill: var(--quota-tone);
 }
 .quota-dial__front {
-  fill: color-mix(in srgb, var(--quota-tone) 55%, transparent);
+  fill: color-mix(in srgb, var(--quota-tone) 70%, transparent);
 }
 .quota-dial__num {
   fill: var(--ink);
@@ -354,11 +354,16 @@
 }
 /* The bell beside the ring, on the same pixel grid: 2 points a cell. */
 .pixel-bell {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   fill: currentColor;
 }
 /* The ring and the bell: two tiles of one width, centered on one line. */
 .sidebar__me .quota-ring {
+  --quota-dial: 40px;
   width: var(--control-h-md);
+}
+/* The bell in ink, not muted: it reads beside the ring on the account card in both themes. */
+.sidebar__me .sidebar__bell {
+  color: color-mix(in srgb, var(--ink) 82%, transparent);
 }
