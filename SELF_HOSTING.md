@@ -1040,14 +1040,21 @@ with one exception you have to switch on: `OPERATOR_API_REVEAL_TOKEN` (a third v
 the other two). Leave it unset unless a tool of yours needs it. Set, `POST /reveal/orgs/{orgId}` reads
 one field of one record at a time (a message, a step of a run, an agent's instructions, a routine, a
 task, a connection's error, what a member wrote to you), at most 2,000 characters a call, with a
-reason in one line, for one of two purposes the server checks for itself. For a member who asked for
-help (`member_request` with the id of their support request, 30 days at most): only what that member
-reads in the app. To diagnose a run that failed or got stuck (`fault` with the run's id, 14 days at
-most): only what hangs on that run. Never a file or a credential, and of a direct conversation only
-for a member who is in it. Every read is recorded before any text leaves, in the events feed with
-your reason and in that workspace's own audit log (**Settings → Audit log**: who read what, at whose
-request or for which failed run, never your reason), credentials are masked, and the door takes 30
-calls a minute and 100 reads of one workspace a day. `GET /orgs/{orgId}/support-requests` lists who
+reason in one line, for one of three purposes. Two the server checks for itself. For a member who
+asked for help (`member_request` with the id of their support request, 30 days at most): only what
+that member reads in the app. To diagnose a run that failed or got stuck (`fault` with the run's id,
+14 days at most): only what hangs on that run. Never a file or a credential, and of a direct
+conversation only for a member who is in it. The third, `trust_safety`, is for investigating
+suspected abuse. The server has no record that could prove it, so it names no request and no run,
+never opens a support request's words or what people said to each other in a direct conversation,
+and is capped at 150 reads a day for the whole server. Every read is recorded before any text
+leaves, in the events feed with your reason. Requests and faults show in each workspace's own audit
+log at once (**Settings → Audit log**: who read what, at whose request or for which failed run,
+never your reason). A read to investigate abuse shows there when you disclose it, which you owe
+within 7 days and as soon as your review ends: `POST /orgs/{orgId}/content-reads/disclosure` with
+your full token and `{ from, to, count }` writes one entry that says you reviewed that many items
+for safety in that period. Credentials are masked, and the door takes 30 calls a minute and 100
+reads of one workspace a day. `GET /orgs/{orgId}/support-requests` lists who
 asked for help and when, and `POST` there records a request that reached you another way (a mail, a
 call), which the audit log then shows as recorded by you. `POST /reveal/orgs/{orgId}/replies` answers
 a member's support request by email, at the address of their account and in their language, never
@@ -1057,7 +1064,8 @@ replies a request and 60 a day, and is recorded in the events feed and in that w
 (that you answered, whose request, and whether an AI assistant wrote the answer), never with its
 words, which the server forgets once the email is sent or given up. Write in a reply only what that
 member could read in the app. Setting the token makes you a reader of your workspaces' content: tell
-them before the first read, and say whether an AI assistant reads with you (`assistedByAi`). It also
+them before the first read what you may read it for, and say whether an AI assistant reads with you
+(`assistedByAi`). It also
 makes the server keep what members write in the feedback form, and what the thing they reported
 says, for 90 days beside their request. Unset, every path under
 `/reveal` answers 403 and the server keeps neither: of a member's feedback it keeps only that they

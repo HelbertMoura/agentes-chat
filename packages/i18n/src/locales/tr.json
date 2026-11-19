@@ -16785,6 +16785,12 @@
       "sentence": "{{who}} e-postayla yanıt verdi",
       "request": "{{name}} adlı üyenin destek talebi"
     },
+    "operatorReview": {
+      "sentence": "{{who}} güvenlik amacıyla içerik inceledi",
+      "items_one": "{{value}} öğe",
+      "items_other": "{{value}} öğe",
+      "period": "{{from}} – {{to}}"
+    },
     "change": {
       "mergedWithoutAsking": "{{repo}} içinde sormadan birleştirdi",
       "accentChanged": "Çalışma alanının vurgu rengini değiştirdi",

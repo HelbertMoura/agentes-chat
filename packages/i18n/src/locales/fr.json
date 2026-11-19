@@ -17406,6 +17406,13 @@
       "sentence": "{{who}} a répondu par e-mail",
       "request": "demande d'assistance de {{name}}"
     },
+    "operatorReview": {
+      "sentence": "{{who}} a examiné du contenu par mesure de sécurité",
+      "items_one": "{{value}} élément",
+      "items_many": "{{value}} éléments",
+      "items_other": "{{value}} éléments",
+      "period": "du {{from}} au {{to}}"
+    },
     "change": {
       "mergedWithoutAsking": "A mergé dans {{repo}} sans demander",
       "accentChanged": "A changé la couleur d’accent de l’espace de travail",

@@ -17310,6 +17310,22 @@ export const en = {
       /** Under the sentence, before `operatorRead.ai`, and after "Reason:" in the entry's panel. `name`: the member. */
       request: "support request from {{name}}",
     },
+    /** Whoever runs the server tells the workspace, afterwards, that it read content to investigate suspected abuse. */
+    operatorReview: {
+      /** `who`: one of `operatorRead.who.*`. As short as the language allows: a phone's list cuts it after one line. */
+      sentence: "{{who}} reviewed content for safety",
+      /**
+       * Under the sentence, its first words: how many, before a "·" and the days. `value`: the count as the language
+       * writes numbers. It stands alone, so it takes the form a count has by itself.
+       */
+      items_one: "{{value}} item",
+      items_other: "{{value}} items",
+      /**
+       * Under the sentence, after the count and a "·": the review's first and last day. `from`, `to`: short dates
+       * ("Nov 3"). A review of one day shows that date alone, without these words.
+       */
+      period: "{{from}} to {{to}}",
+    },
     change: {
       mergedWithoutAsking: "Merged in {{repo}} without asking",
       accentChanged: "Changed the workspace's accent color",

@@ -41486,6 +41486,18 @@
   "audit.operatorReply.request": {
     "value": "support request from {{name}}"
   },
+  "audit.operatorReview.sentence": {
+    "value": "{{who}} reviewed content for safety"
+  },
+  "audit.operatorReview.items": {
+    "value": {
+      "one": "{{value}} item",
+      "other": "{{value}} items"
+    }
+  },
+  "audit.operatorReview.period": {
+    "value": "{{from}} to {{to}}"
+  },
   "audit.change.mergedWithoutAsking": {
     "value": "Merged in {{repo}} without asking"
   },

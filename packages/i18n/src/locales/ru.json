@@ -17915,6 +17915,14 @@
       "sentence": "{{who}}: ответ по почте",
       "request": "запрос в поддержку от {{name}}"
     },
+    "operatorReview": {
+      "sentence": "{{who}}: проверка содержимого в целях безопасности",
+      "items_one": "{{value}} элемент",
+      "items_few": "{{value}} элемента",
+      "items_many": "{{value}} элементов",
+      "items_other": "{{value}} элемента",
+      "period": "с {{from}} по {{to}}"
+    },
     "change": {
       "mergedWithoutAsking": "Выполнено слияние в {{repo}} без вопросов",
       "accentChanged": "Изменён акцентный цвет рабочего пространства",

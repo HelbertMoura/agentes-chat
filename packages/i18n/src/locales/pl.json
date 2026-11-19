@@ -17972,6 +17972,14 @@
       "sentence": "{{who}}: odpowiedziano e-mailem",
       "request": "prośba o wsparcie od osoby: {{name}}"
     },
+    "operatorReview": {
+      "sentence": "{{who}}: sprawdzono treści ze względów bezpieczeństwa",
+      "items_one": "{{value}} element",
+      "items_few": "{{value}} elementy",
+      "items_many": "{{value}} elementów",
+      "items_other": "{{value}} elementu",
+      "period": "od {{from}} do {{to}}"
+    },
     "change": {
       "mergedWithoutAsking": "Scalono w {{repo}} bez pytania",
       "accentChanged": "Zmieniono kolor akcentu przestrzeni roboczej",

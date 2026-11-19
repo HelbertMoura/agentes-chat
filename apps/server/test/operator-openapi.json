@@ -3,7 +3,7 @@
   "info": {
     "title": "agentes.chat operator API",
     "version": "test",
-    "description": "Workspace and account lookups, what a run did and why a message started one or none, what a workspace connected, recorded, asked and scheduled, what a person was notified of and reaches, the messages no run answered, the job queue, the emails queued to an address and what model calls spent, the times a member asked for help, one piece of what a workspace wrote read with a reason and a member's support request answered by email (the reveal door), workspace standing, billing holds and limits (ADR 0079), a workspace's logo and accent color (ADR 0193), the extra hostnames this server answers on with their look (ADR 0194), outside collaborators (ADR 0191), the events feed and review blocks, the workspaces' computers from an external provisioner, who may sign up (the waiting list and early-access invitations, ADR 0078), how new Claude sign-ins for all agents are made (ADR 0150), and how connectors are used (ADR 0103), for the people who run this instance (ADR 0056)."
+    "description": "Workspace and account lookups, what a run did and why a message started one or none, what a workspace connected, recorded, asked and scheduled, what a person was notified of and reaches, the messages no run answered, the job queue, the emails queued to an address and what model calls spent, the times a member asked for help, one piece of what a workspace wrote read with a reason and a member's support request answered by email (the reveal door), a workspace told afterwards that its content was read to investigate suspected abuse, workspace standing, billing holds and limits (ADR 0079), a workspace's logo and accent color (ADR 0193), the extra hostnames this server answers on with their look (ADR 0194), outside collaborators (ADR 0191), the events feed and review blocks, the workspaces' computers from an external provisioner, who may sign up (the waiting list and early-access invitations, ADR 0078), how new Claude sign-ins for all agents are made (ADR 0150), and how connectors are used (ADR 0103), for the people who run this instance (ADR 0056)."
   },
   "servers": [
     {
@@ -7265,8 +7265,8 @@
           },
           "purpose": {
             "type": "string",
-            "enum": ["member_request", "fault"],
-            "description": "`member_request`: a member asked for help (`requestId`). `fault`: a run failed or got stuck (`runId`)."
+            "enum": ["member_request", "fault", "trust_safety"],
+            "description": "`member_request`: a member asked for help (`requestId`). `fault`: a run failed or got stuck (`runId`). `trust_safety`: a safety review, to investigate suspected abuse (neither)."
           },
           "reason": {
             "type": "string",
@@ -7282,17 +7282,17 @@
           },
           "assistedByAi": {
             "type": "boolean",
-            "description": "Whether an AI assistant reads the answer. The workspace's audit entry says so."
+            "description": "Whether an AI assistant reads the answer. The workspace's audit entry says so, and the `content.viewed` event."
           },
           "requestId": {
             "type": "string",
             "format": "uuid",
-            "description": "A support request of this workspace made in the last 30 days. With `member_request`, the proof: what its member reads in the app now is what opens. With `fault`, optional: the report the run was about, which the run's days then count back from."
+            "description": "A support request of this workspace made in the last 30 days. With `member_request`, the proof: what its member reads in the app now is what opens. With `fault`, optional: the report the run was about, which the run's days then count back from. Refused with `trust_safety`."
           },
           "runId": {
             "type": "string",
             "format": "uuid",
-            "description": "With `fault`, the proof: a run of this workspace made in the last 14 days (or up to 14 days before `requestId`'s request) that failed, stands still for over an hour with nothing a person is asked to do, or holds a failed step."
+            "description": "With `fault`, the proof: a run of this workspace made in the last 14 days (or up to 14 days before `requestId`'s request) that failed, stands still for over an hour with nothing a person is asked to do, or holds a failed step. Refused with `trust_safety`."
           }
         },
         "required": ["kind", "id", "field", "purpose", "reason", "operator", "assistedByAi"],
@@ -7342,6 +7342,46 @@
           }
         },
         "required": ["requestId", "operator", "assistedByAi"],
+        "additionalProperties": false
+      },
+      "OperatorDisclosure": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "count": {
+            "type": "integer"
+          }
+        },
+        "required": ["from", "to", "count"]
+      },
+      "OperatorDisclosureRequest": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the first of the reads was made."
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the last was made: after `from`, at most 90 days after it, and not in the future."
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000,
+            "description": "How many items you read. Your own count: this server checks it against nothing."
+          }
+        },
+        "required": ["from", "to", "count"],
         "additionalProperties": false
       },
       "OperatorHost": {
@@ -12885,7 +12925,7 @@
       "post": {
         "tags": ["Operator"],
         "summary": "Read one field of one record of what a workspace wrote, with a reason",
-        "description": "Only with `OPERATOR_API_REVEAL_TOKEN`. One record a call, at most 2000 characters, for one of two purposes that a record of the workspace proves. For `member_request`: the support request is this workspace's and recent (403 `reveal.no_request`), its member still is one (`reveal.requester`) and reads the record in the app now (`reveal.not_visible`). For `fault`: the run failed or got stuck in its days (`reveal.no_fault`), the record is its step, the message that started it or one it wrote, its agent's instructions, its routine or a task it started, or, for a run that went on past a failed step, that step's `error` and its call's `input` alone (`reveal.not_the_fault`), and it is not of a direct conversation (`reveal.direct_conversation`). What a run of a confidential thread holds opens under neither purpose: its steps and a task it started answer 403 `reveal.confidential` where the proof would have opened them, and a message of such a thread reads as its stub. Before any text is read, the read is recorded: a `content.viewed` event with the reason, and an entry in the workspace's own audit log (`operator.content_read`) with what was read, the purpose and its proof, never the reason. A record of another workspace, a deleted one and one nobody has answer the same 404. An `error` of something that did not fail is 409 `reveal.no_error`. At most 30 calls a minute (429 `reveal.limit_minute`) and 100 reads of one workspace in 24 hours (`reveal.limit_workspace`).",
+        "description": "Only with `OPERATOR_API_REVEAL_TOKEN`. One record a call, at most 2000 characters, for one of three purposes. Two are proved by a record of the workspace. For `member_request`: the support request is this workspace's and recent (403 `reveal.no_request`), its member still is one (`reveal.requester`) and reads the record in the app now (`reveal.not_visible`). For `fault`: the run failed or got stuck in its days (`reveal.no_fault`), the record is its step, the message that started it or one it wrote, its agent's instructions, its routine or a task it started, or, for a run that went on past a failed step, that step's `error` and its call's `input` alone (`reveal.not_the_fault`), and it is not of a direct conversation (`reveal.direct_conversation`). For `trust_safety`, a safety review to investigate suspected abuse, no record proves the purpose and the call names none (`requestId` or `runId` with it is a 400): this server has no record of an abuse investigation, so your own service answers for the cause. It opens every kind but a support request's words (`reveal.not_visible`), and of a direct conversation never a message that no agent wrote and that started no run (`reveal.direct_conversation`). What a run of a confidential thread holds opens under no purpose: its steps and a task it started answer 403 `reveal.confidential` where the purpose would have opened them, and a message of such a thread reads as its stub. Before any text is read, the read is recorded: a `content.viewed` event with the reason, and, for `member_request` and `fault`, an entry in the workspace's own audit log (`operator.content_read`) with what was read, the purpose and its proof, never the reason. A read for `trust_safety` writes the event and no entry: you tell the workspace afterwards with `POST /orgs/{orgId}/content-reads/disclosure`, when your review ends and 7 days after the read at the latest. A record of another workspace, a deleted one and one nobody has answer the same 404. An `error` of something that did not fail is 409 `reveal.no_error`. At most 30 calls a minute (429 `reveal.limit_minute`), 100 reads of one workspace in 24 hours (`reveal.limit_workspace`) and, on the whole server, 150 reads for `trust_safety` in 24 hours (`reveal.limit_untold`).",
         "parameters": [
           {
             "schema": {
@@ -12939,7 +12979,7 @@
             }
           },
           "403": {
-            "description": "Not the reveal token, the door is closed, the purpose's proof does not open this, or a confidential thread keeps it",
+            "description": "Not the reveal token, the door is closed, the purpose does not open this, or a confidential thread keeps it",
             "content": {
               "application/json": {
                 "schema": {
@@ -13070,6 +13110,86 @@
           },
           "429": {
             "description": "Past the replies' own limits, or the door's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orgs/{orgId}/content-reads/disclosure": {
+      "post": {
+        "tags": ["Operator"],
+        "summary": "Tell a workspace, afterwards, that its content was read to investigate suspected abuse",
+        "description": "Only with `OPERATOR_API_TOKEN`. An operator that read content for `trust_safety` tells the workspace afterwards that it did: one entry in the workspace's own audit log (`operator.content_review_disclosed`, actor `system`) with the period and how many items, and nothing else: no reason, no record, no text. You owe it when your review ends, and 7 days after the read at the latest. The same `from` and `to` again answer the entry first written and write nothing, so a call that timed out can be sent again; another period writes its own entry.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "orgId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OperatorDisclosureRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorDisclosure"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request: a period that has not ended, is backwards or too long, or a count out of bounds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or wrong token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not the full token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
             "content": {
               "application/json": {
                 "schema": {

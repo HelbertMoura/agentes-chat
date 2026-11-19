@@ -16918,6 +16918,12 @@
       "sentence": "{{who}} antwoordde per e-mail",
       "request": "supportverzoek van {{name}}"
     },
+    "operatorReview": {
+      "sentence": "{{who}} controleerde inhoud om veiligheidsredenen",
+      "items_one": "{{value}} item",
+      "items_other": "{{value}} items",
+      "period": "{{from}} t/m {{to}}"
+    },
     "change": {
       "mergedWithoutAsking": "Gemerged in {{repo}} zonder te vragen",
       "accentChanged": "Heeft de accentkleur van de werkruimte gewijzigd",

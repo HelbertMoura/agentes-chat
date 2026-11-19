@@ -17331,6 +17331,13 @@
       "sentence": "{{who}} respondió por correo",
       "request": "solicitud de soporte de {{name}}"
     },
+    "operatorReview": {
+      "sentence": "{{who}} revisó contenido por seguridad",
+      "items_one": "{{value}} elemento",
+      "items_many": "{{value}} elementos",
+      "items_other": "{{value}} elementos",
+      "period": "del {{from}} al {{to}}"
+    },
     "change": {
       "mergedWithoutAsking": "Hizo merge en {{repo}} sin preguntar",
       "accentChanged": "Cambió el color de acento del espacio de trabajo",

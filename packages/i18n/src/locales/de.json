@@ -16850,6 +16850,12 @@
       "sentence": "{{who}} hat per E-Mail geantwortet",
       "request": "Support-Anfrage von {{name}}"
     },
+    "operatorReview": {
+      "sentence": "{{who}} hat Inhalte aus Sicherheitsgründen geprüft",
+      "items_one": "{{value}} Element",
+      "items_other": "{{value}} Elemente",
+      "period": "{{from}} bis {{to}}"
+    },
     "change": {
       "mergedWithoutAsking": "In {{repo}} ohne Nachfrage gemergt",
       "accentChanged": "Hat die Akzentfarbe des Workspace geändert",

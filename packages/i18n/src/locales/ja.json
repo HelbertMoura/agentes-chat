@@ -16261,6 +16261,11 @@
       "sentence": "{{who}}がメールで回答",
       "request": "{{name}}のサポートへの依頼"
     },
+    "operatorReview": {
+      "sentence": "{{who}}が安全上の理由でコンテンツを確認",
+      "items_other": "{{value}}件",
+      "period": "{{from}}〜{{to}}"
+    },
     "change": {
       "mergedWithoutAsking": "{{repo}}で確認なしでマージしました",
       "accentChanged": "ワークスペースのアクセントカラーを変更",

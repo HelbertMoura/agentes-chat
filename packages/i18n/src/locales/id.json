@@ -16314,6 +16314,11 @@
       "sentence": "{{who}} menjawab lewat email",
       "request": "permintaan dukungan dari {{name}}"
     },
+    "operatorReview": {
+      "sentence": "{{who}} meninjau konten demi keamanan",
+      "items_other": "{{value}} item",
+      "period": "{{from}} sampai {{to}}"
+    },
     "change": {
       "mergedWithoutAsking": "Merge di {{repo}} tanpa bertanya",
       "accentChanged": "Mengubah warna aksen ruang kerja",

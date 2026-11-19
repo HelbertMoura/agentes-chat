@@ -16330,6 +16330,11 @@
       "sentence": "{{who}}通过邮件回复了",
       "request": "{{name}} 的支持请求"
     },
+    "operatorReview": {
+      "sentence": "{{who}}出于安全原因审查了内容",
+      "items_other": "{{value}} 项内容",
+      "period": "{{from}}至{{to}}"
+    },
     "change": {
       "mergedWithoutAsking": "未经询问在 {{repo}} 中合并",
       "accentChanged": "更改了工作区的强调色",

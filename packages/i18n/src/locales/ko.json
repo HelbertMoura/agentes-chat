@@ -16253,6 +16253,11 @@
       "sentence": "{{who}}이 이메일로 답했어요",
       "request": "{{name}}님의 지원 요청"
     },
+    "operatorReview": {
+      "sentence": "{{who}}이 안전을 위해 콘텐츠를 검토했어요",
+      "items_other": "{{value}}개 항목",
+      "period": "{{from}}~{{to}}"
+    },
     "change": {
       "mergedWithoutAsking": "{{repo}}에서 묻지 않고 병합했어요",
       "accentChanged": "워크스페이스의 강조 색상을 변경했어요",
