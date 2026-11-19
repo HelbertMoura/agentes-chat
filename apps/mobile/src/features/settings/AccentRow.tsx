@@ -4,14 +4,14 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, View } from "react-native";
 import { useOrg } from "@/providers/org";
-import { GroupedList, GroupedRow, useToast } from "@/ui";
+import { GroupedList, GroupedRow, type IconName, useToast } from "@/ui";
 import { ColorSheet } from "../agents/ColorSheet";
 import { useColors } from "../shared/hooks";
 import { errorHaptic, successHaptic } from "../shared/parts";
 import { chooseAction } from "./parts";
 
-/** The swatch: the agent color as the app paints it now. */
-const SWATCH = 22;
+/** The swatch: the agent color as the app paints it now, a round dot before the row's mark. */
+const SWATCH = 20;
 
 /**
  * Settings › General › "Accent color" (ADR 0193), as on the web: the color shown now, and for who configures the
@@ -56,6 +56,7 @@ export function usePersonalAccent() {
     fallback: theirs,
     editable: true,
     pending: save.isPending,
+    icon: "palette",
     label: t("orgAccent.mine"),
     resetLabel: t(theirs ? "orgAccent.useWorkspace" : "orgAccent.useDefault"),
     onCommit: (accent) =>
@@ -94,6 +95,7 @@ function useAccentPicker({
   fallback = null,
   editable,
   pending,
+  icon,
   label,
   resetLabel,
   onCommit,
@@ -102,6 +104,8 @@ function useAccentPicker({
   fallback?: string | null;
   editable: boolean;
   pending: boolean;
+  /** The row's tile, as its neighbors' in a list of tiles. */
+  icon?: IconName;
   label?: string;
   resetLabel: string;
   onCommit: (accent: string | null) => void;
@@ -133,9 +137,12 @@ function useAccentPicker({
     row: (
       <GroupedRow
         key="accent"
+        {...(icon ? { icon } : {})}
         label={title}
         valueLeading={<View style={[styles.swatch, { backgroundColor: c.agent, borderColor: c.line2 }]} />}
-        {...(editable ? { more: Boolean(saved), chevron: !saved, onPress: choose, disabled: pending } : {})}
+        // A color of its own opens a menu (change it, or go back to the workspace's), as Sons and Aparência do;
+        // none yet goes straight to the picker.
+        {...(editable ? { menu: Boolean(saved), chevron: !saved, onPress: choose, disabled: pending } : {})}
       />
     ),
     sheet: (
@@ -154,5 +161,5 @@ function useAccentPicker({
 }
 
 const styles = StyleSheet.create({
-  swatch: { width: SWATCH, height: SWATCH, borderRadius: SWATCH * 0.3, borderWidth: StyleSheet.hairlineWidth },
+  swatch: { width: SWATCH, height: SWATCH, borderRadius: SWATCH / 2, borderWidth: StyleSheet.hairlineWidth },
 });
