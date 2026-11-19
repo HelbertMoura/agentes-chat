@@ -2,7 +2,6 @@ import type { PlanAccountInfo, PlanUsage } from "@agenteschat/client";
 import {
   accountName,
   accountWhose,
-  brandOf,
   type MeterSegment,
   type MeterWindow,
   planMeterText,
@@ -14,12 +13,14 @@ import {
   modelQuota,
   PLAN_ALMOST,
   PLAN_TONE,
+  planAgeShown,
   planLevel,
   planLine,
   planSections,
   planState,
   planWindows,
   renewals,
+  windowAmount,
 } from "@agenteschat/ui/plan-state";
 import { Canvas, createPicture, Picture, Skia } from "@shopify/react-native-skia";
 import { type ReactNode, useMemo, useState } from "react";
@@ -158,9 +159,9 @@ export function PlanMeter({
         const quota = sections ? modelQuota(w) : null;
         const name = quota ? text.window({ kind: quota.kind }) : text.window(w);
         const heading = sections && first ? text.group(group) : null;
-        // A window that reset is empty again: its parts were the old window's.
-        const fresh = !passed(w.resetsAt);
-        const level = planLevel(w.used);
+        // A window that reset is empty again: its parts were the old window's. One read too long ago may have.
+        const fresh = !passed(w.resetsAt) && !w.stale;
+        const level = w.stale ? "ok" : planLevel(w.used);
         const tone = c[PLAN_TONE[level]];
         return (
           <View key={`${w.kind}:${w.label ?? i}`} style={styles.window}>
@@ -174,17 +175,19 @@ export function PlanMeter({
                 {name}
               </Text>
               <Text variant="small" tone="muted" style={[styles.tabular, level !== "ok" && { color: tone }]}>
-                {w.used}%
+                {windowAmount(usage, w, text)}
               </Text>
             </View>
-            <Meter
-              value={w.used}
-              label={quota ? `${text.group(group)} · ${name}` : name}
-              mark={PLAN_ALMOST}
-              color={tone}
-              {...(w.part !== undefined && fresh ? { part: w.part } : {})}
-              {...(w.segments && fresh ? { segments: w.segments } : {})}
-            />
+            {w.stale ? null : (
+              <Meter
+                value={w.used}
+                label={quota ? `${text.group(group)} · ${name}` : name}
+                mark={PLAN_ALMOST}
+                color={tone}
+                {...(w.part !== undefined && fresh ? { part: w.part } : {})}
+                {...(w.segments && fresh ? { segments: w.segments } : {})}
+              />
+            )}
             {w.note && fresh ? (
               <Text variant="caption" tone="muted">
                 {w.note}
@@ -204,9 +207,11 @@ export function PlanMeter({
           {renews}
         </Text>
       ) : null}
-      <Text variant="caption" tone="muted">
-        {text.updated(usage.at)}
-      </Text>
+      {planAgeShown(usage, now) ? (
+        <Text variant="caption" tone="muted">
+          {text.updated(usage.at)}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -235,11 +240,12 @@ export function PlanModels({ usage, provider }: { usage: Pick<PlanUsage, "models
   );
 }
 
-/** An account's head: the maker's mark, its name and plan, its maker and whose it is. */
+/** An account's head: the maker's mark, its name and plan, and whose it is. */
 export function AccountHead({ account, extra }: { account: PlanAccountInfo; extra?: string | null }) {
   const { t } = useTranslation();
   const c = useColors();
-  const whose = accountWhose(t, account);
+  // The logo already names the maker: under the name only whose it is.
+  const sub = [accountWhose(t, account), extra].filter(Boolean).join(" · ");
   // The maker's logo, the account and its plan on one line, whose it is under them at the row's width.
   return (
     <View style={styles.acctBox}>
@@ -253,9 +259,11 @@ export function AccountHead({ account, extra }: { account: PlanAccountInfo; extr
           {account.signedOut ? <Tag text={t("usageViews.signedOut")} color={c.warn} /> : null}
         </View>
       </View>
-      <Text variant="small" tone="muted">
-        {[brandOf(account), whose, extra].filter(Boolean).join(" · ")}
-      </Text>
+      {sub ? (
+        <Text variant="small" tone="muted">
+          {sub}
+        </Text>
+      ) : null}
     </View>
   );
 }

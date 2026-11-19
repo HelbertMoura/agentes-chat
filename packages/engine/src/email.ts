@@ -171,6 +171,8 @@ export type EmailTemplate =
       url: string;
       /** With `orgName`: a personal workspace's (ADR 0159). */
       personal?: true;
+      /** With `orgName`: the code resets the workspace instead of deleting it. */
+      reset?: true;
     }
   /**
    * A code to type before the account's address becomes `newEmail` (ADR 0088 §2, addendum 2026-11-13), to its current
@@ -313,7 +315,7 @@ export type EmailTemplate =
    * the people who run the server. `url`: the server's own address, for the pictures.
    */
   /**
-   * The account's two-step sign-in changed (ADR 0201): turned on (every other device signed out), turned off, or new
+   * The account's two-step sign-in changed (ADR 0202): turned on (every other device signed out), turned off, or new
    * recovery codes. `support`: where to write if it wasn't them.
    */
   | {
@@ -879,6 +881,14 @@ function docOf(t: EmailTemplate, sender: string | null): EmailDoc {
     case "deletion_code": {
       const c = inMode(w.deletionCode, t.personal);
       const org = t.orgName === undefined ? null : inertText(t.orgName);
+      if (org !== null && t.reset)
+        return doc(
+          c.subjectReset(t.code),
+          c.preheader,
+          c.headline,
+          [{ p: c.reset(org) }, { code: t.code }, { small: t.support ? c.support(t.support) : c.noSupport }],
+          c.whyReset(org),
+        );
       return doc(
         org === null ? c.subjectAccount(t.code) : c.subjectWorkspace(t.code),
         c.preheader,

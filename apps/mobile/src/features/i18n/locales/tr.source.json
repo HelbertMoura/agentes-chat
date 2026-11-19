@@ -836,6 +836,9 @@
       "other": "replies"
     }
   },
+  "chat.dayAt": {
+    "value": "{{day}} {{time}}"
+  },
   "chat.thread": {
     "value": "Thread"
   },
@@ -943,12 +946,6 @@
   },
   "chat.steer.resolved": {
     "value": "{{name}} closed the help request"
-  },
-  "chat.steer.well": {
-    "value": "Read your note"
-  },
-  "chat.steer.wellNow": {
-    "value": "Stopped to read your note"
   },
   "chat.stopped.byYou": {
     "value": "Stopped here"
@@ -1324,12 +1321,6 @@
   },
   "plus.noCamera": {
     "value": "No camera access. Allow it in the phone's Settings."
-  },
-  "plus.mission": {
-    "value": "Start a mission"
-  },
-  "plus.missionHint": {
-    "value": "Long work, with a plan, from start to finish"
   },
   "plus.summary": {
     "value": "Sum up the chat"
@@ -5612,6 +5603,12 @@
   },
   "settings.deleteFailed": {
     "value": "Couldn't delete the workspace. Try again."
+  },
+  "settings.holdReset": {
+    "value": "Hold to reset"
+  },
+  "settings.resetFailed": {
+    "value": "Couldn't reset the workspace. Try again."
   },
   "settings.access.how": {
     "value": "Tap a row to change its level: No access, Read, Read and write."

@@ -305,7 +305,7 @@ const KNOWN = {
   PASSWORD_TOO_SHORT: "auth.passwordHelp",
   PASSWORD_TOO_LONG: "auth.passwordTooLong",
   INVALID_PASSWORD: "errors.reauth.password",
-  // The second step of a sign-in (ADR 0201), Better Auth's two-factor plugin's codes.
+  // The second step of a sign-in (ADR 0202), Better Auth's two-factor plugin's codes.
   INVALID_CODE: "auth.twoFactor.wrongCode",
   INVALID_BACKUP_CODE: "auth.twoFactor.wrongRecovery",
   TOO_MANY_ATTEMPTS_REQUEST_NEW_CODE: "auth.twoFactor.expired",
@@ -599,6 +599,7 @@ const KNOWN = {
   "join.waiting": "errors.said.alreadyAsked",
   "mail.already_connected": "errors.said.mailboxConnected",
   "mail.send_without_asking_needs_recipients": "errors.said.sendNeedsRecipients",
+  "mission.executor_unavailable": "errors.mission.executorUnavailable",
   "mission.tasks_live": "errors.said.missionLive",
   "org.create_refused": "errors.said.createRefused",
   "reminder.no_agent": "errors.said.noAgentToRemind",
@@ -633,7 +634,7 @@ const KNOWN = {
 export const ACCOUNT_BLOCKED = "ACCOUNT_BLOCKED";
 
 /**
- * A sign-in that waits for a code from the account's authenticator app (ADR 0201; mirrors apps/server two-factor.ts):
+ * A sign-in that waits for a code from the account's authenticator app (ADR 0202; mirrors apps/server two-factor.ts):
  * the answer of every way of signing in, and the code a provider's return brings back to the sign-in page.
  */
 export const TWO_FACTOR_REQUIRED = "TWO_FACTOR_REQUIRED";

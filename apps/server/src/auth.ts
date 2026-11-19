@@ -236,7 +236,7 @@ export function createAuth(deps: {
       phoneBrowserSignIn(),
       desktopSignIn(),
       ownerSignIn({ db, config, log, mint: (adapter, userId) => mintSignIn(adapter, `${FOR_USER}${userId}`) }),
-      // A code from an authenticator app as a second step (ADR 0201): `twoFactorGate` holds every way in to it.
+      // A code from an authenticator app as a second step (ADR 0202): `twoFactorGate` holds every way in to it.
       twoFactorPlugin(
         isAgentesCloud(config.PUBLIC_URL) ? "agentes.chat" : `agentes.chat (${new URL(config.PUBLIC_URL).host})`,
       ),
@@ -406,7 +406,7 @@ export function createAuth(deps: {
         "/phone/redeem": { window: 60, max: 10 },
         "/owner-claim": { window: 60, max: 10 },
         "/owner-key": { window: 60, max: 10 },
-        // Per address, beside the plugin's 5 tries per challenge and its lock on the account (ADR 0201).
+        // Per address, beside the plugin's 5 tries per challenge and its lock on the account (ADR 0202).
         "/two-factor/verify-totp": { window: 60, max: 10 },
         "/two-factor/verify-backup-code": { window: 60, max: 10 },
         "/two-factor/enable": { window: 60, max: 5 },
@@ -633,7 +633,7 @@ export function createAuth(deps: {
                 ...block,
               });
             }
-            // After the block, which says the real reason: every new session waits for the second step (ADR 0201).
+            // After the block, which says the real reason: every new session waits for the second step (ADR 0202).
             return twoFactorGate(db, session, context);
           },
           // Here, not in `before`: the insert may wait for the undo's commit, and only after it can it see the undo.
@@ -1023,7 +1023,8 @@ export async function confirmsOnThisMac(
 
 /**
  * Proof that the person at this session is the account's own, before deleting the workspace `orgId`, or their account
- * when it is null (ADR 0088 §2): the code emailed to them (`spendDeletionCode`). On a server that sends no email, their
+ * when it is null, or with `reset` before resetting the workspace (ADR 0088 §2): the code emailed to them
+ * (`spendDeletionCode`). On a server that sends no email, their
  * password instead, with 5 tries per 15 minutes per account (429 after), or, for the owner `confirmsOnThisMac`, a
  * sign-in in the last 10 minutes when no password comes. Throws `reauth.code` without a code, `reauth.sign_in` for
  * that owner's older sign-in, and `reauth.password` without a password or with a wrong one.
@@ -1035,10 +1036,11 @@ export async function deletionProof(
   userId: string,
   orgId: string | null,
   proof: { code?: string; password?: string },
+  reset = false,
 ) {
   if (deps.emailDelivers) {
     if (!proof.code) throw new ForbiddenError("Type the code we emailed you", "reauth.code");
-    return spendDeletionCode(deps, userId, orgId, proof.code);
+    return spendDeletionCode(deps, userId, orgId, proof.code, new Date(), reset);
   }
   if (!proof.password && (await confirmsOnThisMac(deps, userId))) {
     if (await signedInLately(auth, headers, userId)) return;
@@ -1328,7 +1330,7 @@ const phoneSignIn = {
         }
         if (!user) throw new APIError("UNAUTHORIZED", { message: "This code expired or was already used" });
         // Minted from a session, it signed in when that one did: it proves no fresher sign-in (`signedInLately`).
-        // Minted from a session, it is that session's copy and asks for no second code (ADR 0201); for a person by
+        // Minted from a session, it is that session's copy and asks for no second code (ADR 0202); for a person by
         // id (the owner key's, an approved request's), it does.
         const userId = user.id;
         const session = signedIn

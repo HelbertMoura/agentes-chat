@@ -349,6 +349,7 @@
     "replies_other": "{{count}} yanıt",
     "repliesWord_one": "yanıt",
     "repliesWord_other": "yanıt",
+    "dayAt": "{{day}} {{time}}",
     "thread": "İleti dizisi",
     "closed": "kapalı",
     "options": "Seçenekler",
@@ -385,9 +386,7 @@
       "delivered": "{{name}} aldı",
       "held": "{{name}} kararınızdan sonra okuyacak",
       "read": "{{name}} okudu",
-      "resolved": "{{name}} yardım isteğini kapattı",
-      "well": "Notunuzu okudu",
-      "wellNow": "Notunuzu okumak için durdu"
+      "resolved": "{{name}} yardım isteğini kapattı"
     },
     "stopped": {
       "byYou": "Burada durdu",
@@ -570,8 +569,6 @@
     "file": "Dosya",
     "media": "GIF'ler",
     "noCamera": "Kamera erişimi yok. Telefonun Ayarlar bölümünden izin verin.",
-    "mission": "Misyon başlat",
-    "missionHint": "Baştan sona, planlı uzun bir iş",
     "summary": "Sohbeti özetle",
     "summaryHint": "Siz yokken olanlar",
     "remind": "Daha sonra hatırlat",
@@ -2277,6 +2274,8 @@
     "deleteIntro": "{{name}} herkes için hemen salt okunur olur ve 7 gün sonra kalıcı olarak silinir.",
     "holdDelete": "Silmek için basılı tutun",
     "deleteFailed": "Çalışma alanı silinemedi. Tekrar deneyin.",
+    "holdReset": "Sıfırlamak için basılı tutun",
+    "resetFailed": "Çalışma alanı sıfırlanamadı. Tekrar deneyin.",
     "access": {
       "how": "Düzeyini değiştirmek için bir satıra dokunun: Erişim yok, Okuma, Okuma ve yazma."
     },

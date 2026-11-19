@@ -180,7 +180,7 @@ describe("Entrar (e-mail primeiro)", () => {
     expect(router.state.location.pathname).toBe(`/org/${ORG_ID}/drive`);
   });
 
-  test("two-step sign-in (ADR 0201): the password asks for the app's code, a wrong one frowns, a recovery code works", async () => {
+  test("two-step sign-in (ADR 0202): the password asks for the app's code, a wrong one frowns, a recovery code works", async () => {
     const state = seedState({ me: null });
     const signedIn = seedState().me;
     let codes = 0;

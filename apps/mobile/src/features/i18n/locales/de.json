@@ -349,6 +349,7 @@
     "replies_other": "{{count}} Antworten",
     "repliesWord_one": "Antwort",
     "repliesWord_other": "Antworten",
+    "dayAt": "{{day}} {{time}}",
     "thread": "Thread",
     "closed": "geschlossen",
     "options": "Optionen",
@@ -385,9 +386,7 @@
       "delivered": "{{name}} hat es erhalten",
       "held": "{{name}} liest es nach deiner Entscheidung",
       "read": "{{name}} hat es gelesen",
-      "resolved": "{{name}} hat die Hilfeanfrage geschlossen",
-      "well": "Hat deine Notiz gelesen",
-      "wellNow": "Hat angehalten, um deine Notiz zu lesen"
+      "resolved": "{{name}} hat die Hilfeanfrage geschlossen"
     },
     "stopped": {
       "byYou": "Hier gestoppt",
@@ -570,8 +569,6 @@
     "file": "Datei",
     "media": "GIFs",
     "noCamera": "Kein Kamerazugriff. Erlaube ihn in den Einstellungen des Handys.",
-    "mission": "Mission starten",
-    "missionHint": "Lange Arbeit, mit Plan, von Anfang bis Ende",
     "summary": "Chat zusammenfassen",
     "summaryHint": "Was passiert ist, während du weg warst",
     "remind": "Später erinnern",
@@ -2277,6 +2274,8 @@
     "deleteIntro": "{{name}} ist ab sofort für alle schreibgeschützt und wird in 7 Tagen endgültig gelöscht.",
     "holdDelete": "Zum Löschen gedrückt halten",
     "deleteFailed": "Der Workspace ließ sich nicht löschen. Versuch es noch einmal.",
+    "holdReset": "Zum Zurücksetzen gedrückt halten",
+    "resetFailed": "Der Workspace konnte nicht zurückgesetzt werden. Versuch es noch mal.",
     "access": {
       "how": "Tippe auf eine Zeile, um die Stufe zu ändern: Kein Zugriff, Lesen, Lesen und schreiben."
     },

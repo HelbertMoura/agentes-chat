@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, mock, setSystemTime, test } from "bun:test";
 
-// The phone's storage, the system's app state and its biometric prompt, all held here (ADR 0202).
+// The phone's storage, the system's app state and its biometric prompt, all held here (ADR 0203).
 const kept = new Map<string, string>();
 mock.module("expo-secure-store", () => ({
   getItem: (key: string) => kept.get(key) ?? null,
@@ -47,7 +47,7 @@ afterAll(() => {
   setSystemTime();
 });
 
-describe("the app lock's state (ADR 0202)", () => {
+describe("the app lock's state (ADR 0203)", () => {
   test("off: nothing waits, leaving and coming back change nothing", () => {
     let ran = 0;
     expect(whenUnlocked(() => ran++)).toBe(false);

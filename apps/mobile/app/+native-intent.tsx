@@ -19,7 +19,7 @@ export function redirectSystemPath({ path, initial }: { path: string; initial: b
   // Where the app stays when the link opens nothing now: its start at launch, else where it was.
   const stay = initial ? "/" : "";
   try {
-    // Behind the app lock (ADR 0202) the app stays where it is, and what the link opens waits until the lock opens.
+    // Behind the app lock (ADR 0203) the app stays where it is, and what the link opens waits until the lock opens.
     const holding = appLockHolds();
     // The share extension opens the app with `agenteschat://dataUrl=…` (expo-share-intent): "Compartilhar com…"
     // (held by `ShareInbox` behind the lock).

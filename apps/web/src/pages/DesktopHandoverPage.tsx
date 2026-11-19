@@ -13,7 +13,7 @@ import { notedSignInOnThisMac, takeReturnOnThisMac } from "@/lib/this-mac-proof"
  * In the app's window: the one-time sign-in a connect link carried, taken out of the address and the history
  * at once, then traded for a session of the window's own (`POST /api/auth/sign-in/one-time-token`), which goes to
  * `to`, else to the page the app was asked to sign in again from (`saveReturnOnThisMac`). Refused (expired, already
- * used): the way to sign in by hand. An account with two-step sign-in (ADR 0201): the sign-in page asks for its code,
+ * used): the way to sign in by hand. An account with two-step sign-in (ADR 0202): the sign-in page asks for its code,
  * then goes on to the same page.
  */
 export function DesktopHandoverPage({ to }: { to?: string }) {

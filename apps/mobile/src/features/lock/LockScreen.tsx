@@ -10,7 +10,7 @@ import { onAppLocked, unlock, useAppLock, watchAppLock } from "./store";
 const LOGO = 72;
 
 /**
- * The app lock over everything (ADR 0202): the mark and Desbloquear, on the app's background so nothing of the app
+ * The app lock over everything (ADR 0203): the mark and Desbloquear, on the app's background so nothing of the app
  * shows under it. Out of sight it covers alone; Desbloquear appears once proof is needed. Mounted once, at the root.
  * It is drawn in TrueSheet's overlay, a native layer the library keeps above every sheet it presents (the app's sheets
  * are all TrueSheet), and mounted only while it shows, so it lands on top of whatever is presented then (a screen

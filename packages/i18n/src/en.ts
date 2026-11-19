@@ -14,6 +14,7 @@ export const en = {
   },
   common: {
     close: "Close",
+    details: "Details",
     joinSentences: "{{a}} {{b}}",
     cantUndo: "This can't be undone.",
     removeName: "Remove {{name}}",
@@ -657,7 +658,7 @@ export const en = {
       otherEmail: "This invitation is for another address. Sign up with the address it was sent to.",
       unverified: "Your sign-in provider hasn't confirmed this address. Confirm it there, or sign up with a password.",
     },
-    /** The second step of a sign-in (ADR 0201): the code from the authenticator app, or a recovery code. */
+    /** The second step of a sign-in (ADR 0202): the code from the authenticator app, or a recovery code. */
     twoFactor: {
       title: "Type the code from your authenticator app",
       lead: "Open the app where you added agentes.chat and type the 6 digits it shows now.",
@@ -2392,7 +2393,7 @@ export const en = {
     newPasswordRow: "To change the password you use in other browsers and on other devices",
     newPasswordSaved: "New password saved.",
     newPasswordReauth: "Sign in again to create a new password.",
-    /** Two-step sign-in with an authenticator app (ADR 0201), Settings › Your account. */
+    /** Two-step sign-in with an authenticator app (ADR 0202), Settings › Your account. */
     twoFactor: {
       row: "Two-step sign-in",
       rowOff: "Also ask for a code from an authenticator app when signing in",
@@ -4038,11 +4039,15 @@ export const en = {
   },
   keyGuard: {
     title: "This looks like an API key",
-    text: "Everything in the chat is visible to people and agents. Save it as a workspace key instead: it's encrypted and nobody sees it.",
-    textMember: "Everything in the chat is visible to people and agents. A key is like a password.",
-    save: "Save as a key",
+    titleSecret: "This looks like a key or password",
+    vaultText:
+      "Everything in the chat is visible to people and agents. Keep it in the Vault: it's encrypted, and the agents you allow use it without seeing it.",
+    vault: "Save in the Vault",
+    useAsAi: "Use as AI key",
     remove: "Remove it",
     send: "Send anyway",
+    /** After "Save in the Vault", under the toast's "Saved in the Vault". */
+    saved: "Agents with access use it by the name {{name}}.",
   },
   /** An agent's proposal of costly work nobody asked for directly (ADR 0131): the card's buttons and who decided. */
   costlyCard: {
@@ -6916,7 +6921,8 @@ export const en = {
         account_missing:
           "The account chosen for this agent isn't on its computer anymore. Choose another one in the agent's settings, or add it again.",
         /** A Codex turn on a Windows computer where MXC can't hold its commands (runner `windows_sandbox`). */
-        windows_sandbox: "This Windows computer can't isolate Codex's commands: it needs Windows 11 24H2 or newer.",
+        windows_sandbox:
+          "This Windows computer can't isolate Codex's commands: it needs Windows 11 24H2 or newer. Update Windows, choose Claude or an API key for this agent, or move it to a Linux computer.",
         our_error: "Something went wrong on our side and it stopped. Ask again in a little while.",
         unknown: "Failed.",
       },
@@ -8434,6 +8440,11 @@ export const en = {
     unreachableText: "It may be restarting. This page opens by itself as soon as it's back.",
     offlineTitle: "You're offline",
     offlineText: "This page opens by itself when you're back online.",
+    /** The page on a hostname that reaches the server but isn't set up there. */
+    unknownHostTitle: "This address isn't set up yet",
+    unknownHostText: "If it was just connected, try again in a few minutes.",
+    /** That page's browser tab title. */
+    unknownHostTab: "Address not set up · agentes.chat",
   },
   scopes: {
     context_read: {
@@ -10128,7 +10139,6 @@ export const en = {
       start: "Start mission",
       created: "Mission created: {{name}} is putting the plan together.",
       who: "Who programs",
-      codexOld: "Codex on {{computer}} is too old for missions: update it there.",
     },
     commandApproval: {
       label: "Autonomy",
@@ -11131,7 +11141,6 @@ export const en = {
       needsCloud: {
         online: "{{computer}} is restarting or reconnecting. This changes by itself once it's back.",
         installing: "{{program}} is being installed on {{computer}}. This changes by itself when it's done.",
-        updating: "{{program}} is being updated on {{computer}}. This changes by itself when it's done.",
         runnerOld:
           "The agentes.chat program on {{computer}} is out of date and an update is on its way. This changes by itself when it's done.",
         execOff: "{{computer}} can't run {{program}} yet. We're on it, and this changes by itself.",
@@ -12371,12 +12380,6 @@ export const en = {
       read: "{{name}} read it",
       resolved: "{{name}} closed the help request",
     },
-    well: {
-      readYours: "Read your note",
-      readOf: "Read {{name}}'s note",
-      nowYours: "Stopped to read your note",
-      nowOf: "Stopped to read {{name}}'s note",
-    },
     strip: {
       see: "View",
       toStop: "to stop",
@@ -12472,12 +12475,6 @@ export const en = {
       cant_start: "{{program}} is on {{computer}}, but it won't start.",
       /** Its runner hasn't said which CLIs it has yet: nobody knows whether this one is there. */
       not_reported: "{{computer}} is still checking which programs it has. This changes by itself when it's done.",
-      outdated: "The version on {{computer}} is old. Update Codex to use it.",
-      outdatedCodex: "Codex CLI {{detected}} was found on {{computer}}. Update it to {{minimum}} or later.",
-      codexUpdateGuide: "How to update Codex CLI",
-      codexRecheckHere: "After updating, choose Check again for Codex in Preferences › Tools.",
-      codexRecheckThere:
-        "Update Codex CLI on {{computer}}. If it runs the desktop app, choose Check again for Codex in Preferences › Tools.",
       /** The runner doesn't run this program on that computer's system (Cursor on Windows, for one). */
       system: "{{program}} doesn't run on {{computer}}'s system yet.",
       no_computerCloud: "Ready as soon as {{computer}} is.",
@@ -12557,8 +12554,6 @@ export const en = {
     openComputer: "Open the computer",
     /** The dialog's label for screen readers; the visible title is the computer's name. */
     label: "Line for {{name}}",
-    full: "Full",
-    fullNext: "Full · next starts in about {{n}} min",
     free: "Nobody in line",
     workingNow: "Working now · {{n}}",
     inLine: "In line · {{n}}",
@@ -13042,6 +13037,14 @@ export const en = {
     folderDeleted_other: "Folder deleted. {{count}} files went to the trash.",
     folderDeletedKept_one: "Folder deleted. {{count}} file you can't delete moved up a level.",
     folderDeletedKept_other: "Folder deleted. {{count}} files you can't delete moved up a level.",
+    /** A selection of folders and files: its menu, the selection bar and their one confirmation. */
+    delete: "Delete",
+    deleteItemsTitle_one: "Delete {{count}} item?",
+    deleteItemsTitle_other: "Delete {{count}} items?",
+    deleteItemsBody:
+      "Folders go with everything inside them. Files you can delete go to the trash for 30 days. Anyone else's files move up a level.",
+    itemsDeleted_one: "{{count}} item deleted.",
+    itemsDeleted_other: "{{count}} items deleted.",
   },
   storage: {
     title: "Storage",
@@ -18008,8 +18011,7 @@ export const en = {
     },
     hint: {
       /** Shown when handoffs led the week's use; followed by the `message` link. */
-      handoffs:
-        "Most of this week's use came from agents handing work to each other. Ask the agent directly for long work.",
+      handoffs: "Most of it came from handoffs between agents.",
       /** Opens the DM with the agent that took most of the handed work. */
       message: "Message {{name}}",
     },
@@ -19815,6 +19817,25 @@ export const en = {
     writeAfter: ".",
     ask: "Need help? Ask the people who run this server.",
   },
+  /** Resetting a workspace (owners, Sua conta): what it made goes now and for good, and it starts over as a new one. */
+  resetOrg: {
+    /** The title over the account's danger rows for an owner: resetting, deleting the workspace, deleting the account. */
+    cardTitle: "Reset or delete",
+    row: {
+      title: "Reset workspace",
+      text: "Erases everything made in it and starts over, with the same people.",
+    },
+    goes: "Agents, conversations, DMs, files, tasks, routines and memory",
+    stays: "People, roles, invitations, AI accounts, computers and connectors",
+    fresh: "Then it opens like a new workspace, with the first setup",
+    /** Only where plans are billed. */
+    plan: "The plan stays the same, with no new charge",
+    now: "It happens at once and can't be undone.",
+    title: "Reset {{name}}?",
+    submit: "Reset workspace",
+    /** In the row once it started, until the workspace opens again as a new one. */
+    resetting: "Resetting {{name}}…",
+  },
   /** Deleting a workspace (owners): it turns read-only for everyone now and is deleted for good 7 days later. */
   deleteOrg: {
     card: {
@@ -19907,8 +19928,6 @@ export const en = {
     card: {
       text: "Deletes your account in 7 days, in every workspace.",
       button: "Delete account…",
-      /** The card's title for an owner, over its two buttons: the account and the workspace. */
-      title: "Delete",
     },
     title: "Delete your whole account?",
     intro: "This deletes your whole account, not just one workspace.",
@@ -21614,6 +21633,39 @@ export const en = {
       alwaysOn: "From now on, reports like this go without asking.",
       askFirst: "Ask before sending",
     },
+  },
+  /** "Send a report" on a self-hosted server: what the agentes.chat team gets, shown in full before it goes. */
+  problemReport: {
+    button: "Send a report",
+    title: "Send a report to agentes.chat",
+    lead: "The agentes.chat team gets: versions, which settings are set (never their values), what failed, and the last lines of the logs. No messages, pages, names or keys.",
+    noteLabel: "What happened? (optional)",
+    notePlaceholder: "What you were doing when it stopped",
+    emailLabel: "Email for a reply (optional)",
+    emailHelp: "Only if you want an answer.",
+    showAll: "See everything that's sent",
+    copy: "Copy report",
+    copied: "Copied",
+    send: "Send",
+    sending: "Sending…",
+    cancel: "Cancel",
+    loading: "Gathering the details…",
+    sentTitle: "Report {{id}} sent",
+    sentText: "If you write to us, mention this code.",
+    sentTextReply: "We'll answer at {{email}}. Mention this code if you write to us.",
+    copyCode: "Copy code",
+    done: "Done",
+    noLogComputer: "{{computer}} didn't answer, so its log isn't included.",
+    oldRunner: "The agentes.chat app on {{computer}} is too old to include its log. Update it there to include it.",
+    noServerLines: "The server's log lines are included only when the installation's owner sends a report.",
+    off: "Sending is off on this server (PROBLEM_REPORT_URL=off). Copy the report to share it.",
+    errorRate: "Too many reports in a short time. Try again in {{minutes}} min, or copy the report.",
+    errorUnreachable: "agentes.chat didn't answer. Try again, or copy the report.",
+    errorRefused: "agentes.chat didn't accept this report (it may be from an older version). Copy the report instead.",
+    errorPreview: "Couldn't gather the details: {{reason}}",
+    emailInvalid: "That email doesn't look right. Fix it or leave it empty.",
+    settingsTitle: "Something not working?",
+    settingsText: "Send the technical details to the agentes.chat team.",
   },
   /** Live files: spreadsheets, presentations and canvases people and agents edit together (ADR 0196). */
   live: {

@@ -21,7 +21,7 @@ const buttonsOn = () => approvalButtonsOn(readValueSyncOrUnknown(APP_LOCK_VALUE)
 /**
  * Recusar and Aprovar on the notification of an approval that isn't high risk (ADR 0035 addendum). Recusar decides
  * without opening the app; Aprovar opens the app on the request's card (a tap's way: the phone unlocks, the whole
- * request shows, one more tap approves), so nothing is approved blind. Not while the app lock is on (ADR 0202): the
+ * request shows, one more tap approves), so nothing is approved blind. Not while the app lock is on (ADR 0203): the
  * category is taken away, so such a push shows no buttons and a tap opens the app behind the lock. Registered again
  * whenever the app leaves the front, so turning the lock on or off reaches the next push. On an iPhone the phone
  * must be unlocked to run either.

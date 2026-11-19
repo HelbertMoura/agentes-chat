@@ -374,6 +374,8 @@ export const featureKeysEn = {
     replies_other: "{{count}} replies",
     repliesWord_one: "reply",
     repliesWord_other: "replies",
+    /** A conversation of bubbles says when it picks up again: "Today 15:35". */
+    dayAt: "{{day}} {{time}}",
     thread: "Thread",
     closed: "closed",
     options: "Options",
@@ -412,8 +414,6 @@ export const featureKeysEn = {
       held: "{{name}} reads it after your decision",
       read: "{{name}} read it",
       resolved: "{{name}} closed the help request",
-      well: "Read your note",
-      wellNow: "Stopped to read your note",
     },
     stopped: {
       byYou: "Stopped here",
@@ -606,11 +606,9 @@ export const featureKeysEn = {
     camera: "Camera",
     photos: "Photos",
     file: "File",
-    /** The fourth tile: the GIFs and stickers, out of the field so it only sends. */
+    /** The fourth tile: the GIFs and stickers (also beside the mic in the empty field). */
     media: "GIFs",
     noCamera: "No camera access. Allow it in the phone's Settings.",
-    mission: "Start a mission",
-    missionHint: "Long work, with a plan, from start to finish",
     summary: "Sum up the chat",
     summaryHint: "What happened while you were away",
     remind: "Remind me later",
@@ -1270,7 +1268,7 @@ export const featureKeysEn = {
       none: "No time zone by that name",
     },
   },
-  /** The app lock, for this phone only (ADR 0202). */
+  /** The app lock, for this phone only (ADR 0203). */
   lock: {
     setting: "Lock with biometrics",
     /** Under the setting, turned off, on a phone with no fingerprint, face or screen lock set up. */
@@ -2438,6 +2436,8 @@ export const featureKeysEn = {
     deleteIntro: "{{name}} turns read-only for everyone right away and is deleted for good in 7 days.",
     holdDelete: "Hold to delete",
     deleteFailed: "Couldn't delete the workspace. Try again.",
+    holdReset: "Hold to reset",
+    resetFailed: "Couldn't reset the workspace. Try again.",
     access: {
       how: "Tap a row to change its level: No access, Read, Read and write.",
     },

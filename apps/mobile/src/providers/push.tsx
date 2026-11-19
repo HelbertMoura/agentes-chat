@@ -194,7 +194,7 @@ export function PushProvider({ children }: { children: ReactNode }) {
         setTimeout(() => (web ? openWebPath(web) : router.push(href ?? "/activity")), 0);
       });
     };
-    // With the app lock on (ADR 0202), what a tap opens waits until the lock opens and the app is in front, the latest
+    // With the app lock on (ADR 0203), what a tap opens waits until the lock opens and the app is in front, the latest
     // tap only. It opens through whichever provider is mounted then, so a remount meanwhile doesn't drop it.
     openTapped = open;
     const openUnlocked = (response: Notifications.NotificationResponse | null) => {

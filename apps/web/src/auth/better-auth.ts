@@ -24,7 +24,7 @@ const NO_ANSWER: AuthResult = { ok: false, status: 0, code: "network", message: 
 
 /**
  * A call's refusal as the pages read it; one that got no answer settles as `NO_ANSWER`, so no page spins forever. A
- * sign-in that waits for the account's second step (ADR 0201) answers `twoFactorRedirect`, signed in to nothing yet:
+ * sign-in that waits for the account's second step (ADR 0202) answers `twoFactorRedirect`, signed in to nothing yet:
  * a refusal with its code, so no page goes on as if signed in.
  */
 async function toResult(call: Promise<{ data?: unknown; error?: Refusal }>): Promise<AuthResult> {

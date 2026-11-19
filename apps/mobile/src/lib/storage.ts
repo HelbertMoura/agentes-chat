@@ -99,7 +99,7 @@ export const STORED = {
   voiceSpeed: "voice-speed",
   /** The person held the send button to stop an agent and send once: the composer's hint is over ("1"). */
   stopSendTaught: "stop-send-taught",
-  /** The app asks for the phone's biometrics or screen lock to open ("1"; features/lock, ADR 0202). */
+  /** The app asks for the phone's biometrics or screen lock to open ("1"; features/lock, ADR 0203). */
   appLock: "app-lock",
   /** How long away before the app lock asks again, in milliseconds ("0", "60000"…; features/lock/logic.ts). */
   appLockAfter: "app-lock-after",

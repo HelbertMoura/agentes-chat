@@ -336,6 +336,7 @@
     "startedWith": "Dimulai di percakapan dengan {{name}}",
     "replies_other": "{{count}} balasan",
     "repliesWord_other": "balasan",
+    "dayAt": "{{day}} {{time}}",
     "thread": "Utas",
     "closed": "ditutup",
     "options": "Opsi",
@@ -370,9 +371,7 @@
       "delivered": "{{name}} sudah menerimanya",
       "held": "{{name}} membacanya setelah kamu memutuskan",
       "read": "{{name}} sudah membacanya",
-      "resolved": "{{name}} menutup permintaan bantuan",
-      "well": "Membaca catatanmu",
-      "wellNow": "Berhenti untuk membaca catatanmu"
+      "resolved": "{{name}} menutup permintaan bantuan"
     },
     "stopped": {
       "byYou": "Berhenti di sini",
@@ -554,8 +553,6 @@
     "file": "File",
     "media": "GIF",
     "noCamera": "Tidak ada akses kamera. Izinkan di Pengaturan ponsel.",
-    "mission": "Mulai misi",
-    "missionHint": "Pekerjaan panjang, dengan rencana, dari awal sampai akhir",
     "summary": "Rangkum obrolan",
     "summaryHint": "Apa yang terjadi selama kamu pergi",
     "remind": "Ingatkan aku nanti",
@@ -2169,6 +2166,8 @@
     "deleteIntro": "{{name}} langsung jadi hanya-baca untuk semua orang dan dihapus selamanya dalam 7 hari.",
     "holdDelete": "Tahan untuk menghapus",
     "deleteFailed": "Tidak bisa menghapus ruang kerja. Coba lagi.",
+    "holdReset": "Tahan untuk mengatur ulang",
+    "resetFailed": "Ruang kerja tidak bisa diatur ulang. Coba lagi.",
     "access": {
       "how": "Ketuk baris untuk mengubah levelnya: Tanpa akses, Baca, Baca dan tulis."
     },
