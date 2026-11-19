@@ -34,6 +34,7 @@ export {
   planLine,
   planState,
   planWindows,
+  switchOffers,
   windowAmount,
 } from "../plan-state";
 
