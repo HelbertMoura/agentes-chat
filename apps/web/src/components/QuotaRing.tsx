@@ -1,103 +1,61 @@
 import { useAiAccounts, usePlanUsage, useSetChatPrefs } from "@agenteschat/client";
 import {
   noQuotaText,
+  QUOTA_GRID,
   type QuotaLine,
   type QuotaRingLine,
+  quotaDigitPixels,
   quotaLevel,
   quotaOverview,
+  quotaPixels,
   quotaRingLabel,
-  quotaRingShape,
   recentLines,
 } from "@agenteschat/client/lib/quotas";
 import { WALLPAPER_HUES } from "@agenteschat/client/lib/wallpaper";
 import { Icon, Meter, movesByKeys, Popover, ProviderLogo, useHoverCard } from "@agenteschat/ui";
 import { PLAN_ALMOST, planLevel } from "@agenteschat/ui/plan-state";
 import { Link } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useOrg } from "@/components/org-context";
 import { accountName, groupUsageAccounts, planMeterText } from "@/lib/plan-usage";
 import { HOVER_OPEN_MS } from "./ProfileCard";
 import "./quota-ring.css";
 
-/** The middle of the dial's 36-unit box. */
-const CENTER = 18;
-
-/** One account's circle: its track, a tick where "almost at the limit" starts, and the arc of what it has used. */
-function QuotaCircle({
-  radius,
-  stroke,
-  used,
-  level,
-  hue,
-}: {
-  radius: number;
-  stroke: number;
-  used: number;
-  level: QuotaRingLine["level"] | "none";
-  hue?: QuotaRingLine["hue"];
-}) {
-  const around = 2 * Math.PI * radius;
-  const circle = { cx: CENTER, cy: CENTER, r: radius, strokeWidth: stroke };
-  return (
-    <g className="quota-dial__ring" data-level={level} data-hue={hue}>
-      <circle className="quota-dial__track" {...circle} />
-      <circle
-        className="quota-dial__tick"
-        {...circle}
-        strokeDasharray={`${stroke / 2} ${around}`}
-        strokeDashoffset={-(PLAN_ALMOST / 100) * around + stroke / 4}
-      />
-      {used > 0 && (
-        <circle
-          className="quota-dial__used"
-          {...circle}
-          strokeDasharray={`${(Math.min(used, 100) / 100) * around} ${around}`}
-        />
-      )}
-    </g>
-  );
-}
-
-/** A circle per account, the closest to a limit outermost, and that one's percent in the middle over a tint of its tone. */
+/**
+ * A circle per account in pixels, the closest to a limit outermost, and that one's percent in pixel digits in the
+ * middle (`quotaPixels`): the app's dither, as its skies, with the plans' colors.
+ */
 function QuotaDial({ rings }: { rings: readonly QuotaRingLine[] }) {
   const top = rings[0];
   const number = top ? String(top.used) : "–";
-  const [radius = 15, stroke = 4] = quotaRingShape(0)[0] ?? [];
-  const last = rings.at(-1);
+  const used = rings.map((r) => r.used).join(",");
+  const pixels = useMemo(() => quotaPixels(used ? used.split(",").map(Number) : []), [used]);
+  const digits = useMemo(() => quotaDigitPixels(number), [number]);
+  const cell = (p: { x: number; y: number }) => `M${p.x} ${p.y}h1v1h-1z`;
+  const paths = (ring: number, kind: "track" | "used" | "front") =>
+    pixels
+      .filter((p) => p.ring === ring && (kind === "track" ? !p.lit : kind === "front" ? p.half : p.lit && !p.half))
+      .map(cell)
+      .join("");
+  const circles = top ? rings : [null];
   return (
-    <span
-      className="quota-dial"
-      data-level={top?.level ?? "none"}
-      data-hue={top?.hue}
-      data-rings={rings.length || 1}
-      data-long={number.length > 2 || undefined}
-    >
-      <svg viewBox="0 0 36 36" aria-hidden="true">
-        <circle
-          className="quota-dial__disc"
-          cx={CENTER}
-          cy={CENTER}
-          r={last ? last.radius - last.stroke / 2 : radius - stroke / 2}
-        />
-        {top ? (
-          rings.map((r) => (
-            <QuotaCircle
-              key={r.account.key}
-              radius={r.radius}
-              stroke={r.stroke}
-              used={r.used}
-              level={r.level}
-              hue={r.hue}
-            />
-          ))
-        ) : (
-          <QuotaCircle radius={radius} stroke={stroke} used={0} level="none" />
-        )}
+    <span className="quota-dial" data-level={top?.level ?? "none"} data-hue={top?.hue} data-used={number}>
+      <svg viewBox={`0 0 ${QUOTA_GRID} ${QUOTA_GRID}`} shapeRendering="crispEdges" aria-hidden="true">
+        {circles.map((r, i) => (
+          <g
+            key={r?.account.key ?? "none"}
+            className="quota-dial__ring"
+            data-level={r?.level ?? "none"}
+            data-hue={r?.hue}
+          >
+            <path className="quota-dial__track" d={paths(i, "track")} />
+            <path className="quota-dial__used" d={paths(i, "used")} />
+            <path className="quota-dial__front" d={paths(i, "front")} />
+          </g>
+        ))}
+        <path className="quota-dial__num" d={digits.map(cell).join("")} />
       </svg>
-      <span className="quota-dial__num" aria-hidden="true">
-        {number}
-      </span>
     </span>
   );
 }
@@ -276,5 +234,30 @@ function QuotaPopLine({ line, locale }: { line: QuotaLine; locale: string }) {
         <p className="quota-pop__none">{recent ? `${recent.label}: ${recent.value}` : noQuotaText(t, account)}</p>
       )}
     </li>
+  );
+}
+
+/** The bell beside the ring, drawn on the same pixel grid, in the color it is given. */
+const BELL = [
+  "....##....",
+  "...####...",
+  "..######..",
+  "..######..",
+  ".########.",
+  ".########.",
+  ".########.",
+  "##########",
+  "..........",
+  "....##....",
+];
+
+export function PixelBell() {
+  const d = BELL.flatMap((row, y) => [...row].flatMap((bit, x) => (bit === "#" ? [`M${x} ${y}h1v1h-1z`] : []))).join(
+    "",
+  );
+  return (
+    <svg className="pixel-bell" viewBox="0 0 10 10" shapeRendering="crispEdges" aria-hidden="true">
+      <path d={d} />
+    </svg>
   );
 }

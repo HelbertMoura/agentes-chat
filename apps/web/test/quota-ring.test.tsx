@@ -79,7 +79,7 @@ async function ring(accounts: PlanAccountUsage[]) {
 
 test("the tightest percent is written in the ring, named for a screen reader and toned by its level", async () => {
   const el = await ring([metered(92), noLimits]);
-  expect(el?.textContent).toBe("92");
+  expect(el?.querySelector(".quota-dial")?.getAttribute("data-used")).toBe("92");
   expect(el?.dataset.level).toBe("critical");
   expect(el?.getAttribute("aria-label")).toBe("Plan limits: Trabalho almost at the limit, 92% used");
   cleanup();
@@ -118,7 +118,7 @@ test("a press opens every account with its windows, recent use where none is rep
 
 test("a dash while no account reports limits; nothing with no account at all", async () => {
   const el = await ring([noLimits]);
-  expect(el?.textContent).toBe("–");
+  expect(el?.querySelector(".quota-dial")?.getAttribute("data-used")).toBe("–");
   expect(el?.getAttribute("aria-label")).toBe("Plan limits: none of your accounts reports limits");
   cleanup();
   expect(await ring([])).toBeNull();
@@ -191,7 +191,7 @@ test("Esc, Enter, Esc: closed stays closed", async () => {
 test("another member's plan near its limit doesn't turn the ring red, and stays in the list", async () => {
   const theirs = metered(100, { accountId: "b", key: "machine_1:claude_code:b", label: "De Ana", mine: false });
   const el = (await ring([theirs, metered(20)])) as HTMLButtonElement;
-  expect(el.textContent).toBe("20");
+  expect(el.querySelector(".quota-dial")?.getAttribute("data-used")).toBe("20");
   expect(el.dataset.level).toBe("ok");
   fireEvent.click(el);
   expect((await opened()).textContent).toContain("De Ana");
@@ -206,7 +206,7 @@ test("on a narrow screen the ring is in the top bar", async () => {
       : real(query),
   );
   await ring([metered(85)]);
-  expect(document.querySelector(".shell__bar .quota-ring")?.textContent).toBe("85");
+  expect(document.querySelector(".shell__bar .quota-ring .quota-dial")?.getAttribute("data-used")).toBe("85");
   media.mockRestore();
   cleanup();
 });

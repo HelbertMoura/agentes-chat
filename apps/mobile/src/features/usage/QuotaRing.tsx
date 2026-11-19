@@ -3,58 +3,34 @@ import { useAiAccounts, usePlanUsage, useSetChatPrefs } from "@agenteschat/clien
 import { accountName, groupUsageAccounts, planMeterText } from "@agenteschat/client/lib/plan-usage";
 import {
   noQuotaText,
+  QUOTA_GRID,
   QUOTA_HUES,
   type QuotaLine,
+  type QuotaPixel,
   type QuotaRingLine,
+  quotaDigitPixels,
   quotaOverview,
+  quotaPixels,
   quotaRingLabel,
-  quotaRingShape,
   recentLines,
 } from "@agenteschat/client/lib/quotas";
 import { WALLPAPER_HUES } from "@agenteschat/client/lib/wallpaper";
 import { PLAN_ALMOST, PLAN_TONE, type PlanLevel, planLevel } from "@agenteschat/ui/plan-state";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, View } from "react-native";
-import Animated, { Easing, useAnimatedProps, useSharedValue, withTiming } from "react-native-reanimated";
-import Svg, { Circle, type CircleProps, G } from "react-native-svg";
+import Svg, { G, Path } from "react-native-svg";
 import { useOrg } from "@/providers/org";
 import { Icon, IconButton, LIST_AVATAR, ListRow, ProviderLogo, SHEET_X, Text, useTheme } from "@/ui";
 import { useColors } from "../shared/hooks";
 import { useSheet } from "../shared/SheetHost";
-import { quotaRingFontSize } from "./logic";
 import { Meter } from "./parts";
 import { openQuotas } from "./QuotasScreen";
 
 /** The ring on its round bar button's 40-point plate. */
 const RING = 36;
-/** What the shape of a ring is measured in (`quotaRingShape`). */
-const BOX = 36;
-/** The middle number shrinks as circles close in on it. */
-const NUMBER_SCALE = [1, 0.86, 0.76];
 /** The same dial at the head of the sheet. */
-const RING_LARGE = 64;
-const ARC_MS = 420;
-
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-
-/** The used part of the circle, drawn from the top on the UI thread as it appears and whenever the percent moves. */
-function QuotaArc({ used, around, ...circle }: CircleProps & { used: number; around: number }) {
-  const shown = useSharedValue(0);
-  useEffect(() => {
-    shown.value = withTiming(Math.min(used, 100) / 100, { duration: ARC_MS, easing: Easing.out(Easing.cubic) });
-  }, [used, shown]);
-  const props = useAnimatedProps(() => ({ strokeDashoffset: around * (1 - shown.value) }));
-  return (
-    <AnimatedCircle
-      {...circle}
-      animatedProps={props}
-      strokeLinecap="round"
-      strokeDasharray={`${around} ${around}`}
-      fill="none"
-    />
-  );
-}
+const RING_LARGE = 72;
 
 /** A plan's color in this theme, or the color its level gives it near a limit. */
 function useQuotaTone() {
@@ -67,74 +43,37 @@ function useQuotaTone() {
   };
 }
 
-/** A circle per account, the closest to a limit outermost, and that one's percent in the middle over a tint of its tone. */
+/**
+ * A circle per account in pixels, the closest to a limit outermost, and that one's percent in pixel digits in the
+ * middle (`quotaPixels`): the app's dither, as its skies, with the plans' colors.
+ */
 function QuotaDial({ rings, size }: { rings: readonly QuotaRingLine[]; size: number }) {
   const c = useColors();
-  const unit = size / BOX;
   const top = rings[0];
   const { toneOf } = useQuotaTone();
-  const [emptyRadius = 15, emptyStroke = 4] = quotaRingShape(0)[0] ?? [];
-  const circles = top
-    ? rings.map((r) => ({
-        key: r.account.key,
-        r: r.radius,
-        width: r.stroke,
-        used: r.used,
-        tone: toneOf(r.hue, r.level),
-      }))
-    : [{ key: "none", r: emptyRadius, width: emptyStroke, used: 0, tone: c.muted }];
-  const last = circles.at(-1);
   const number = top ? String(top.used) : "–";
-  const center = { cx: size / 2, cy: size / 2 };
-  const font = quotaRingFontSize(number) * unit * (NUMBER_SCALE[Math.max(rings.length, 1) - 1] ?? 1);
+  const used = rings.map((r) => r.used).join(",");
+  const pixels = useMemo(() => quotaPixels(used ? used.split(",").map(Number) : []), [used]);
+  const digits = useMemo(() => quotaDigitPixels(number), [number]);
+  const cell = (p: { x: number; y: number }) => `M${p.x} ${p.y}h1v1h-1z`;
+  const tones = top ? rings.map((r) => toneOf(r.hue, r.level)) : [c.muted];
+  const path = (ring: number, pick: (p: QuotaPixel) => boolean) =>
+    pixels
+      .filter((p) => p.ring === ring && pick(p))
+      .map(cell)
+      .join("");
   return (
     <View style={{ width: size, height: size }}>
-      <Svg width={size} height={size} style={styles.turned}>
-        {last ? (
-          <Circle
-            {...center}
-            r={(last.r - last.width / 2) * unit}
-            fill={top ? toneOf(top.hue, top.level) : c.muted}
-            fillOpacity={0.14}
-          />
-        ) : null}
-        {circles.map((o) => {
-          const radius = o.r * unit;
-          const stroke = o.width * unit;
-          const around = 2 * Math.PI * radius;
-          const circle = { ...center, r: radius, strokeWidth: stroke };
-          return (
-            <G key={o.key}>
-              <Circle {...circle} stroke={c.ink} strokeOpacity={0.16} fill="none" />
-              <Circle
-                {...circle}
-                stroke={c.muted}
-                strokeDasharray={`${stroke / 2} ${around}`}
-                strokeDashoffset={-(PLAN_ALMOST / 100) * around + stroke / 4}
-                fill="none"
-              />
-              {o.used > 0 ? <QuotaArc {...circle} used={o.used} around={around} stroke={o.tone} /> : null}
-            </G>
-          );
-        })}
+      <Svg width={size} height={size} viewBox={`0 0 ${QUOTA_GRID} ${QUOTA_GRID}`}>
+        {tones.map((tone, i) => (
+          <G key={rings[i]?.account.key ?? "none"}>
+            <Path d={path(i, (p) => !p.lit)} fill={c.ink} fillOpacity={0.22} />
+            <Path d={path(i, (p) => p.lit && !p.half)} fill={tone} />
+            <Path d={path(i, (p) => p.half)} fill={tone} fillOpacity={0.55} />
+          </G>
+        ))}
+        <Path d={digits.map(cell).join("")} fill={top && top.level !== "ok" ? toneOf(top.hue, top.level) : c.ink} />
       </Svg>
-      <View style={styles.number} pointerEvents="none">
-        <Text
-          variant="caption"
-          allowFontScaling={false}
-          numberOfLines={1}
-          style={[
-            styles.digits,
-            {
-              color: top && top.level !== "ok" ? toneOf(top.hue, top.level) : c.ink,
-              fontSize: font,
-              lineHeight: font * 1.15,
-            },
-          ]}
-        >
-          {number}
-        </Text>
-      </View>
     </View>
   );
 }
@@ -306,10 +245,6 @@ function QuotaSheetLine({ line }: { line: QuotaLine }) {
 }
 
 const styles = StyleSheet.create({
-  // The arc starts at the top.
-  turned: { transform: [{ rotate: "-90deg" }] },
-  number: { ...StyleSheet.absoluteFill, alignItems: "center", justifyContent: "center" },
-  digits: { fontWeight: "700", fontVariant: ["tabular-nums"], textAlign: "center" },
   top: { flexDirection: "row", alignItems: "center", gap: 12 },
   lead: { flex: 1, gap: 3 },
   key: { flexDirection: "row", alignItems: "center", gap: 8 },

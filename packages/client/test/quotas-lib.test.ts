@@ -8,8 +8,10 @@ import {
   limitsReported,
   noQuotaText,
   planLimitNotice,
+  quotaDigitPixels,
   quotaLevel,
   quotaOverview,
+  quotaPixels,
   quotaRingLabel,
   quotaRoom,
   quotaSections,
@@ -50,6 +52,32 @@ const account = (key: string, over: Partial<PlanAccountUsage> = {}): PlanAccount
   agents: [],
   monthTokens: 0,
   ...over,
+});
+
+describe("the ring in pixels", () => {
+  test("a circle per account, the used part solid from the top, the rest and the front every other cell", () => {
+    const one = quotaPixels([50]);
+    expect(new Set(one.map((p) => p.ring))).toEqual(new Set([0]));
+    const lit = one.filter((p) => p.lit);
+    // Half used: the right side (from the top, clockwise) and none of the left.
+    expect(lit.every((p) => p.x >= 11)).toBe(true);
+    expect(one.filter((p) => !p.lit).every((p) => (p.x + p.y) % 2 === 0)).toBe(true);
+    expect(lit.some((p) => p.half)).toBe(true);
+    expect(quotaPixels([100]).every((p) => p.lit)).toBe(true);
+    expect(new Set(quotaPixels([10, 20, 30]).map((p) => p.ring))).toEqual(new Set([0, 1, 2]));
+    // More used, more lit.
+    expect(quotaPixels([80]).filter((p) => p.lit).length).toBeGreaterThan(lit.length);
+  });
+
+  test("the number in pixel digits fits inside the innermost circle, 100 included", () => {
+    const inner = quotaPixels([1, 1, 1]).filter((p) => p.ring === 2);
+    const taken = new Set(inner.map((p) => `${p.x},${p.y}`));
+    for (const text of ["7", "64", "100", "–"]) {
+      const cells = quotaDigitPixels(text);
+      expect(cells.length).toBeGreaterThan(0);
+      expect(cells.some((c) => taken.has(`${c.x},${c.y}`))).toBe(false);
+    }
+  });
 });
 
 describe("the ring's circles", () => {

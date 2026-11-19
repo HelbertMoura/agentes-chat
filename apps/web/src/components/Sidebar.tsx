@@ -177,7 +177,7 @@ import { OpenOnPhoneDialog } from "./OpenOnPhone";
 import { useOrg } from "./org-context";
 import { StatusLine } from "./Presence";
 import { MyFace, OrgMark } from "./ProfilePhoto";
-import { QuotaRing } from "./QuotaRing";
+import { PixelBell, QuotaRing } from "./QuotaRing";
 import { sectionName, useSectionOrder } from "./SidebarOrder";
 import { SIDEBAR_TOOLS, SidebarSetupDialog, ToolList } from "./SidebarSetup";
 import { AgentGlow, AgentTrail, colorOf, MenuHorizon, SidebarHorizon, WorkspaceSky } from "./Sky";
@@ -936,7 +936,7 @@ export function Sidebar() {
           : t("shell.notifications")
       }
     >
-      <Icon name="bell" />
+      <PixelBell />
       {unreadNotifications > 0 && (
         <CountBadge key={bumps} className={cx("sidebar__unread", bumps > 0 && "sidebar__bump")}>
           {badgeCount(unreadNotifications)}
