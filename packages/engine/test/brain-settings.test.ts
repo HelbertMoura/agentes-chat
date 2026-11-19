@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import {
   ACCOUNTS_PROTOCOL,
+  ANTIGRAVITY_MAC_PROTOCOL,
   BRAIN_PROTOCOL,
   CODEX_WINDOWS_PROTOCOL,
   CONTEXT_LIMIT_PROTOCOL,
@@ -163,8 +164,8 @@ describe("brain settings", () => {
           .slice(3)
           .map((o) => [o.kind, o.reason ?? null]),
       );
-    // An older Windows runner refuses every OpenCode turn; Cursor and Grok Build don't run on Windows; the Antigravity
-    // CLI only on Linux.
+    // An older Windows runner refuses every OpenCode turn; Cursor, Grok Build and the Antigravity CLI don't run on
+    // Windows; a Mac runner before `ANTIGRAVITY_MAC_PROTOCOL` refuses Gemini.
     expect(reasons(mac({ os: "windows", protocol: OPENCODE_ACP_PROTOCOL - 1, executors }))).toEqual({
       cursor: "system",
       opencode: "runner_old",
@@ -176,8 +177,9 @@ describe("brain settings", () => {
       cursor: null,
       opencode: null,
       grok: null,
-      antigravity: "system",
+      antigravity: "runner_old",
     });
+    expect(reasons(mac({ os: "darwin", protocol: ANTIGRAVITY_MAC_PROTOCOL, executors })).antigravity).toBeNull();
     expect(reasons(mac({ os: "linux", protocol: OPENCODE_ACP_PROTOCOL, executors }))).toEqual({
       cursor: null,
       opencode: null,
@@ -225,15 +227,13 @@ describe("brain settings", () => {
       ["claude_code", true, null],
       ["codex", false, "not_reported"],
     ]);
-    const oldCodex = mac({ executors: { codex: { version: "codex-cli 0.100.0" }, detectedAt: "x" } });
-    expect(reasons(oldCodex).slice(1, 3)).toEqual([
-      ["claude_code", false, "not_installed"],
-      ["codex", false, "outdated"],
-    ]);
-    expect(brainOptions(oldCodex).find((o) => o.kind === "codex")?.codexVersion).toEqual({
-      detected: "0.100.0",
-      minimum: "0.163.0",
-    });
+    // Codex counts at any version, whatever its line says.
+    for (const version of ["codex-cli 0.100.0", "codex-cli 0.170.0", ""]) {
+      expect(reasons(mac({ executors: { codex: { version }, detectedAt: "x" } })).slice(1, 3)).toEqual([
+        ["claude_code", false, "not_installed"],
+        ["codex", true, null],
+      ]);
+    }
     // There and failing to start: said as that, never "not installed".
     const broken = mac({ executors: { codex: { version: "0.170.0" }, broken: { claude: "boom" }, detectedAt: "x" } });
     expect(reasons(broken).slice(1, 3)).toEqual([

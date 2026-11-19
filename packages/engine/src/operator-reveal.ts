@@ -1,4 +1,4 @@
-import { and, type Database, eq, gt, isNull, rowsOf, schema, sql } from "@agenteschat/db";
+import { and, type Database, type Executor, eq, gt, isNull, rowsOf, schema, sql } from "@agenteschat/db";
 import { othersPersonalTools } from "./agent-audit";
 import { requireAgentDetails } from "./audience";
 import { recordAudit } from "./audit";
@@ -71,6 +71,12 @@ export const REVEAL_STUCK_MS = 60 * 60_000;
 /** The door's own bounds, for an instance with nothing in front of it: calls a minute, and reads of one workspace a day. */
 export const REVEAL_PER_MINUTE = { limit: 30, windowMs: 60_000 } as const;
 export const REVEAL_PER_WORKSPACE_DAY = 100;
+/** The sentences a reply to a support request can say in core's own words (`operatorReply`). */
+export const REPLY_TEMPLATES = ["received", "need_more", "resolved", "handed_over"] as const;
+export type ReplyTemplate = (typeof REPLY_TEMPLATES)[number];
+/** A reply's bounds: how many one request gets, and how many the instance sends in a day. */
+export const REPLIES_PER_REQUEST = 3;
+export const REPLIES_PER_DAY = 60;
 
 const DAY_MS = 86_400_000;
 
@@ -130,6 +136,16 @@ function checkShape(input: RevealInput) {
 }
 
 const refused = (code: string, message: string) => new ForbiddenError(message, `reveal.${code}`);
+
+/** One answer for a record of another workspace, a deleted one and one nobody has. */
+export const noSuchRecord = () => new NotFoundError("No such record in this workspace");
+
+/** Who made a support request is still a member the app lets in: not gone, blocked or being deleted. */
+export async function requireRequester(db: Executor, orgId: string, userId: string) {
+  if (!(await getMembership(db, userId, orgId))) {
+    throw refused("requester", "Who asked is no longer a member of this workspace");
+  }
+}
 
 /** The app's own check, asked as a question: its refusal is a no, anything else it throws is not an answer. */
 async function passes(check: () => Promise<unknown>) {
@@ -572,9 +588,7 @@ async function checkFault(db: Database, orgId: string, input: RevealInput, found
 /** `member_request`: the request is this workspace's and young, its member is still one, and reads the record now. */
 async function checkMemberRequest(db: Database, orgId: string, input: RevealInput, found: Found, now: Date) {
   const request = await openRequest(db, orgId, input.requestId ?? "", now);
-  if (!(await getMembership(db, request.userId, orgId))) {
-    throw refused("requester", "Who asked is no longer a member of this workspace");
-  }
+  await requireRequester(db, orgId, request.userId);
   if (!(await found.seenBy(request.userId))) {
     throw refused("not_visible", "Who asked can't read this in the app");
   }
@@ -624,7 +638,7 @@ export async function operatorReveal(
   if (found && !found.has && anError) {
     throw new ConflictError("Nothing failed there: it holds no error", "reveal.no_error");
   }
-  if (!found?.has) throw new NotFoundError("No such record in this workspace");
+  if (!found?.has) throw noSuchRecord();
 
   const { member, facts } =
     input.purpose === "fault"

@@ -35,6 +35,7 @@ import {
 import { withAlpha } from "@/ui/palette";
 import { useFontScale } from "@/ui/text-scale";
 import { leadBox } from "@/ui/type-scale";
+import { useBubblePart } from "./bubble-part";
 import { useColors } from "./hooks";
 
 /**
@@ -216,6 +217,7 @@ export function PushedHeader({
   largeTitle = false,
   actions,
   lead,
+  centered = false,
 }: {
   title?: ReactNode;
   subtitle?: string;
@@ -241,6 +243,11 @@ export function PushedHeader({
    * into the bar as the list scrolls, and the bar takes the system's material over what passes under it.
    */
   largeTitle?: boolean;
+  /**
+   * The custom title stays in the bar's middle whatever stands on the right (a file's name): narrow enough to clear
+   * the widest side, it shortens with "…" instead of being pushed against the back button.
+   */
+  centered?: boolean;
 }) {
   const { colors } = useTheme();
   const scrollUnder = useScrollUnderPushedOptions();
@@ -259,6 +266,8 @@ export function PushedHeader({
   const wordOff = action?.disabled ?? false;
   const actionOptions = useHeaderActionOptions({ right: actions, lead });
   const hasActions = (actions?.length ?? 0) > 0 || lead != null;
+  // A centred title clears this many buttons on the right (`centered`).
+  const rightCount = (actions?.length ?? 0) + (lead != null ? 1 : 0);
   // Stable options: `setOptions` runs when the title, subtitle or the presence of actions change, not on
   // every render of the screen (a conversation re-renders while agents stream).
   const options = useMemo<NativeStackNavigationOptions>(
@@ -273,7 +282,15 @@ export function PushedHeader({
         : null),
       title: text,
       headerTitle: custom
-        ? () => <HeaderTitle text={text} node={titleNode} subtitle={subtitle} beside={word !== null} />
+        ? () => (
+            <HeaderTitle
+              text={text}
+              node={titleNode}
+              subtitle={subtitle}
+              beside={word !== null}
+              {...(centered ? { rightCount } : {})}
+            />
+          )
         : text,
       ...(word !== null && IOS
         ? {
@@ -329,6 +346,8 @@ export function PushedHeader({
       rightNode,
       word,
       wordOff,
+      centered,
+      rightCount,
     ],
   );
   return <Stack.Screen options={options} />;
@@ -390,15 +409,22 @@ function HeaderTitle({
   node,
   subtitle,
   beside = false,
+  rightCount,
 }: {
   text: string;
   node: HeaderSlotStore;
   subtitle?: string | undefined;
   beside?: boolean;
+  /**
+   * Kept centred (`PushedHeader`'s `centered`): how many buttons stand on the right. Each side keeps the widest one's
+   * room, the bar's edge and one button (75) plus 50 for each more, so iOS can centre it.
+   */
+  rightCount?: number;
 }) {
   const { width } = useWindowDimensions();
+  const side = rightCount !== undefined ? 75 + 50 * Math.max(0, rightCount - 1) : beside ? 100 : 75;
   return (
-    <View style={[styles.headerTitle, { maxWidth: width - (beside ? 200 : 150) }]}>
+    <View style={[styles.headerTitle, { maxWidth: width - 2 * side }]}>
       {text ? (
         <Text variant="body" numberOfLines={1} style={styles.titleText}>
           {text}
@@ -488,13 +514,18 @@ const styles = StyleSheet.create({
 
 /**
  * A raised, neutral surface (the cards inside messages): raised background, the e1 shadow (e2 for what
- * asks for you: an approval) and lit top edge.
+ * asks for you: an approval) and lit top edge. Under someone else's words in a conversation of bubbles, the bubble's
+ * own fill and no shadow (`BubblePartContext`): the card is a bubble of that message.
  */
 export function useSurface(elevation: "e1" | "e2" = "e1") {
   const { colors, shadows } = useTheme();
+  const part = useBubblePart();
   return useMemo(
-    () => ({ backgroundColor: colors.raised, boxShadow: `${shadows[elevation]}, ${shadows.top}` }),
-    [colors.raised, shadows, elevation],
+    () =>
+      part
+        ? { backgroundColor: part.fill, ...part.edge }
+        : { backgroundColor: colors.raised, boxShadow: `${shadows[elevation]}, ${shadows.top}` },
+    [part, colors.raised, shadows, elevation],
   );
 }
 

@@ -538,6 +538,11 @@ export function applyWorkspaceEvent(qc: QueryClient, orgId: string, event: { typ
     void qc.invalidateQueries({ queryKey: keys.settings(target) });
     return true;
   }
+  if (event.type === "org.reset") {
+    // An owner reset the workspace: everything in it went, so every list reads again and its owner's onboarding opens.
+    void qc.invalidateQueries();
+    return true;
+  }
   if (event.type === "org.deleting") {
     const e = event as { orgId?: unknown; dueAt?: unknown; by?: unknown };
     const by = isObject(e.by) ? e.by : {};
@@ -581,7 +586,10 @@ export function applyWorkspaceEvent(qc: QueryClient, orgId: string, event: { typ
   if (event.type === "artifacts.changed") {
     readList(qc, `${orgId}:drive`, {
       predicate: ({ queryKey: k }) =>
-        k[0] === "org" && k[1] === orgId && k[2] === "artifacts" && (k[3] === "list" || k[3] === "trash"),
+        k[0] === "org" &&
+        k[1] === orgId &&
+        k[2] === "artifacts" &&
+        (k[3] === "list" || k[3] === "trash" || k[3] === "folders"),
     });
     return true;
   }
