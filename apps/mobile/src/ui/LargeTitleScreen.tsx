@@ -4,7 +4,7 @@ import { createContext, type ReactNode, useContext, useMemo } from "react";
 import { Platform, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import Animated, { type AnimatedRef } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LivePause } from "@/agent/live";
+import { LivePause, useStillWhileScrolling } from "@/agent/live";
 import { floatingBarRoom } from "@/lib/nav";
 import { CoverBarBackdrop, CoverParallax, FadingHeaderTitle } from "./cover";
 import { type HeaderAction, useHeaderActionOptions } from "./headerActions";
@@ -195,6 +195,8 @@ function DrawnTitleScreen({
   // Tapping the tab in sight goes back to the top: the system's bar does it itself on iOS.
   useScrollToTop(IOS ? NO_SCROLL : scroll.ref);
   const actionOptions = useHeaderActionOptions({ right: actions, apart, left, leftActions });
+  // The faces hold still while the list moves: their frames share the thread that places its rows.
+  const still = useStillWhileScrolling();
   // Stable options: `setOptions` runs when the title or the actions change, not on every render.
   const options = useMemo<NativeStackNavigationOptions>(
     () => ({
@@ -215,9 +217,19 @@ function DrawnTitleScreen({
         <Animated.ScrollView
           ref={scroll.ref}
           onScroll={scroll.onScroll}
-          onScrollBeginDrag={onScrollBeginDrag}
-          onScrollEndDrag={scroll.onScrollEndDrag}
-          onMomentumScrollEnd={scroll.onMomentumScrollEnd}
+          onScrollBeginDrag={() => {
+            still.hold();
+            onScrollBeginDrag?.();
+          }}
+          onScrollEndDrag={(e) => {
+            still.settle();
+            scroll.onScrollEndDrag(e);
+          }}
+          onMomentumScrollBegin={still.hold}
+          onMomentumScrollEnd={(e) => {
+            still.settle();
+            scroll.onMomentumScrollEnd(e);
+          }}
           scrollEventThrottle={16}
           // The pixel orbit stands in for the wheel, hidden on iOS (Android keeps its own over the content).
           refreshControl={
