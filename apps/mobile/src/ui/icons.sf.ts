@@ -60,6 +60,7 @@ export const SF_SYMBOLS: Record<IconName, { sf: SFSymbolName; fill?: SFSymbolNam
   mail: { sf: "envelope", fill: "envelope.fill" },
   chart: { sf: "chart.bar", fill: "chart.bar.fill" },
   pen: { sf: "pencil" },
+  palette: { sf: "paintpalette", fill: "paintpalette.fill" },
   doc: { sf: "doc.text", fill: "doc.text.fill" },
   sparkle: { sf: "sparkles" },
   party: { sf: "party.popper", fill: "party.popper.fill" },
@@ -251,6 +252,8 @@ export const TILE_TINTS: Partial<Record<IconName, TileTint>> = {
   file: "brown",
   doc: "brown",
   book: "brown",
+  // Colors.
+  palette: "purple",
   // Ours.
   agent: "agent",
 };
