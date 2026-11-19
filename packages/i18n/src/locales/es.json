@@ -18079,6 +18079,11 @@
       "none": "Límites de los planes: ninguna de tus cuentas informa límites",
       "title": "Límites de los planes"
     },
+    "pace": {
+      "hits": "A este ritmo, llega al 100 % {{when}}",
+      "room": "A este ritmo, sobra margen: termina en ~{{percent}} %",
+      "head": "{{account}} llega al 100 % {{when}} a este ritmo"
+    },
     "recent": {
       "title": "Uso reciente",
       "day": "Últimas 24 horas",

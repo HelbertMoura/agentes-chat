@@ -43307,6 +43307,15 @@
   "quotas.ring.title": {
     "value": "Plan limits"
   },
+  "quotas.pace.hits": {
+    "value": "At this pace, it reaches 100% {{when}}"
+  },
+  "quotas.pace.room": {
+    "value": "At this pace, there's room left: it ends near {{percent}}%"
+  },
+  "quotas.pace.head": {
+    "value": "{{account}} reaches 100% {{when}} at this pace"
+  },
   "quotas.recent.title": {
     "value": "Recent use"
   },

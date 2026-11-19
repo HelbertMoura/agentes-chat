@@ -17848,6 +17848,12 @@ export const ptBR = {
       none: "Limites dos planos: nenhuma das suas contas informa limites",
       title: "Limites dos planos",
     },
+    /** O ritmo de uma janela até agora: quando chega ao limite antes de renovar ({{when}}: "às 15:10", "sexta às 10:00"), ou a folga. */
+    pace: {
+      hits: "No ritmo atual, chega a 100% {{when}}",
+      room: "No ritmo atual, sobra folga: termina em ~{{percent}}%",
+      head: "{{account}} chega a 100% {{when}} no ritmo atual",
+    },
     recent: {
       title: "Uso recente",
       day: "Últimas 24 horas",

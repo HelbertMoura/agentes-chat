@@ -1,4 +1,5 @@
 import {
+  EXTRA_USAGE_LABEL,
   limitRoom,
   PLAN_ALMOST,
   type PlanLevel,
@@ -6,11 +7,12 @@ import {
   planState,
   planWindows,
   windowExpired,
+  windowLengthMs,
 } from "@agenteschat/ui/plan-state";
 import type { TFunction } from "i18next";
 import type { AppNotification, PlanAccountUsage, RecentPeriod, RecentUse } from "../api/types";
 import { formatInt, formatTokensShort, formatUsd } from "./format";
-import { brandOf, planMeterText } from "./plan-usage";
+import { brandOf, planMeterText, usageWhen } from "./plan-usage";
 import { planOf } from "./plans";
 import { WALLPAPER_HUES, type WallpaperHue } from "./wallpaper";
 
@@ -343,6 +345,61 @@ export function quotaOverview(
   const first = concerning[0];
   return { tightest: first?.room ? { ...first.room, account: first.account } : null, rings, lines };
 }
+
+/** Too little of a window gone to tell its pace: under this share of it, or under `PACE_MIN_MS`. */
+const PACE_MIN_SHARE = 0.05;
+const PACE_MIN_MS = 10 * 60_000;
+
+/**
+ * Where a window is heading at the pace it was used so far: past its limit before it resets (`hits`, when), or short
+ * of it (`room`, the percent it ends at). Null where its reset or length is unknown, too little of it is gone to tell,
+ * nothing is used yet, or it is already at its limit. Extra usage is a cap, not a window: no pace.
+ */
+export type QuotaPace = { kind: "hits"; at: string } | { kind: "room"; projected: number };
+
+export function quotaPace(
+  w: Pick<QuotaWindowLine, "kind" | "label" | "used" | "resetsAt">,
+  now = Date.now(),
+): QuotaPace | null {
+  const length = windowLengthMs(w);
+  const reset = Date.parse(w.resetsAt ?? "");
+  if (!length || w.label === EXTRA_USAGE_LABEL || !(reset > now) || w.used <= 0 || w.used >= 100) return null;
+  const elapsed = length - (reset - now);
+  if (elapsed < Math.max(length * PACE_MIN_SHARE, PACE_MIN_MS)) return null;
+  const projected = w.used / (elapsed / length);
+  if (projected < 100) return { kind: "room", projected: Math.round(projected) };
+  const at = now + ((100 - w.used) / w.used) * elapsed;
+  return at < reset ? { kind: "hits", at: new Date(at).toISOString() } : null;
+}
+
+/** The pace in words: when it reaches 100% ("às 15:10", "sexta às 10:00"), or the room it ends with. */
+export function quotaPaceText(t: TFunction, locale: string, pace: QuotaPace, now = Date.now()) {
+  return pace.kind === "hits"
+    ? t("quotas.pace.hits", { when: usageWhen(t, locale, pace.at, new Date(now)) })
+    : t("quotas.pace.room", { percent: pace.projected });
+}
+
+/** The tightest account's soonest window that reaches its limit before it resets, at the pace so far: the card's head. */
+export function quotaPaceAlert(
+  overview: QuotaOverview,
+  now = Date.now(),
+): { account: PlanAccountUsage; at: string } | null {
+  const line = overview.lines.find((l) => l.account.key === overview.tightest?.account.key);
+  const hits = (line?.windows ?? [])
+    .map((w) => quotaPace(w, now))
+    .flatMap((p) => (p?.kind === "hits" ? [p.at] : []))
+    .sort();
+  return line && hits[0] ? { account: line.account, at: hits[0] } : null;
+}
+
+/** The card's head line: the tightest account (`name`, as the screen names it) reaches its limit then. */
+export const quotaPaceAlertText = (
+  t: TFunction,
+  locale: string,
+  alert: { at: string },
+  name: string,
+  now = Date.now(),
+) => t("quotas.pace.head", { account: name, when: usageWhen(t, locale, alert.at, new Date(now)) });
 
 /** The color level of a ring (`PLAN_TONE`, the web's `data-level`), as the meters color the same percent. */
 export const quotaLevel = (room: QuotaRoom | null) =>

@@ -11,6 +11,10 @@ import {
   quotaDigitPixels,
   quotaLevel,
   quotaOverview,
+  quotaPace,
+  quotaPaceAlert,
+  quotaPaceAlertText,
+  quotaPaceText,
   quotaPixels,
   quotaRingLabel,
   quotaRoom,
@@ -386,6 +390,55 @@ describe("the limits ring", () => {
     expect(quotaRingLabel(t, quotaOverview([a], NOW), (x) => x.key)).toBe(
       'quotas.ring.almost {"percent":92,"account":"Work"}',
     );
+  });
+});
+
+describe("the pace so far", () => {
+  const HOUR = 3_600_000;
+  const DAY = 24 * HOUR;
+  const at = (ms: number) => new Date(NOW + ms).toISOString();
+  const win = (kind: string, used: number, resetsAt: string | null, label?: string) => ({
+    kind,
+    used,
+    resetsAt,
+    ...(label ? { label } : {}),
+  });
+
+  test("short of the limit: the percent it ends at", () => {
+    // 3 of 5 hours gone, 30% used: 50% at the reset.
+    expect(quotaPace(win("five_hour", 30, IN_2H), NOW)).toEqual({ kind: "room", projected: 50 });
+  });
+
+  test("past the limit before the reset: when it reaches 100%", () => {
+    // 72% in 3 hours: the other 28% in 70 minutes, before the reset at 14:00.
+    expect(quotaPace(win("five_hour", 72, IN_2H), NOW)).toEqual({ kind: "hits", at: "2026-11-17T13:10:00.000Z" });
+  });
+
+  test("a month by its length", () => {
+    // 10 of 31 days gone.
+    expect(quotaPace(win("monthly", 20, at(21 * DAY)), NOW)).toEqual({ kind: "room", projected: 62 });
+    expect(quotaPace(win("monthly", 40, at(21 * DAY)), NOW)).toEqual({ kind: "hits", at: at(15 * DAY) });
+  });
+
+  test("nothing to say: just reset, at the limit, no reset, nothing used, extra usage", () => {
+    // 5 minutes into a 5-hour window, under 5% of it.
+    expect(quotaPace(win("five_hour", 40, at(5 * HOUR - 5 * 60_000)), NOW)).toBeNull();
+    expect(quotaPace(win("seven_day", 50, at(7 * DAY - 6 * HOUR)), NOW)).toBeNull();
+    expect(quotaPace(win("five_hour", 100, IN_2H), NOW)).toBeNull();
+    expect(quotaPace(win("five_hour", 30, null), NOW)).toBeNull();
+    expect(quotaPace(win("five_hour", 0, IN_2H), NOW)).toBeNull();
+    expect(quotaPace(win("other", 60, IN_2H, "Extra usage"), NOW)).toBeNull();
+  });
+
+  test("in words, and the card's head for the tightest account", () => {
+    expect(quotaPaceText(t, "en", { kind: "room", projected: 62 }, NOW)).toBe('quotas.pace.room {"percent":62}');
+    expect(quotaPaceText(t, "en", { kind: "hits", at: "2026-11-17T13:10:00.000Z" }, NOW)).toContain("quotas.pace.hits");
+    const fast = account("fast", { usage: usage([{ kind: "five_hour", usedPercent: 72, resetsAt: IN_2H }]) });
+    const calm = account("calm", { usage: usage([{ kind: "five_hour", usedPercent: 30, resetsAt: IN_2H }]) });
+    const alert = quotaPaceAlert(quotaOverview([calm, fast], NOW), NOW);
+    expect(alert).toMatchObject({ account: { key: "fast" }, at: "2026-11-17T13:10:00.000Z" });
+    expect(alert && quotaPaceAlertText(t, "en", alert, "Fast", NOW)).toContain('"account":"Fast"');
+    expect(quotaPaceAlert(quotaOverview([calm], NOW), NOW)).toBeNull();
   });
 });
 
