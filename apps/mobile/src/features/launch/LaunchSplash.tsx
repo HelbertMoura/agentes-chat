@@ -31,12 +31,12 @@ import { useFrameTime } from "@/agent/live";
 import { asCtx, compile, RecordingContext, rectsToSvg } from "@/agent/recorder";
 import { replay } from "@/agent/skia-ctx";
 import { festiveMood } from "@/lib/festive";
-import { readValueSync, STORED } from "@/lib/storage";
 import { effectOf } from "@/sky/Dither";
 import { FestiveLayer } from "@/sky/FestiveLayer";
 import { festiveTones, paletteUniform } from "@/sky/math";
 import { Text } from "@/ui";
 import { fonts, useReducedMotion, useTheme } from "@/ui/theme";
+import { appIconIdNow } from "../me/app-icon";
 import { iconGradient } from "../me/app-icon-names";
 import {
   LAUNCH,
@@ -108,7 +108,7 @@ export function LaunchSplash({
   const network = useNetworkState();
   const offline = network.isConnected === false || network.isInternetReachable === false;
   // The app icon in use (as last asked of the system) and today's festive mood: read at once, for the first frame.
-  const [look] = useState(() => launchLookOf(readValueSync(STORED.appIcon)));
+  const [look] = useState(() => launchLookOf(appIconIdNow()));
   const [mood] = useState(festiveMood);
   const accessory = mood?.accessory ?? look.accessory;
 
