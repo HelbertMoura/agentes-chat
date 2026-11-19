@@ -1,3 +1,12 @@
+import {
+  isAppIcon,
+  isMadeIconExpression,
+  isMadeIconFace,
+  type MadeIconExpression,
+  type MadeIconSky,
+  madeIconOf,
+} from "@agenteschat/client/lib/app-icons";
+import type { AgentAccessory, AgentColor, AgentEyes } from "@agenteschat/tokens/look";
 import { idlePose, mixHex, type Pose } from "@agenteschat/ui/agent/engine";
 
 /**
@@ -36,8 +45,37 @@ export const LAUNCH = {
 export const NATIVE_IMAGE = 120;
 /** So the agent's body there is this wide, centered on the screen: the splash starts exactly on it. */
 export const LOGO = (NATIVE_IMAGE * 400) / 512;
-/** The agent in the logo (the same as the app icon). */
-export const LOGO_LOOK = { color: "sky", eyes: "round" } as const;
+/** The splash's agent and sky: the app icon's in use, so the opening is the icon the person picked. */
+export interface LaunchLook {
+  color: AgentColor;
+  eyes: AgentEyes;
+  /** A made icon's held face (a wink, a heart), when the choreography shows none of its own. */
+  expression?: MadeIconExpression;
+  accessory: AgentAccessory;
+  sky: MadeIconSky;
+}
+
+/** The agent in the logo: the shipped icon's (on the night sky). */
+export const LOGO_LOOK: LaunchLook = { color: "sky", eyes: "round", accessory: "none", sky: "night" };
+
+/**
+ * The look of the icon in use, from its id as last read from the system (`STORED.appIcon`); the logo's when there is
+ * none or it is unknown. The ready icons all have the logo's agent, on their sky.
+ */
+export function launchLookOf(id: string | null): LaunchLook {
+  if (!id) return LOGO_LOOK;
+  if (isAppIcon(id)) return { ...LOGO_LOOK, sky: id === "sky" || id === "peekSky" ? "sky" : "night" };
+  const made = madeIconOf(id);
+  if (!made) return LOGO_LOOK;
+  const face = isMadeIconFace(made.look) ? made.look : "round";
+  return {
+    color: made.color,
+    eyes: isMadeIconExpression(face) ? "round" : face,
+    ...(isMadeIconExpression(face) ? { expression: face } : {}),
+    accessory: isMadeIconFace(made.look) ? "none" : made.look,
+    sky: made.sky,
+  };
+}
 
 /** Whether the app, ready `readyMs` after the splash came up, skips its minimum (`LAUNCH.quick`). */
 export const launchesAtOnce = (readyMs: number) => readyMs <= LAUNCH.quick * 1000;
@@ -104,9 +142,10 @@ export const SPRITE_BODY = "#04203f";
 
 /**
  * The sky's tones, deep to light from the screen's background. `dusk`: the sky of a team's own server (lilac, as
- * the workspace's sky at dusk), so the splash that waits on that server says which one fell silent.
+ * the workspace's sky at dusk), so the splash that waits on that server says which one fell silent. `sky`: the app
+ * icon's; a day sky's icon is its brighter blues in light (in dark the icons are all at night, as is this).
  */
-export function launchSkyTones(bg: string, dark: boolean, dusk = false): string[] {
+export function launchSkyTones(bg: string, dark: boolean, dusk = false, sky: MadeIconSky = "night"): string[] {
   if (dusk) {
     const [deep, light] = dark ? ["#4a40a8", "#7b6fe0"] : ["#c9c0ff", "#aaa6f5"];
     return dark
@@ -120,6 +159,15 @@ export function launchSkyTones(bg: string, dark: boolean, dusk = false): string[
       mixHex(bg, "#2b74e6", 0.3),
       mixHex(bg, "#2b74e6", 0.48),
       mixHex(bg, "#4b93ff", 0.66),
+    ];
+  if (sky === "sky")
+    return [
+      bg,
+      mixHex(bg, "#8cc3ff", 0.25),
+      mixHex(bg, "#8cc3ff", 0.55),
+      mixHex(bg, "#8cc3ff", 0.85),
+      "#8cc3ff",
+      "#4693e8",
     ];
   return [
     bg,

@@ -4,7 +4,9 @@ import { join } from "node:path";
 import {
   LAUNCH,
   LOGO,
+  LOGO_LOOK,
   launchesAtOnce,
+  launchLookOf,
   launchPose,
   launchSkyTones,
   SPRITES,
@@ -86,5 +88,35 @@ describe("launch splash", () => {
     expect(launchSkyTones("#ffffff", false)[0]).toBe("#ffffff");
     expect(launchSkyTones("#0f0f0e", true)[0]).toBe("#0f0f0e");
     expect(launchSkyTones("#ffffff", false).length).toBeLessThanOrEqual(8);
+  });
+
+  test("the agent and the sky are the app icon's in use; nothing kept or unknown is the logo's", () => {
+    expect(launchLookOf(null)).toEqual(LOGO_LOOK);
+    expect(launchLookOf("not-an-icon")).toEqual(LOGO_LOOK);
+    expect(launchLookOf("peekNight")).toEqual(LOGO_LOOK);
+    expect(launchLookOf("moon").sky).toBe("night");
+    expect(launchLookOf("peekSky")).toEqual({ ...LOGO_LOOK, sky: "sky" });
+    expect(launchLookOf("made-sky-rose-heart")).toEqual({
+      color: "rose",
+      eyes: "round",
+      expression: "heart",
+      accessory: "none",
+      sky: "sky",
+    });
+    expect(launchLookOf("made-night-teal-sleepy-peek")).toEqual({
+      color: "teal",
+      eyes: "sleepy",
+      accessory: "none",
+      sky: "night",
+    });
+    expect(launchLookOf("made-night-amber-crown")).toMatchObject({ color: "amber", eyes: "round", accessory: "crown" });
+  });
+
+  test("a day sky's icon rises in its day blues in light; the night's keeps the logo's sky", () => {
+    expect(launchSkyTones("#ffffff", false, false, "night")).toEqual(launchSkyTones("#ffffff", false));
+    const day = launchSkyTones("#ffffff", false, false, "sky");
+    expect(day[0]).toBe("#ffffff");
+    expect(day).not.toEqual(launchSkyTones("#ffffff", false));
+    expect(launchSkyTones("#0f0f0e", true, false, "sky")).toEqual(launchSkyTones("#0f0f0e", true));
   });
 });

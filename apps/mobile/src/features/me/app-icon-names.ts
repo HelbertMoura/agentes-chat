@@ -11,8 +11,9 @@ import {
 /** An icon the phone can show: one of the ready ones, or one the person made. */
 export type PhoneIcon = AppIconId | MadeIcon;
 
-const idOf = (icon: PhoneIcon) => (typeof icon === "string" ? icon : madeIconId(icon));
-export const samePhoneIcon = (a: PhoneIcon, b: PhoneIcon) => idOf(a) === idOf(b);
+/** Its id: a ready one's, or a made one's (`made-night-rose-heart`). */
+export const phoneIconId = (icon: PhoneIcon) => (typeof icon === "string" ? icon : madeIconId(icon));
+export const samePhoneIcon = (a: PhoneIcon, b: PhoneIcon) => phoneIconId(a) === phoneIconId(b);
 
 const IOS_PREFIX = "AppIcon-";
 
@@ -22,7 +23,7 @@ const IOS_PREFIX = "AppIcon-";
  * reads it without React Native.
  */
 export function nativeIconName(icon: PhoneIcon, os: string): string | null {
-  const id = idOf(icon);
+  const id = phoneIconId(icon);
   if (os === "ios") return id === PHONE_APP_ICON ? null : `${IOS_PREFIX}${id}`;
   return `AppIcon${id
     .split("-")
