@@ -10,6 +10,10 @@ import {
   type QuotaRingLine,
   quotaDigitPixels,
   quotaOverview,
+  quotaPace,
+  quotaPaceAlert,
+  quotaPaceAlertText,
+  quotaPaceText,
   quotaPixels,
   quotaRingLabel,
   recentLines,
@@ -85,7 +89,8 @@ function useQuotaOverview() {
   const mine = useAiAccounts(orgId);
   // One seat on two computers is one account, as Cotas lists it.
   const accounts: PlanAccountUsage[] = usage.data ? groupUsageAccounts(usage.data.accounts, mine.data) : [];
-  return quotaOverview(accounts, Date.now(), org?.chatPrefs?.ringColors);
+  const now = Date.now();
+  return { overview: quotaOverview(accounts, now, org?.chatPrefs?.ringColors), now };
 }
 
 /**
@@ -97,7 +102,7 @@ function useQuotaOverview() {
 export function useQuotaRing(): ReactNode {
   const { t } = useTranslation();
   const sheet = useSheet();
-  const overview = useQuotaOverview();
+  const { overview } = useQuotaOverview();
   if (overview.lines.length === 0) return null;
   return (
     <IconButton
@@ -115,7 +120,8 @@ function QuotaSheet() {
   const { t, i18n } = useTranslation();
   const c = useColors();
   const sheet = useSheet();
-  const overview = useQuotaOverview();
+  const { overview, now } = useQuotaOverview();
+  const alert = quotaPaceAlert(overview, now);
   // The head: the ring, larger, and which circle is whose; pressing a color opens the ones to pick from.
   const text = planMeterText(t, i18n.language);
   const { orgId, org } = useOrg();
@@ -128,6 +134,11 @@ function QuotaSheet() {
         {overview.rings.length > 0 ? <QuotaDial rings={overview.rings} size={RING_LARGE} /> : null}
         <View style={styles.lead}>
           <Text variant="title">{t("quotas.ring.title")}</Text>
+          {alert ? (
+            <Text variant="small" style={{ color: c.warn }}>
+              {quotaPaceAlertText(t, i18n.language, alert, accountName(t, alert.account), now)}
+            </Text>
+          ) : null}
           {overview.rings.map((r) => (
             <View key={r.account.key} style={styles.keyBlock}>
               <View style={styles.key}>
@@ -172,7 +183,7 @@ function QuotaSheet() {
         </View>
       </View>
       {overview.lines.map((line) => (
-        <QuotaSheetLine key={line.account.key} line={line} />
+        <QuotaSheetLine key={line.account.key} line={line} now={now} />
       ))}
       <View style={styles.bleed}>
         <ListRow
@@ -191,8 +202,8 @@ function QuotaSheet() {
   );
 }
 
-/** One account: its mark and name, then each window's percent and reset, or why it has none and its recent use. */
-function QuotaSheetLine({ line }: { line: QuotaLine }) {
+/** One account: its mark and name, then each window's percent, reset and pace, or why it has none and its recent use. */
+function QuotaSheetLine({ line, now }: { line: QuotaLine; now: number }) {
   const { t, i18n } = useTranslation();
   const c = useColors();
   const text = planMeterText(t, i18n.language);
@@ -213,6 +224,7 @@ function QuotaSheetLine({ line }: { line: QuotaLine }) {
       {windows.length > 0 ? (
         windows.map((w) => {
           const level = planLevel(w.used);
+          const pace = quotaPace(w, now);
           return (
             <View key={w.key} style={styles.window}>
               <View style={styles.windowHead}>
@@ -230,6 +242,11 @@ function QuotaSheetLine({ line }: { line: QuotaLine }) {
               {w.resetsAt ? (
                 <Text variant="small" tone="muted">
                   {text.resets(w.resetsAt)}
+                </Text>
+              ) : null}
+              {pace ? (
+                <Text variant="small" tone="muted" style={pace.kind === "hits" ? { color: c.warn } : undefined}>
+                  {quotaPaceText(t, i18n.language, pace, now)}
                 </Text>
               ) : null}
             </View>

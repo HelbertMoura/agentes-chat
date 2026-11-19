@@ -295,7 +295,8 @@
   --meter-fill: var(--danger);
 }
 .quota-pop__window .ac-meter,
-.quota-pop__reset {
+.quota-pop__reset,
+.quota-pop__pace {
   grid-column: 1 / -1;
 }
 .quota-pop__window .ac-meter {
@@ -319,6 +320,16 @@
 }
 .quota-pop__reset {
   font-size: 12px;
+}
+/* Where the window is heading at its pace so far; in the warning tone when it reaches the limit before it resets. */
+.quota-pop__pace {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.quota-pop__pace[data-hits] {
+  color: var(--warn);
 }
 /* Always in reach under a long list. */
 .quota-pop__more {

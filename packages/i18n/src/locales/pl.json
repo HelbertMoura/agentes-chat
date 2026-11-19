@@ -19269,6 +19269,11 @@
       "none": "Limity planów: żadne z Twoich kont nie podaje limitów",
       "title": "Limity planów"
     },
+    "pace": {
+      "hits": "W tym tempie osiągnie 100% {{when}}",
+      "room": "W tym tempie zostanie zapas: skończy się na ok. {{percent}}%",
+      "head": "{{account}} w tym tempie osiągnie 100% {{when}}"
+    },
     "recent": {
       "title": "Ostatnie użycie",
       "day": "Ostatnie 24 godziny",

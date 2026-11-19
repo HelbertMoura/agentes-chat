@@ -18030,6 +18030,11 @@
       "none": "Plan limitleri: hesaplarınızın hiçbiri limit bildirmiyor",
       "title": "Plan limitleri"
     },
+    "pace": {
+      "hits": "Bu hızla {{when}} %100'e ulaşır",
+      "room": "Bu hızla pay kalır: yaklaşık %{{percent}} ile biter",
+      "head": "{{account}} bu hızla {{when}} %100'e ulaşır"
+    },
     "recent": {
       "title": "Son kullanım",
       "day": "Son 24 saat",

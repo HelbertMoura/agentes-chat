@@ -18169,6 +18169,11 @@
       "none": "Abonnementslimieten: geen van je accounts meldt limieten",
       "title": "Abonnementslimieten"
     },
+    "pace": {
+      "hits": "In dit tempo bereikt het {{when}} 100%",
+      "room": "In dit tempo is er ruimte over: het eindigt rond {{percent}}%",
+      "head": "{{account}} bereikt in dit tempo {{when}} 100%"
+    },
     "recent": {
       "title": "Recent gebruik",
       "day": "Afgelopen 24 uur",

@@ -18700,6 +18700,11 @@
       "none": "Limiti dei piani: nessuno dei tuoi account indica limiti",
       "title": "Limiti dei piani"
     },
+    "pace": {
+      "hits": "A questo ritmo, arriva al 100% {{when}}",
+      "room": "A questo ritmo, resta margine: finisce intorno al {{percent}}%",
+      "head": "{{account}} arriva al 100% {{when}} a questo ritmo"
+    },
     "recent": {
       "title": "Uso recente",
       "day": "Ultime 24 ore",
