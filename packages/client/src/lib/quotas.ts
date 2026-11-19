@@ -12,6 +12,7 @@ import type { AppNotification, PlanAccountUsage, RecentPeriod, RecentUse } from 
 import { formatInt, formatTokensShort, formatUsd } from "./format";
 import { brandOf, planMeterText } from "./plan-usage";
 import { planOf } from "./plans";
+import { WALLPAPER_HUES, type WallpaperHue } from "./wallpaper";
 
 /**
  * Cotas (ADR 0063 addendum 2026-11-17), shared by the web and the phone: every AI account the viewer sees, by maker,
@@ -149,12 +150,38 @@ export interface QuotaLine {
   brand: string;
   room: QuotaRoom | null;
   windows: QuotaWindowLine[];
+  /** Its color: the viewer's choice, else its maker's, else the first one free. */
+  hue: WallpaperHue;
 }
 
 /** How many accounts the ring draws. */
 export const QUOTA_RINGS = 3;
 
-/** One circle of the ring, in a 36-unit box; with room, each inner one fainter so they tell apart. */
+/** The colors an account can take in the ring, for the light and the dark theme. */
+export const QUOTA_HUES: Record<WallpaperHue, { light: string; dark: string }> = {
+  sky: { light: "#0284c7", dark: "#38bdf8" },
+  indigo: { light: "#4f46e5", dark: "#818cf8" },
+  violet: { light: "#7c3aed", dark: "#a78bfa" },
+  rose: { light: "#db2777", dark: "#f472b6" },
+  amber: { light: "#c8603f", dark: "#e8926f" },
+  green: { light: "#15803d", dark: "#4ade80" },
+  teal: { light: "#0f766e", dark: "#2dd4bf" },
+  graphite: { light: "#57534e", dark: "#a8a29e" },
+};
+
+/** Each maker's color, near its own mark's. */
+const MAKER_HUES: Partial<Record<string, WallpaperHue>> = {
+  claude_code: "amber",
+  antigravity: "sky",
+  enterprise: "sky",
+  opencode: "violet",
+  zen: "violet",
+  codex: "teal",
+  cursor: "indigo",
+  grok: "graphite",
+};
+
+/** One circle of the ring, in a 36-unit box. */
 export interface QuotaRingLine {
   account: PlanAccountUsage;
   used: number;
@@ -163,7 +190,7 @@ export interface QuotaRingLine {
   window: QuotaWindowLine | null;
   radius: number;
   stroke: number;
-  fade: number;
+  hue: WallpaperHue;
 }
 
 const RING_SHAPES: readonly (readonly (readonly [radius: number, stroke: number])[])[] = [
@@ -178,7 +205,6 @@ const RING_SHAPES: readonly (readonly (readonly [radius: number, stroke: number]
     [9.4, 2.6],
   ],
 ];
-const RING_FADE = [1, 0.72, 0.5];
 
 /** Each circle's radius and stroke for a ring of `count` (none yet: one empty circle). */
 export const quotaRingShape = (count: number) => RING_SHAPES[Math.max(count, 1) - 1] ?? RING_SHAPES[0] ?? [];
@@ -196,7 +222,20 @@ export interface QuotaOverview {
 }
 
 /** The ring over every screen (ADR 0063 addendum 2026-11-18): the tightest account and each account's windows. */
-export function quotaOverview(accounts: readonly PlanAccountUsage[], now = Date.now()): QuotaOverview {
+export function quotaOverview(
+  accounts: readonly PlanAccountUsage[],
+  now = Date.now(),
+  chosen: Readonly<Record<string, WallpaperHue>> = {},
+): QuotaOverview {
+  const taken = new Set<WallpaperHue>(Object.values(chosen));
+  const hueOf = (account: PlanAccountUsage) => {
+    const own = chosen[account.key];
+    if (own) return own;
+    const maker = MAKER_HUES[makerOf(account)];
+    const hue = maker && !taken.has(maker) ? maker : (WALLPAPER_HUES.find((h) => !taken.has(h)) ?? "sky");
+    taken.add(hue);
+    return hue;
+  };
   const lines = quotaSections(accounts, now)
     .flatMap((s) => s.accounts)
     .map((account): QuotaLine => {
@@ -207,6 +246,7 @@ export function quotaOverview(accounts: readonly PlanAccountUsage[], now = Date.
         maker: makerOf(account),
         brand: brandOf(account),
         room: quotaRoom(account, now),
+        hue: hueOf(account),
         windows: windows.map((w) => ({
           key: `${w.kind}:${w.label ?? ""}`,
           kind: w.kind,
@@ -225,8 +265,7 @@ export function quotaOverview(accounts: readonly PlanAccountUsage[], now = Date.
     if (!l.room || !circle) return [];
     const level = quotaLevel(l.room);
     const [radius, stroke] = circle;
-    const fade = level === "ok" ? (RING_FADE[i] ?? 1) : 1;
-    return [{ account: l.account, used: l.room.used, level, window: l.windows[0] ?? null, radius, stroke, fade }];
+    return [{ account: l.account, used: l.room.used, level, window: l.windows[0] ?? null, radius, stroke, hue: l.hue }];
   });
   const first = concerning[0];
   return { tightest: first?.room ? { ...first.room, account: first.account } : null, rings, lines };
