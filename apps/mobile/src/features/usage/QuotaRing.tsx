@@ -10,10 +10,11 @@ import {
   recentLines,
 } from "@agenteschat/client/lib/quotas";
 import { PLAN_ALMOST, PLAN_TONE, type PlanLevel, planLevel } from "@agenteschat/ui/plan-state";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, View } from "react-native";
-import Svg, { Circle } from "react-native-svg";
+import Animated, { Easing, useAnimatedProps, useSharedValue, withTiming } from "react-native-reanimated";
+import Svg, { Circle, type CircleProps } from "react-native-svg";
 import { useOrg } from "@/providers/org";
 import { Icon, IconButton, LIST_AVATAR, ListRow, ProviderLogo, SHEET_X, Text } from "@/ui";
 import { useColors } from "../shared/hooks";
@@ -27,6 +28,27 @@ import { openQuotas } from "./QuotasScreen";
 const RING = 34;
 /** The same dial at the head of the sheet. */
 const RING_LARGE = 56;
+const ARC_MS = 420;
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+/** The used part of the circle, drawn from the top on the UI thread as it appears and whenever the percent moves. */
+function QuotaArc({ used, around, ...circle }: CircleProps & { used: number; around: number }) {
+  const shown = useSharedValue(0);
+  useEffect(() => {
+    shown.value = withTiming(Math.min(used, 100) / 100, { duration: ARC_MS, easing: Easing.out(Easing.cubic) });
+  }, [used, shown]);
+  const props = useAnimatedProps(() => ({ strokeDashoffset: around * (1 - shown.value) }));
+  return (
+    <AnimatedCircle
+      {...circle}
+      animatedProps={props}
+      strokeLinecap="round"
+      strokeDasharray={`${around} ${around}`}
+      fill="none"
+    />
+  );
+}
 
 /** The percent inside its arc, over a tint of the arc's tone, with a tick where "almost at the limit" starts. */
 function QuotaDial({ used, level, size }: { used: number | null; level: PlanLevel; size: number }) {
@@ -50,15 +72,7 @@ function QuotaDial({ used, level, size }: { used: number | null; level: PlanLeve
           strokeDashoffset={-(PLAN_ALMOST / 100) * around + stroke / 4}
           fill="none"
         />
-        {used !== null && used > 0 ? (
-          <Circle
-            {...circle}
-            stroke={tone}
-            strokeLinecap="round"
-            strokeDasharray={`${(Math.min(used, 100) / 100) * around} ${around}`}
-            fill="none"
-          />
-        ) : null}
+        {used !== null && used > 0 ? <QuotaArc {...circle} used={used} around={around} stroke={tone} /> : null}
       </Svg>
       <View style={styles.number} pointerEvents="none">
         <Text
