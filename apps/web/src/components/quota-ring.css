@@ -25,7 +25,7 @@
 }
 /* Off the account card (a personal workspace's top row): the size of the bell and the collapse beside it. */
 .sidebar:not([data-rail="true"]) .sidebar__org--person .quota-ring {
-  --quota-dial: 28px;
+  --quota-dial: 30px;
   align-self: center;
   width: var(--control-h-sm);
   height: var(--control-h-sm);
@@ -38,23 +38,27 @@
   border-radius: var(--control-r-md);
 }
 
-/* The dial: the arc in the tone of its level over a tint of it, the number in ink so it reads on any level. */
+/* The dial: a circle per account in the tone of its level, the number in ink so it reads on any level. */
 .quota-dial {
-  --quota-tone: var(--ok);
   position: relative;
   flex: none;
   display: block;
-  width: var(--quota-dial, 34px);
-  height: var(--quota-dial, 34px);
+  width: var(--quota-dial, 38px);
+  height: var(--quota-dial, 38px);
   color: var(--ink);
 }
-.quota-dial[data-level="none"] {
+.quota-dial,
+.quota-dial__ring,
+.quota-pop__key {
+  --quota-tone: var(--ok);
+}
+:is(.quota-dial, .quota-dial__ring)[data-level="none"] {
   --quota-tone: var(--muted);
 }
-.quota-dial[data-level="almost"] {
+:is(.quota-dial, .quota-dial__ring, .quota-pop__key)[data-level="almost"] {
   --quota-tone: var(--warn);
 }
-.quota-dial:is([data-level="critical"], [data-level="limited"]) {
+:is(.quota-dial, .quota-dial__ring, .quota-pop__key):is([data-level="critical"], [data-level="limited"]) {
   --quota-tone: var(--danger);
 }
 .quota-dial svg {
@@ -65,11 +69,9 @@
 }
 .quota-dial circle {
   fill: none;
-  stroke-width: 4;
 }
 .quota-dial .quota-dial__disc {
   fill: color-mix(in srgb, var(--quota-tone) 14%, transparent);
-  stroke: none;
 }
 .quota-dial__track {
   stroke: color-mix(in srgb, var(--ink) 12%, transparent);
@@ -83,19 +85,29 @@
   transition: stroke-dasharray 0.24s ease-out;
 }
 .quota-dial__num {
+  --quota-num: 0.36;
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: calc(var(--quota-dial, 34px) * 0.36);
+  font-size: calc(var(--quota-dial, 38px) * var(--quota-num));
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
   line-height: 1;
 }
+.quota-dial[data-rings="2"] .quota-dial__num {
+  --quota-num: 0.31;
+}
+.quota-dial[data-rings="3"] .quota-dial__num {
+  --quota-num: 0.27;
+}
 .quota-dial[data-long] .quota-dial__num {
-  font-size: calc(var(--quota-dial, 34px) * 0.3);
+  --quota-num: 0.3;
+}
+.quota-dial[data-long]:is([data-rings="2"], [data-rings="3"]) .quota-dial__num {
+  --quota-num: 0.22;
 }
 @media (prefers-reduced-motion: reduce) {
   .quota-dial__used {
@@ -116,7 +128,7 @@
 }
 /* The head: what the ring says, larger, with the window behind it. */
 .quota-pop__top {
-  --quota-dial: 56px;
+  --quota-dial: 64px;
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -124,22 +136,55 @@
 }
 .quota-pop__lead {
   display: flex;
+  flex: 1;
   flex-direction: column;
+  gap: var(--space-1);
   min-width: 0;
 }
-.quota-pop__lead p {
+.quota-pop__title {
   margin: 0;
-}
-.quota-pop__title,
-.quota-pop__renews {
   font-size: 12.5px;
   color: var(--muted);
 }
-.quota-pop__tightest {
-  font-size: 14px;
-  font-weight: 600;
+.quota-pop__keys {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* Which circle is whose: its color, the account and its tightest window, the percent at the end. */
+.quota-pop__key {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: 13px;
   color: var(--ink);
+}
+.quota-pop__key i {
+  flex: none;
+  align-self: center;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--quota-tone);
+}
+.quota-pop__keyname {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
   overflow-wrap: anywhere;
+}
+.quota-pop__keyname small {
+  margin-left: var(--space-1);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.quota-pop__key b {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 .quota-pop__list,
 .quota-pop__windows {

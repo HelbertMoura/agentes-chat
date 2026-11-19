@@ -52,6 +52,34 @@ const account = (key: string, over: Partial<PlanAccountUsage> = {}): PlanAccount
   ...over,
 });
 
+describe("the ring's circles", () => {
+  const at = (key: string, usedPercent: number, over: Partial<PlanAccountUsage> = {}) =>
+    account(key, { usage: usage([{ kind: "five_hour", usedPercent, resetsAt: IN_2H }]), ...over });
+
+  test("the three accounts closest to a limit that concern the viewer, the tightest outermost", () => {
+    const { rings, tightest } = quotaOverview(
+      [at("a", 10), at("b", 61), at("c", 85), at("d", 30), at("e", 99, { mine: false, forMe: false })],
+      NOW,
+    );
+    expect(rings.map((r) => [r.account.key, r.used, r.level])).toEqual([
+      ["c", 85, "almost"],
+      ["b", 61, "ok"],
+      ["d", 30, "ok"],
+    ]);
+    expect(rings.map((r) => r.radius)).toEqual([16, 12.7, 9.4]);
+    expect(rings[0]?.fade).toBe(1);
+    expect(rings[1]?.fade).toBeLessThan(1);
+    expect(tightest?.account.key).toBe("c");
+    expect(rings[0]?.window?.kind).toBe("five_hour");
+  });
+
+  test("near a limit a circle keeps its full tone; none known, none drawn", () => {
+    const { rings } = quotaOverview([at("a", 95), at("b", 92)], NOW);
+    expect(rings.map((r) => r.fade)).toEqual([1, 1]);
+    expect(quotaOverview([account("x")], NOW).rings).toEqual([]);
+  });
+});
+
 describe("where an account stands", () => {
   test("at a limit, near one, with room, or nothing known", () => {
     expect(quotaStanding(account("a", { usage: usage([{ kind: "five_hour", usedPercent: 100 }]) }), NOW)).toBe(
@@ -86,6 +114,7 @@ describe("where an account stands", () => {
     expect(limitsReported({ kind: "cursor", provider: null, accountId: "a" })).toBe(false);
     expect(limitsReported({ kind: "grok", provider: null, accountId: "a" })).toBe(false);
     expect(limitsReported({ kind: "opencode", provider: null, accountId: "a" })).toBe(false);
+    expect(limitsReported({ kind: "opencode", provider: "zen", accountId: "a" })).toBe(true);
     expect(limitsReported({ kind: "antigravity", provider: null, accountId: "a" })).toBe(true);
     expect(limitsReported({ kind: "antigravity", provider: null, accountId: null })).toBe(false);
     expect(noQuotaText(t, account("m", { provider: "minimax", agents: [] }))).toBe("quotas.notReported");
@@ -234,7 +263,7 @@ describe("the limits ring", () => {
   });
 
   test("nothing to show a percent for: no accounts, or none reporting limits", () => {
-    expect(quotaOverview([], NOW)).toEqual({ tightest: null, lines: [] });
+    expect(quotaOverview([], NOW)).toEqual({ tightest: null, rings: [], lines: [] });
     const o = quotaOverview([account("a"), account("b", { usage: usage([]) })], NOW);
     expect(o.tightest).toBeNull();
     expect(o.lines).toHaveLength(2);
