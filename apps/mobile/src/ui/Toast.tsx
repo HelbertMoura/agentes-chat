@@ -8,6 +8,7 @@ import { scheduleOnRN } from "react-native-worklets";
 import { AgentAvatar } from "@/agent/AgentAvatar";
 import { type AgentLookInput, lookOf } from "@/agent/looks";
 import { useAppLock } from "@/features/lock/store";
+import { CodeWords } from "./CodeWords";
 import { Glass } from "./Glass";
 import { haptics } from "./haptics";
 import { Icon, type IconName } from "./Icon";
@@ -289,7 +290,7 @@ function ToastView({ item, replaced, onGone }: { item: Shown; replaced: boolean;
           )}
           <View style={styles.words}>
             <Text variant="subhead" numberOfLines={1} style={styles.title}>
-              {item.title}
+              <CodeWords text={item.title} />
             </Text>
             {item.subtitle ? (
               <Text variant="footnote" numberOfLines={2}>

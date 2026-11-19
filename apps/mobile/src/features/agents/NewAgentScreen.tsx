@@ -92,6 +92,7 @@ import { proposedRoutineWhen } from "../routines/rule";
 import { chooseAction, SettingsPage, useUnsavedGuard } from "../settings/parts";
 import { useColors, useDirectory, useMeId, useOrgId } from "../shared/hooks";
 import {
+  BarNote,
   BottomBar,
   FocusLive,
   goBack,
@@ -219,7 +220,7 @@ function FlowStart({
     const proposed = from?.params.draft;
     return startNewAgent({
       what,
-      suggested: suggestAgentName(dir.agents.map((a) => a.name)),
+      suggested: suggestAgentName([...dir.agentById.values()].map((a) => a.name)),
       from,
       channelId,
       accountId,
@@ -365,13 +366,14 @@ function StepPage({
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.fill, { backgroundColor: c.grouped }]}>
-      <PushedHeader title={t("newAgent.title")} {...(subtitle ? { subtitle } : {})} solid={false} grouped />
+      <PushedHeader title={t("newAgent.title")} solid={false} grouped />
       <KeyboardAvoidingView behavior="padding" style={styles.fill}>
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={[styles.body, bar ? null : { paddingBottom: 32 + insets.bottom }]}
         >
+          {subtitle ? <BarNote>{subtitle}</BarNote> : null}
           {children}
         </ScrollView>
         {bar ? <BottomBar bottom={insets.bottom}>{bar}</BottomBar> : null}
@@ -598,7 +600,10 @@ function IdentityStep({ d, change = false, tried: triedFirst = false }: StepProp
   };
   const changeName = (value: string) =>
     editNewAgent((now) => ({ name: value, ...(now.handleTouched ? {} : { handle: handleForName(value) }) }));
-  const taken = useMemo(() => takenHandles(dir.agents, [...dir.memberById.values()]), [dir.agents, dir.memberById]);
+  const taken = useMemo(
+    () => takenHandles([...dir.agentById.values()], [...dir.memberById.values()]),
+    [dir.agentById, dir.memberById],
+  );
   const shownName = name.trim() || t("newAgent.previewName");
   const handleIssue = handle || tried ? handleProblem(handle, taken) : null;
   const handleText =
@@ -872,7 +877,10 @@ function ReviewStep({ d }: StepProps) {
   const myMail = (proposed?.mail ?? []).filter((m) => m.accountId in mailLevels);
   // Revisar lists what a proposal asked for at any level, so a change can be taken back.
   const listedApps = proposed ? items.filter((i) => i.id in proposedLevels || granted.includes(i)) : granted;
-  const taken = useMemo(() => takenHandles(dir.agents, [...dir.memberById.values()]), [dir.agents, dir.memberById]);
+  const taken = useMemo(
+    () => takenHandles([...dir.agentById.values()], [...dir.memberById.values()]),
+    [dir.agentById, dir.memberById],
+  );
   const shownName = name.trim() || t("newAgent.previewName");
   const g = agentGrammar(name.trim() || t("newAgent.defaultName"));
   const roleName = role && role !== "custom" ? t(`newAgent.roles.${role}.name`) : roleText.trim();
