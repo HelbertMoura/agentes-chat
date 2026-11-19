@@ -352,18 +352,27 @@
 .quota-pop__more:hover {
   background: color-mix(in srgb, var(--ink) 6%, var(--glass-solid));
 }
-/* The bell beside the ring, on the same pixel grid: 2 points a cell. */
+/* The bell beside the ring: its 10 cells at 2.4 points, as heavy as the ring's dial beside it. */
 .pixel-bell {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   fill: currentColor;
 }
-/* The ring and the bell: two tiles of one width, centered on one line. */
+/* The ring and the bell: two tiles of one width, centered on one line, the dial with room around it as the bell has. */
 .sidebar__me .quota-ring {
-  --quota-dial: 40px;
+  --quota-dial: 34px;
   width: var(--control-h-md);
 }
-/* The bell in ink, not muted: it reads beside the ring on the account card in both themes. */
+/* The bell in ink, as the ring's numbers are: it reads beside the ring on the account card in both themes. */
 .sidebar__me .sidebar__bell {
-  color: color-mix(in srgb, var(--ink) 82%, transparent);
+  color: var(--ink);
+}
+/* Its count on the glyph's corner, a size smaller than the sidebar's rows have: the dome stays in sight. */
+.sidebar:not([data-rail="true"]) .sidebar__me .sidebar__bell > .sidebar__unread {
+  top: 3px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  font-size: 10.5px;
 }
