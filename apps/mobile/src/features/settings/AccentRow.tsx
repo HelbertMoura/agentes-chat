@@ -1,4 +1,4 @@
-import { useSetOrgAccent } from "@agenteschat/client";
+import { useSetChatPrefs, useSetOrgAccent } from "@agenteschat/client";
 import { DEFAULT_ACCENT } from "@agenteschat/tokens/accent";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -20,24 +20,99 @@ const SWATCH = 22;
 export function AccentRow({ editable }: { editable: boolean }) {
   const { t } = useTranslation();
   const { org, orgId } = useOrg();
-  const c = useColors();
-  const toast = useToast();
   const save = useSetOrgAccent(orgId);
-  const saved = org?.accent ?? null;
+  const toast = useAccentToast();
+  const { row, sheet } = useAccentPicker({
+    saved: org?.accent ?? null,
+    editable,
+    pending: save.isPending,
+    resetLabel: t("orgAccent.useDefault"),
+    onCommit: (accent) =>
+      save.mutate(accent, {
+        onSuccess: (r) => toast.saved(r.accent ? "orgAccent.saved" : "orgAccent.reset"),
+        onError: toast.failed,
+      }),
+  });
+  return (
+    <>
+      <GroupedList>{row}</GroupedList>
+      {sheet}
+    </>
+  );
+}
+
+/**
+ * Você › "Your accent color" (ADR 0193 addendum): every member's own, over the workspace's for them alone, kept with
+ * their other choices here (`chatPrefs.accent`). Its row goes in the caller's list, its sheet beside the list.
+ */
+export function usePersonalAccent() {
+  const { t } = useTranslation();
+  const { org, orgId } = useOrg();
+  const save = useSetChatPrefs(orgId);
+  const toast = useAccentToast();
+  const theirs = org?.accent ?? null;
+  return useAccentPicker({
+    saved: org?.chatPrefs?.accent ?? null,
+    fallback: theirs,
+    editable: true,
+    pending: save.isPending,
+    label: t("orgAccent.mine"),
+    resetLabel: t(theirs ? "orgAccent.useWorkspace" : "orgAccent.useDefault"),
+    onCommit: (accent) =>
+      save.mutate(
+        { accent },
+        {
+          onSuccess: () =>
+            toast.saved(accent ? "orgAccent.saved" : theirs ? "orgAccent.resetWorkspace" : "orgAccent.reset"),
+          onError: toast.failed,
+        },
+      ),
+  });
+}
+
+function useAccentToast() {
+  const { t } = useTranslation();
+  const toast = useToast();
+  return {
+    saved: (key: "orgAccent.saved" | "orgAccent.reset" | "orgAccent.resetWorkspace") => {
+      successHaptic();
+      toast({ title: t(key) });
+    },
+    failed: () => {
+      errorHaptic();
+      toast({ title: t("mobile.app.failed"), icon: "x" });
+    },
+  };
+}
+
+/**
+ * The accent's row and its color sheet. `fallback` is what shows when nothing is saved here (null: the default);
+ * picking it stores nothing.
+ */
+function useAccentPicker({
+  saved,
+  fallback = null,
+  editable,
+  pending,
+  label,
+  resetLabel,
+  onCommit,
+}: {
+  saved: string | null;
+  fallback?: string | null;
+  editable: boolean;
+  pending: boolean;
+  label?: string;
+  resetLabel: string;
+  onCommit: (accent: string | null) => void;
+}) {
+  const { t } = useTranslation();
+  const c = useColors();
+  const title = label ?? t("orgAccent.label");
   const [opens, setOpens] = useState(0);
   const [picking, setPicking] = useState(false);
 
-  const commit = (accent: string | null) =>
-    save.mutate(accent === DEFAULT_ACCENT ? null : accent, {
-      onSuccess: (r) => {
-        successHaptic();
-        toast({ title: t(r.accent ? "orgAccent.saved" : "orgAccent.reset") });
-      },
-      onError: () => {
-        errorHaptic();
-        toast({ title: t("mobile.app.failed"), icon: "x" });
-      },
-    });
+  const commit = (accent: string | null) => onCommit(accent === (fallback ?? DEFAULT_ACCENT) ? null : accent);
   const pick = () => {
     setOpens((n) => n + 1);
     setPicking(true);
@@ -45,36 +120,37 @@ export function AccentRow({ editable }: { editable: boolean }) {
   const choose = () =>
     saved
       ? chooseAction(
-          t("orgAccent.label"),
+          title,
           [
             { icon: "pen", label: t("orgAccent.change"), onPress: pick },
-            { icon: "undo", label: t("orgAccent.useDefault"), onPress: () => commit(null) },
+            { icon: "undo", label: resetLabel, onPress: () => onCommit(null) },
           ],
           t("mobile.common.cancel"),
         )
       : pick();
 
-  return (
-    <>
-      <GroupedList>
-        <GroupedRow
-          label={t("orgAccent.label")}
-          valueLeading={<View style={[styles.swatch, { backgroundColor: c.agent, borderColor: c.line2 }]} />}
-          {...(editable ? { more: Boolean(saved), chevron: !saved, onPress: choose, disabled: save.isPending } : {})}
-        />
-      </GroupedList>
+  return {
+    row: (
+      <GroupedRow
+        key="accent"
+        label={title}
+        valueLeading={<View style={[styles.swatch, { backgroundColor: c.agent, borderColor: c.line2 }]} />}
+        {...(editable ? { more: Boolean(saved), chevron: !saved, onPress: choose, disabled: pending } : {})}
+      />
+    ),
+    sheet: (
       <ColorSheet
         key={opens}
         open={picking}
-        value={saved ?? DEFAULT_ACCENT}
-        title={t("orgAccent.label")}
+        value={saved ?? fallback ?? DEFAULT_ACCENT}
+        title={title}
         done={t("orgAccent.save")}
         onChange={() => {}}
         onDone={commit}
         onClose={() => setPicking(false)}
       />
-    </>
-  );
+    ),
+  };
 }
 
 const styles = StyleSheet.create({

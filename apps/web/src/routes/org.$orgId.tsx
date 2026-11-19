@@ -1,4 +1,5 @@
 import { useMe } from "@agenteschat/client";
+import { accentOf } from "@agenteschat/client/lib/chat-look";
 import { membershipIn, settingUp } from "@agenteschat/client/lib/guards";
 import { can } from "@agenteschat/client/lib/permissions";
 import { MorphRoom } from "@agenteschat/ui";
@@ -90,7 +91,8 @@ function OrgLayout() {
   // …and the ones it still shows for what was already read elsewhere close.
   useWebPushClear();
   usePageTextSize(membership?.chatPrefs);
-  useWorkspaceAccent(membership?.accent);
+  // My own accent wins over the workspace's (ADR 0193 addendum).
+  useWorkspaceAccent(accentOf(membership));
   // An agent picked as the app icon follows its name and look in its workspace (ADR 0179).
   useFollowPickedAgent(orgId);
   // The dialogs the shell and its pages open (Connect AI, a new agent, a file, a computer, details) left the first
