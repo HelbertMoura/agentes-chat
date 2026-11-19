@@ -614,7 +614,7 @@ function manager(over: Partial<AccountManagerOptions> = {}) {
     ...over,
   });
   managers.push(m);
-  const folder = (kind: "claude_code" | "codex", id: string) => {
+  const folder = (kind: "claude_code" | "codex" | "opencode", id: string) => {
     const dir = path.join(home, "accounts", kind, id);
     mkdirSync(dir, { recursive: true });
     return dir;

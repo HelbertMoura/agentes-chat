@@ -1,8 +1,9 @@
 import type { PlanAccountUsage } from "@agenteschat/client";
-import { useAiAccounts, usePlanUsage } from "@agenteschat/client";
+import { useAiAccounts, usePlanUsage, useSetChatPrefs } from "@agenteschat/client";
 import { accountName, groupUsageAccounts, planMeterText } from "@agenteschat/client/lib/plan-usage";
 import {
   noQuotaText,
+  QUOTA_HUES,
   type QuotaLine,
   type QuotaRingLine,
   quotaOverview,
@@ -10,14 +11,15 @@ import {
   quotaRingShape,
   recentLines,
 } from "@agenteschat/client/lib/quotas";
-import { PLAN_ALMOST, PLAN_TONE, planLevel } from "@agenteschat/ui/plan-state";
-import { type ReactNode, useEffect } from "react";
+import { WALLPAPER_HUES } from "@agenteschat/client/lib/wallpaper";
+import { PLAN_ALMOST, PLAN_TONE, type PlanLevel, planLevel } from "@agenteschat/ui/plan-state";
+import { type ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import Animated, { Easing, useAnimatedProps, useSharedValue, withTiming } from "react-native-reanimated";
 import Svg, { Circle, type CircleProps, G } from "react-native-svg";
 import { useOrg } from "@/providers/org";
-import { Icon, IconButton, LIST_AVATAR, ListRow, ProviderLogo, SHEET_X, Text } from "@/ui";
+import { Icon, IconButton, LIST_AVATAR, ListRow, ProviderLogo, SHEET_X, Text, useTheme } from "@/ui";
 import { useColors } from "../shared/hooks";
 import { useSheet } from "../shared/SheetHost";
 import { quotaRingFontSize } from "./logic";
@@ -54,12 +56,23 @@ function QuotaArc({ used, around, ...circle }: CircleProps & { used: number; aro
   );
 }
 
+/** A plan's color in this theme, or the color its level gives it near a limit. */
+function useQuotaTone() {
+  const c = useColors();
+  const { scheme } = useTheme();
+  const hueOf = (hue: QuotaRingLine["hue"]) => QUOTA_HUES[hue][scheme === "dark" ? "dark" : "light"];
+  return {
+    hueOf,
+    toneOf: (hue: QuotaRingLine["hue"], level: PlanLevel) => (level === "ok" ? hueOf(hue) : c[PLAN_TONE[level]]),
+  };
+}
+
 /** A circle per account, the closest to a limit outermost, and that one's percent in the middle over a tint of its tone. */
 function QuotaDial({ rings, size }: { rings: readonly QuotaRingLine[]; size: number }) {
   const c = useColors();
   const unit = size / BOX;
   const top = rings[0];
-  const toneOf = (r: QuotaRingLine) => (r.level === "ok" ? c.ok : c[PLAN_TONE[r.level]]);
+  const { toneOf } = useQuotaTone();
   const [emptyRadius = 15, emptyStroke = 4] = quotaRingShape(0)[0] ?? [];
   const circles = top
     ? rings.map((r) => ({
@@ -67,10 +80,9 @@ function QuotaDial({ rings, size }: { rings: readonly QuotaRingLine[]; size: num
         r: r.radius,
         width: r.stroke,
         used: r.used,
-        tone: toneOf(r),
-        fade: r.fade,
+        tone: toneOf(r.hue, r.level),
       }))
-    : [{ key: "none", r: emptyRadius, width: emptyStroke, used: 0, tone: c.muted, fade: 1 }];
+    : [{ key: "none", r: emptyRadius, width: emptyStroke, used: 0, tone: c.muted }];
   const last = circles.at(-1);
   const number = top ? String(top.used) : "–";
   const center = { cx: size / 2, cy: size / 2 };
@@ -82,7 +94,7 @@ function QuotaDial({ rings, size }: { rings: readonly QuotaRingLine[]; size: num
           <Circle
             {...center}
             r={(last.r - last.width / 2) * unit}
-            fill={top ? toneOf(top) : c.muted}
+            fill={top ? toneOf(top.hue, top.level) : c.muted}
             fillOpacity={0.14}
           />
         ) : null}
@@ -101,9 +113,7 @@ function QuotaDial({ rings, size }: { rings: readonly QuotaRingLine[]; size: num
                 strokeDashoffset={-(PLAN_ALMOST / 100) * around + stroke / 4}
                 fill="none"
               />
-              {o.used > 0 ? (
-                <QuotaArc {...circle} used={o.used} around={around} stroke={o.tone} strokeOpacity={o.fade} />
-              ) : null}
+              {o.used > 0 ? <QuotaArc {...circle} used={o.used} around={around} stroke={o.tone} /> : null}
             </G>
           );
         })}
@@ -113,7 +123,14 @@ function QuotaDial({ rings, size }: { rings: readonly QuotaRingLine[]; size: num
           variant="caption"
           allowFontScaling={false}
           numberOfLines={1}
-          style={[styles.digits, { color: c.ink, fontSize: font, lineHeight: font * 1.15 }]}
+          style={[
+            styles.digits,
+            {
+              color: top && top.level !== "ok" ? toneOf(top.hue, top.level) : c.ink,
+              fontSize: font,
+              lineHeight: font * 1.15,
+            },
+          ]}
         >
           {number}
         </Text>
@@ -124,12 +141,12 @@ function QuotaDial({ rings, size }: { rings: readonly QuotaRingLine[]; size: num
 
 /** The workspace's accounts as Cotas lists them, with the ring's numbers. */
 function useQuotaOverview() {
-  const { orgId } = useOrg();
+  const { orgId, org } = useOrg();
   const usage = usePlanUsage(orgId);
   const mine = useAiAccounts(orgId);
   // One seat on two computers is one account, as Cotas lists it.
   const accounts: PlanAccountUsage[] = usage.data ? groupUsageAccounts(usage.data.accounts, mine.data) : [];
-  return quotaOverview(accounts);
+  return quotaOverview(accounts, Date.now(), org?.chatPrefs?.ringColors);
 }
 
 /**
@@ -160,8 +177,12 @@ function QuotaSheet() {
   const c = useColors();
   const sheet = useSheet();
   const overview = useQuotaOverview();
-  // The head: the ring, larger, and which circle is whose.
+  // The head: the ring, larger, and which circle is whose; pressing a color opens the ones to pick from.
   const text = planMeterText(t, i18n.language);
+  const { orgId, org } = useOrg();
+  const setPrefs = useSetChatPrefs(orgId);
+  const { hueOf, toneOf } = useQuotaTone();
+  const [picking, setPicking] = useState<string | null>(null);
   return (
     <>
       <View style={styles.top}>
@@ -169,18 +190,44 @@ function QuotaSheet() {
         <View style={styles.lead}>
           <Text variant="title">{t("quotas.ring.title")}</Text>
           {overview.rings.map((r) => (
-            <View key={r.account.key} style={styles.key}>
-              <View
-                style={[
-                  styles.dot,
-                  { backgroundColor: r.level === "ok" ? c.ok : c[PLAN_TONE[r.level]], opacity: r.fade },
-                ]}
-              />
-              <Text variant="small" tone="ink" numberOfLines={1} style={[styles.bold, styles.grow]}>
-                {accountName(t, r.account)}
-                {r.window ? <Text variant="small" tone="muted">{`  ${text.short(r.window)}`}</Text> : null}
-              </Text>
-              <Text variant="small" tone="ink" style={[styles.bold, styles.tabular]}>{`${r.used}%`}</Text>
+            <View key={r.account.key} style={styles.keyBlock}>
+              <View style={styles.key}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={accountName(t, r.account)}
+                  accessibilityState={{ expanded: picking === r.account.key }}
+                  hitSlop={14}
+                  onPress={() => setPicking(picking === r.account.key ? null : r.account.key)}
+                  style={[styles.dot, { backgroundColor: toneOf(r.hue, r.level) }]}
+                />
+                <Text variant="small" tone="ink" numberOfLines={1} style={[styles.bold, styles.grow]}>
+                  {accountName(t, r.account)}
+                  {r.window ? <Text variant="small" tone="muted">{`  ${text.short(r.window)}`}</Text> : null}
+                </Text>
+                <Text variant="small" tone="ink" style={[styles.bold, styles.tabular]}>{`${r.used}%`}</Text>
+              </View>
+              {picking === r.account.key ? (
+                <View style={styles.hues} accessibilityRole="radiogroup">
+                  {WALLPAPER_HUES.map((hue, i) => (
+                    <Pressable
+                      key={hue}
+                      accessibilityRole="radio"
+                      accessibilityLabel={`${accountName(t, r.account)} ${i + 1}`}
+                      accessibilityState={{ checked: r.hue === hue }}
+                      hitSlop={4}
+                      onPress={() => {
+                        setPrefs.mutate({ ringColors: { ...org?.chatPrefs?.ringColors, [r.account.key]: hue } });
+                        setPicking(null);
+                      }}
+                      style={[
+                        styles.hue,
+                        { backgroundColor: hueOf(hue) },
+                        r.hue === hue ? { borderColor: c.ink, borderWidth: 2 } : null,
+                      ]}
+                    />
+                  ))}
+                </View>
+              ) : null}
             </View>
           ))}
         </View>
@@ -211,6 +258,7 @@ function QuotaSheetLine({ line }: { line: QuotaLine }) {
   const c = useColors();
   const text = planMeterText(t, i18n.language);
   const { account, windows } = line;
+  const { toneOf } = useQuotaTone();
   const recent = recentLines(t, i18n.language, account.recent).at(-1);
   return (
     <View style={[styles.account, { borderTopColor: c.line }]}>
@@ -239,12 +287,7 @@ function QuotaSheetLine({ line }: { line: QuotaLine }) {
                   {`${w.used}%`}
                 </Text>
               </View>
-              <Meter
-                value={w.used}
-                label={text.window(w)}
-                mark={PLAN_ALMOST}
-                color={level === "ok" ? c.ok : c[PLAN_TONE[level]]}
-              />
+              <Meter value={w.used} label={text.window(w)} mark={PLAN_ALMOST} color={toneOf(line.hue, level)} />
               {w.resetsAt ? (
                 <Text variant="small" tone="muted">
                   {text.resets(w.resetsAt)}
@@ -270,7 +313,10 @@ const styles = StyleSheet.create({
   top: { flexDirection: "row", alignItems: "center", gap: 12 },
   lead: { flex: 1, gap: 3 },
   key: { flexDirection: "row", alignItems: "center", gap: 8 },
-  dot: { width: 8, height: 8, borderRadius: 4 },
+  keyBlock: { gap: 6 },
+  dot: { width: 12, height: 12, borderRadius: 6 },
+  hues: { flexDirection: "row", flexWrap: "wrap", gap: 10, paddingVertical: 2 },
+  hue: { width: 26, height: 26, borderRadius: 13 },
   grow: { flex: 1 },
   account: { gap: 12, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth },
   head: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: 8 },

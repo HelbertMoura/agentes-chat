@@ -1,4 +1,4 @@
-import { useAiAccounts, usePlanUsage } from "@agenteschat/client";
+import { useAiAccounts, usePlanUsage, useSetChatPrefs } from "@agenteschat/client";
 import {
   noQuotaText,
   type QuotaLine,
@@ -9,6 +9,7 @@ import {
   quotaRingShape,
   recentLines,
 } from "@agenteschat/client/lib/quotas";
+import { WALLPAPER_HUES } from "@agenteschat/client/lib/wallpaper";
 import { Icon, Meter, movesByKeys, Popover, ProviderLogo, useHoverCard } from "@agenteschat/ui";
 import { PLAN_ALMOST, planLevel } from "@agenteschat/ui/plan-state";
 import { Link } from "@tanstack/react-router";
@@ -28,18 +29,18 @@ function QuotaCircle({
   stroke,
   used,
   level,
-  fade,
+  hue,
 }: {
   radius: number;
   stroke: number;
   used: number;
   level: QuotaRingLine["level"] | "none";
-  fade: number;
+  hue?: QuotaRingLine["hue"];
 }) {
   const around = 2 * Math.PI * radius;
   const circle = { cx: CENTER, cy: CENTER, r: radius, strokeWidth: stroke };
   return (
-    <g className="quota-dial__ring" data-level={level}>
+    <g className="quota-dial__ring" data-level={level} data-hue={hue}>
       <circle className="quota-dial__track" {...circle} />
       <circle
         className="quota-dial__tick"
@@ -51,7 +52,6 @@ function QuotaCircle({
         <circle
           className="quota-dial__used"
           {...circle}
-          strokeOpacity={fade}
           strokeDasharray={`${(Math.min(used, 100) / 100) * around} ${around}`}
         />
       )}
@@ -69,6 +69,7 @@ function QuotaDial({ rings }: { rings: readonly QuotaRingLine[] }) {
     <span
       className="quota-dial"
       data-level={top?.level ?? "none"}
+      data-hue={top?.hue}
       data-rings={rings.length || 1}
       data-long={number.length > 2 || undefined}
     >
@@ -87,11 +88,11 @@ function QuotaDial({ rings }: { rings: readonly QuotaRingLine[] }) {
               stroke={r.stroke}
               used={r.used}
               level={r.level}
-              fade={r.fade}
+              hue={r.hue}
             />
           ))
         ) : (
-          <QuotaCircle radius={radius} stroke={stroke} used={0} level="none" fade={1} />
+          <QuotaCircle radius={radius} stroke={stroke} used={0} level="none" />
         )}
       </svg>
       <span className="quota-dial__num" aria-hidden="true">
@@ -112,6 +113,9 @@ export function QuotaRing({ side = "top" }: { side?: "top" | "bottom" | "right" 
   const { org } = useOrg();
   const usage = usePlanUsage(org.id);
   const mine = useAiAccounts(org.id);
+  const setPrefs = useSetChatPrefs(org.id);
+  // The account whose color is being picked in the card.
+  const [picking, setPicking] = useState<string | null>(null);
   const card = useHoverCard(HOVER_OPEN_MS);
   // Keyboard focus shows it too, without taking the focus; Enter or Space then moves in.
   const [focused, setFocused] = useState(false);
@@ -125,7 +129,8 @@ export function QuotaRing({ side = "top" }: { side?: "top" | "bottom" | "right" 
   }, [open]);
   const accounts = usage.data ? groupUsageAccounts(usage.data.accounts, mine.data) : [];
   if (accounts.length === 0) return null;
-  const overview = quotaOverview(accounts);
+  const chosen = org.chatPrefs?.ringColors;
+  const overview = quotaOverview(accounts, Date.now(), chosen);
   const top = overview.tightest;
   const label = quotaRingLabel(t, overview, (a) => accountName(t, a));
   const text = planMeterText(t, i18n.language);
@@ -182,13 +187,38 @@ export function QuotaRing({ side = "top" }: { side?: "top" | "bottom" | "right" 
             {top && (
               <ul className="quota-pop__keys">
                 {overview.rings.map((r) => (
-                  <li key={r.account.key} className="quota-pop__key" data-level={r.level}>
-                    <i style={{ opacity: r.fade }} aria-hidden="true" />
+                  <li key={r.account.key} className="quota-pop__key" data-level={r.level} data-hue={r.hue}>
+                    <button
+                      type="button"
+                      className="quota-pop__dot"
+                      aria-label={accountName(t, r.account)}
+                      aria-expanded={picking === r.account.key}
+                      onClick={() => setPicking(picking === r.account.key ? null : r.account.key)}
+                    />
                     <span className="quota-pop__keyname">
                       {accountName(t, r.account)}
                       {r.window ? <small>{text.short(r.window)}</small> : null}
                     </span>
                     <b>{r.used}%</b>
+                    {picking === r.account.key && (
+                      <div className="quota-pop__hues" role="radiogroup" aria-label={accountName(t, r.account)}>
+                        {WALLPAPER_HUES.map((hue, i) => (
+                          // biome-ignore lint/a11y/useSemanticElements: a row of color swatches, not a form's radios
+                          <button
+                            key={hue}
+                            type="button"
+                            role="radio"
+                            aria-checked={r.hue === hue}
+                            aria-label={`${accountName(t, r.account)} ${i + 1}`}
+                            data-hue={hue}
+                            onClick={() => {
+                              setPrefs.mutate({ ringColors: { ...chosen, [r.account.key]: hue } });
+                              setPicking(null);
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -225,7 +255,7 @@ function QuotaPopLine({ line, locale }: { line: QuotaLine; locale: string }) {
   const { account, windows } = line;
   const recent = recentLines(t, locale, account.recent).at(-1);
   return (
-    <li className="quota-pop__account">
+    <li className="quota-pop__account" data-hue={line.hue}>
       <div className="quota-pop__head">
         <ProviderLogo id={line.maker} size="xs" off={account.signedOut} />
         <span className="quota-pop__name">{accountName(t, account)}</span>

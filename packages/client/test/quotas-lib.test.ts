@@ -67,15 +67,18 @@ describe("the ring's circles", () => {
       ["d", 30, "ok"],
     ]);
     expect(rings.map((r) => r.radius)).toEqual([16, 12.7, 9.4]);
-    expect(rings[0]?.fade).toBe(1);
-    expect(rings[1]?.fade).toBeLessThan(1);
+    expect(new Set(rings.map((r) => r.hue)).size).toBe(3);
     expect(tightest?.account.key).toBe("c");
     expect(rings[0]?.window?.kind).toBe("five_hour");
   });
 
-  test("near a limit a circle keeps its full tone; none known, none drawn", () => {
-    const { rings } = quotaOverview([at("a", 95), at("b", 92)], NOW);
-    expect(rings.map((r) => r.fade)).toEqual([1, 1]);
+  test("each plan its maker's color, the viewer's choice over it; none known, none drawn", () => {
+    const gemini = at("g", 20, { kind: "antigravity" });
+    const code = at("o", 10, { kind: "opencode", provider: "zen" });
+    expect(quotaOverview([at("c", 30), gemini, code], NOW).rings.map((r) => r.hue)).toEqual(["amber", "sky", "violet"]);
+    // A second account of a maker takes another color, and a color chosen is nobody else's.
+    expect(quotaOverview([at("c", 30), at("d", 20)], NOW).rings.map((r) => r.hue)).toEqual(["amber", "sky"]);
+    expect(quotaOverview([at("c", 30), gemini], NOW, { c: "sky" }).rings.map((r) => r.hue)).toEqual(["sky", "indigo"]);
     expect(quotaOverview([account("x")], NOW).rings).toEqual([]);
   });
 });
