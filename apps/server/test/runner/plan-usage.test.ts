@@ -688,6 +688,24 @@ test.if(posix)("a coding plan's key account: its provider's endpoint; a 429 back
   expect(probes()).toHaveLength(0);
 });
 
+test("an OpenCode CLI account's API key reads OpenCode Go's usage; with no key nothing is asked", async () => {
+  const asked: string[] = [];
+  const fetch = (async (url: string, init: RequestInit) => {
+    asked.push(`${url} ${new Headers(init.headers).get("Authorization")}`);
+    return new Response(JSON.stringify({ usage: { rolling: { percent: 30 }, monthly: { percent: 13 } } }));
+  }) as unknown as typeof globalThis.fetch;
+  const { m, folder, probes } = manager({ fetch, usageTtlMs: 0 });
+  const dir = folder("opencode", ACCOUNT);
+  m.probeUsage([ACCOUNT]);
+  await new Promise((r) => setTimeout(r, 50));
+  expect(asked).toEqual([]);
+  writeFileSync(path.join(dir, "opencode-key.json"), JSON.stringify({ key: KEY }), { mode: 0o600 });
+  m.probeUsage([ACCOUNT]);
+  await waitFor(() => asked.length === 1);
+  expect(asked[0]).toBe(`https://opencode.ai/zen/go/v1/usage Bearer ${KEY}`);
+  expect(probes()).toHaveLength(0);
+});
+
 test("what turns say: the first news and a crossed line at once, the rest at most every interval", async () => {
   const { m, changes } = manager({ usageNotifyMs: 300 });
   const at = (utilization: number) => ({ status: "allowed", rateLimitType: "five_hour", utilization, resetsAt: RESET });
