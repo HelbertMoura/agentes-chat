@@ -2,7 +2,7 @@ import { type AppIconId, type MadeIconPose, type MadeIconSky, PHONE_APP_ICON } f
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { requireOptionalNativeModule } from "expo";
 import { Platform } from "react-native";
-import { STORED, writeValue } from "@/lib/storage";
+import { readValueSync, STORED, writeValue, writeValueSync } from "@/lib/storage";
 import { iconOfNativeName, nativeIconName, type PhoneIcon, phoneIconId, phoneIcons } from "./app-icon-names";
 
 /**
@@ -14,6 +14,8 @@ interface AppIconNative {
   supported(names: string[]): Promise<boolean>;
   get(names: string[]): Promise<string | null>;
   set(names: string[], name: string | null): Promise<void>;
+  /** Android, at once: the alias the launcher shows now (a build from before it has none). */
+  current?(): string | null;
 }
 
 const native = requireOptionalNativeModule<AppIconNative>("AppIcon");
@@ -65,6 +67,22 @@ const KEY = ["app-icon"] as const;
 /** Kept for the next launch: the splash reads it before anything can ask the system (`launchLookOf`). */
 const remember = (icon: PhoneIcon) => writeValue(STORED.appIcon, phoneIconId(icon));
 
+/**
+ * The id of the icon in use, at once, for the opening's first frame: what Android's launcher shows now, else the one
+ * last saved (iOS, or a build without the call).
+ */
+export function appIconIdNow(): string | null {
+  if (Platform.OS === "android" && native?.current) {
+    try {
+      const name = native.current();
+      if (name) return phoneIconId(iconOfNativeName(name, "android"));
+    } catch {
+      // Unreadable: the saved one.
+    }
+  }
+  return readValueSync(STORED.appIcon);
+}
+
 /** Whether this build can change its icon, and the one it shows now (null while asking). */
 export function useAppIcon() {
   const qc = useQueryClient();
@@ -83,8 +101,9 @@ export function useAppIcon() {
   });
   const set = async (icon: PhoneIcon) => {
     if (!native) return;
+    // Saved first: a launcher may close the app while it redraws, and the next opening reads it.
+    writeValueSync(STORED.appIcon, phoneIconId(icon));
     await native.set(NAMES, nativeIconName(icon, Platform.OS));
-    void remember(icon);
     qc.setQueryData(KEY, { supported: true, icon });
   };
   return { supported: query.data?.supported ?? false, icon: query.data?.icon ?? null, set };
