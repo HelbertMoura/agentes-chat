@@ -117,7 +117,6 @@ describe("where an account stands", () => {
     expect(limitsReported({ kind: "cursor", provider: null, accountId: "a" })).toBe(false);
     expect(limitsReported({ kind: "grok", provider: null, accountId: "a" })).toBe(false);
     expect(limitsReported({ kind: "opencode", provider: null, accountId: "a" })).toBe(false);
-    expect(limitsReported({ kind: "opencode", provider: "zen", accountId: "a" })).toBe(true);
     expect(limitsReported({ kind: "antigravity", provider: null, accountId: "a" })).toBe(true);
     expect(limitsReported({ kind: "antigravity", provider: null, accountId: null })).toBe(false);
     expect(noQuotaText(t, account("m", { provider: "minimax", agents: [] }))).toBe("quotas.notReported");

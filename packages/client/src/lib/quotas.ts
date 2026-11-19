@@ -35,16 +35,14 @@ export function quotaStanding(a: Pick<PlanAccountUsage, "usage">, now = Date.now
 }
 
 /**
- * Whether the provider ever reports this account's limits here: not Cursor's or Grok Build's (their CLIs say nothing
- * of a plan), the OpenCode CLI's only on an API key (`zen`: OpenCode Go's usage endpoint reads it), not Antigravity's
- * on the computer's own sign-in (read only per account), and not a coding plan's whose maker has no usage endpoint
- * (`plans.ts` `usage`).
+ * Whether the provider ever reports this account's limits here: not Cursor's, Grok Build's or the OpenCode CLI's
+ * (their CLIs say nothing of a plan), not Antigravity's on the computer's own sign-in (read only per account), and not
+ * a coding plan's whose maker has no usage endpoint (`plans.ts` `usage`).
  */
 export function limitsReported(a: Pick<PlanAccountUsage, "kind" | "provider" | "accountId">): boolean {
   const plan = planOf(a.provider);
   if (plan) return Boolean(plan.usage);
-  if (a.kind === "opencode") return a.provider === "zen";
-  if (a.kind === "cursor" || a.kind === "grok") return false;
+  if (a.kind === "cursor" || a.kind === "grok" || a.kind === "opencode") return false;
   return !(a.kind === "antigravity" && a.accountId === null);
 }
 
