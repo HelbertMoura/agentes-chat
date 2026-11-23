@@ -120,6 +120,20 @@ describe("the ring's circles", () => {
     expect((inner ?? 0) - QUOTA_DIAL.stroke / 2).toBeGreaterThan(5);
   });
 
+  test("the ring takes our main plans first, whatever is closest to a limit", () => {
+    const o = quotaOverview(
+      [
+        at("c", 95),
+        at("x", 90, { kind: "codex" }),
+        at("o", 10, { kind: "claude_code", provider: "opencode" }),
+        at("m", 5, { kind: "claude_code", provider: "minimax" }),
+        at("g", 20, { kind: "antigravity" }),
+      ],
+      NOW,
+    );
+    expect(o.rings.map((r) => r.account.key)).toEqual(["m", "g", "o"]);
+  });
+
   test("its name lists each circle's account and percent, the closest first", () => {
     const o = quotaOverview([at("Kimi", 12), at("GLM", 92), at("Claude", 40)], NOW);
     expect(quotaRingLabel(t, o, (a) => a.key)).toBe(
@@ -134,10 +148,10 @@ describe("the ring's circles", () => {
   test("each plan its maker's color, the viewer's choice over it; none known, none drawn", () => {
     const gemini = at("g", 20, { kind: "antigravity" });
     const code = at("o", 10, { kind: "opencode", provider: "zen" });
-    expect(quotaOverview([at("c", 30), gemini, code], NOW).rings.map((r) => r.hue)).toEqual(["amber", "sky", "violet"]);
+    expect(quotaOverview([at("c", 30), gemini, code], NOW).rings.map((r) => r.hue)).toEqual(["sky", "amber", "violet"]);
     // A second account of a maker takes another color, and a color chosen is nobody else's.
     expect(quotaOverview([at("c", 30), at("d", 20)], NOW).rings.map((r) => r.hue)).toEqual(["amber", "sky"]);
-    expect(quotaOverview([at("c", 30), gemini], NOW, { c: "sky" }).rings.map((r) => r.hue)).toEqual(["sky", "indigo"]);
+    expect(quotaOverview([at("c", 30), gemini], NOW, { c: "sky" }).rings.map((r) => r.hue)).toEqual(["indigo", "sky"]);
     expect(quotaOverview([account("x")], NOW).rings).toEqual([]);
   });
 });
