@@ -2,24 +2,21 @@ import { useAiAccounts, usePlanUsage, useSetChatPrefs } from "@agenteschat/clien
 import {
   noQuotaText,
   type QuotaLine,
-  type QuotaRingLine,
-  quotaDigitPixels,
-  quotaGrid,
   quotaLevel,
   quotaOverview,
   quotaPace,
   quotaPaceAlert,
   quotaPaceAlertText,
   quotaPaceText,
-  quotaPixels,
   quotaRingLabel,
+  quotaRingTone,
   recentLines,
 } from "@agenteschat/client/lib/quotas";
 import { WALLPAPER_HUES } from "@agenteschat/client/lib/wallpaper";
 import { Icon, Meter, movesByKeys, Popover, ProviderLogo, useHoverCard } from "@agenteschat/ui";
 import { PLAN_ALMOST, planLevel } from "@agenteschat/ui/plan-state";
 import { Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useOrg } from "@/components/org-context";
 import { accountName, groupUsageAccounts, planMeterText } from "@/lib/plan-usage";
@@ -27,39 +24,30 @@ import { HOVER_OPEN_MS } from "./ProfileCard";
 import "./quota-ring.css";
 
 /**
- * A circle per account in pixels, the closest to a limit outermost, and that one's percent in pixel digits in the
- * middle (`quotaPixels`): the app's dither, as its skies, with the plans' colors.
+ * The ring (ADR 0063 addendum 2026-11-23): a thin track and one arc for the account closest to a limit, its percent in
+ * the middle. The arc is the soft text color with room, amber from 70% and red from 90% (`quotaRingTone`); it moves
+ * only when the percent does, and not at all with reduced motion. A dash while none reports limits.
  */
-function QuotaDial({ rings }: { rings: readonly QuotaRingLine[] }) {
-  const top = rings[0];
-  const number = top ? String(top.used) : "–";
-  const used = rings.map((r) => r.used).join(",");
-  const pixels = useMemo(() => quotaPixels(used ? used.split(",").map(Number) : []), [used]);
-  const grid = quotaGrid(rings.length);
-  const digits = useMemo(() => quotaDigitPixels(number, grid), [number, grid]);
-  const cell = (p: { x: number; y: number }) => `M${p.x} ${p.y}h1v1h-1z`;
-  const paths = (ring: number, kind: "track" | "used" | "front") =>
-    pixels
-      .filter((p) => p.ring === ring && (kind === "track" ? !p.lit : kind === "front" ? p.half : p.lit && !p.half))
-      .map(cell)
-      .join("");
-  const circles = top ? rings : [null];
+function QuotaDial({ used }: { used: number | null }) {
+  const shown = used === null ? 0 : Math.min(Math.max(used, 0), 100);
   return (
-    <span className="quota-dial" data-level={top?.level ?? "none"} data-hue={top?.hue} data-used={number}>
-      <svg viewBox={`0 0 ${grid} ${grid}`} shapeRendering="crispEdges" aria-hidden="true">
-        {circles.map((r, i) => (
-          <g
-            key={r?.account.key ?? "none"}
-            className="quota-dial__ring"
-            data-level={r?.level ?? "none"}
-            data-hue={r?.hue}
-          >
-            <path className="quota-dial__track" d={paths(i, "track")} />
-            <path className="quota-dial__used" d={paths(i, "used")} />
-            <path className="quota-dial__front" d={paths(i, "front")} />
-          </g>
-        ))}
-        <path className="quota-dial__num" d={digits.map(cell).join("")} />
+    <span className="quota-dial" data-tone={quotaRingTone(used)} data-used={used ?? "–"}>
+      <svg viewBox="0 0 28 28" aria-hidden="true">
+        <circle className="quota-dial__track" cx="14" cy="14" r="12.5" />
+        {shown > 0 && (
+          <circle
+            className="quota-dial__arc"
+            cx="14"
+            cy="14"
+            r="12.5"
+            pathLength={100}
+            transform="rotate(-90 14 14)"
+            style={{ strokeDasharray: `${shown} 100` }}
+          />
+        )}
+        <text className="quota-dial__num" x="14" y="14">
+          {used ?? "–"}
+        </text>
       </svg>
     </span>
   );
@@ -67,7 +55,7 @@ function QuotaDial({ rings }: { rings: readonly QuotaRingLine[] }) {
 
 /**
  * The plan limits ring (ADR 0063 addendum 2026-11-18), beside the account menu on every screen: how much of its limit the
- * account closest to one has used, the number always written in it, the color the meters give that percent. Resting on
+ * account closest to one has used, the number always written in it, its arc toned by that percent. Resting on
  * it, focusing it or pressing it opens every account with its windows and a way to Cotas. Nothing while the workspace
  * has no AI account; a dash while none reports limits.
  */
@@ -140,13 +128,13 @@ export function QuotaRing({ side = "top" }: { side?: "top" | "bottom" | "right" 
             if (!(e.relatedTarget instanceof Node && body.current?.contains(e.relatedTarget))) setFocused(false);
           }}
         >
-          <QuotaDial rings={overview.rings} />
+          <QuotaDial used={top?.used ?? null} />
         </button>
       }
     >
       <div ref={body} className="quota-pop__in">
         <div className="quota-pop__top">
-          {top && <QuotaDial rings={overview.rings} />}
+          {top && <QuotaDial used={top?.used ?? null} />}
           <div className="quota-pop__lead">
             <p className="quota-pop__title">{t("quotas.ring.title")}</p>
             {alert && (

@@ -81,6 +81,10 @@ test("the tightest percent is written in the ring, named for a screen reader and
   const el = await ring([metered(92), noLimits]);
   expect(el?.querySelector(".quota-dial")?.getAttribute("data-used")).toBe("92");
   expect(el?.dataset.level).toBe("critical");
+  // One clean arc in red from 90%, no pixel cells.
+  expect(el?.querySelector(".quota-dial")?.getAttribute("data-tone")).toBe("danger");
+  expect(el?.querySelectorAll(".quota-dial__arc")).toHaveLength(1);
+  expect(el?.querySelector(".quota-dial__num")?.textContent).toBe("92");
   expect(el?.getAttribute("aria-label")).toBe("Plan limits: Trabalho almost at the limit, 92% used");
   cleanup();
 });
@@ -88,6 +92,7 @@ test("the tightest percent is written in the ring, named for a screen reader and
 test("with room it stays neutral, and at a limit it says so", async () => {
   let el = await ring([metered(30)]);
   expect(el?.dataset.level).toBe("ok");
+  expect(el?.querySelector(".quota-dial")?.getAttribute("data-tone")).toBe("calm");
   cleanup();
   el = await ring([metered(100)]);
   expect(el?.dataset.level).toBe("limited");

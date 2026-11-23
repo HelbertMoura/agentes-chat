@@ -8,16 +8,14 @@ import {
   limitsReported,
   noQuotaText,
   planLimitNotice,
-  quotaDigitPixels,
-  quotaGrid,
   quotaLevel,
   quotaOverview,
   quotaPace,
   quotaPaceAlert,
   quotaPaceAlertText,
   quotaPaceText,
-  quotaPixels,
   quotaRingLabel,
+  quotaRingTone,
   quotaRoom,
   quotaSections,
   quotaStanding,
@@ -59,42 +57,17 @@ const account = (key: string, over: Partial<PlanAccountUsage> = {}): PlanAccount
   ...over,
 });
 
-describe("the ring in pixels", () => {
-  test("a circle per account, the used part solid from the top, the rest and the front every other cell", () => {
-    const one = quotaPixels([50]);
-    expect(new Set(one.map((p) => p.ring))).toEqual(new Set([0]));
-    const lit = one.filter((p) => p.lit);
-    // Half used: the right side (from the top, clockwise) and none of the left.
-    expect(lit.every((p) => p.x >= 11)).toBe(true);
-    expect(one.filter((p) => !p.lit).every((p) => (p.x + p.y) % 2 === 0)).toBe(true);
-    expect(lit.some((p) => p.half)).toBe(true);
-    expect(quotaPixels([100]).every((p) => p.lit)).toBe(true);
-    expect(new Set(quotaPixels([10, 20, 30]).map((p) => p.ring))).toEqual(new Set([0, 1, 2]));
-    // More used, more lit.
-    expect(quotaPixels([80]).filter((p) => p.lit).length).toBeGreaterThan(lit.length);
-  });
-
-  test("the number in pixel digits fits inside the innermost circle, 100 included", () => {
-    const inner = quotaPixels([1, 1, 1]).filter((p) => p.ring === 2);
-    const taken = new Set(inner.map((p) => `${p.x},${p.y}`));
-    for (const text of ["7", "64", "100", "–"]) {
-      const cells = quotaDigitPixels(text);
-      expect(cells.length).toBeGreaterThan(0);
-      expect(cells.some((c) => taken.has(`${c.x},${c.y}`))).toBe(false);
-    }
-  });
-
-  test("four circles take a finer grid, each its own, the number still clear of the innermost", () => {
-    expect(quotaGrid(3)).toBe(24);
-    expect(quotaGrid(4)).toBe(28);
-    const four = quotaPixels([10, 20, 30, 40]);
-    expect(new Set(four.map((p) => p.ring))).toEqual(new Set([0, 1, 2, 3]));
-    expect(four.every((p) => p.x >= 0 && p.y >= 0 && p.x < 28 && p.y < 28)).toBe(true);
-    const taken = new Set(four.map((p) => `${p.x},${p.y}`));
-    for (const text of ["7", "64", "100", "–"]) {
-      const cells = quotaDigitPixels(text, quotaGrid(4));
-      expect(cells.some((c) => taken.has(`${c.x},${c.y}`))).toBe(false);
-    }
+describe("the ring's tone", () => {
+  test("the soft text color with room, amber from 70%, red from 90%; nothing known, none", () => {
+    expect([null, 0, 69, 70, 89, 90, 100].map((used) => quotaRingTone(used))).toEqual([
+      "none",
+      "calm",
+      "calm",
+      "warn",
+      "warn",
+      "danger",
+      "danger",
+    ]);
   });
 });
 
@@ -113,11 +86,7 @@ describe("the ring's circles", () => {
       ["d", 30, "ok"],
       ["a", 10, "ok"],
     ]);
-    expect(rings.map((r) => r.radius)).toEqual([16.2, 13.5, 10.8, 8.1]);
     expect(new Set(rings.map((r) => r.hue)).size).toBe(4);
-    expect(quotaOverview([at("a", 10), at("b", 61), at("c", 85)], NOW).rings.map((r) => r.radius)).toEqual([
-      16, 12.7, 9.4,
-    ]);
     expect(tightest?.account.key).toBe("c");
     expect(rings[0]?.window?.kind).toBe("five_hour");
   });

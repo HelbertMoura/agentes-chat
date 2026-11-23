@@ -5,36 +5,36 @@ import {
   noQuotaText,
   QUOTA_HUES,
   type QuotaLine,
-  type QuotaPixel,
   type QuotaRingLine,
-  quotaDigitPixels,
-  quotaGrid,
   quotaOverview,
   quotaPace,
   quotaPaceAlert,
   quotaPaceAlertText,
   quotaPaceText,
-  quotaPixels,
   quotaRingLabel,
+  quotaRingTone,
   recentLines,
 } from "@agenteschat/client/lib/quotas";
 import { WALLPAPER_HUES } from "@agenteschat/client/lib/wallpaper";
 import { PLAN_ALMOST, PLAN_TONE, type PlanLevel, planLevel } from "@agenteschat/ui/plan-state";
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, View } from "react-native";
-import Svg, { G, Path } from "react-native-svg";
+import Animated, { Easing, useAnimatedProps, useSharedValue, withTiming } from "react-native-reanimated";
+import Svg, { Circle } from "react-native-svg";
 import { useOrg } from "@/providers/org";
 import { Icon, IconButton, LIST_AVATAR, ListRow, ProviderLogo, SHEET_X, Text, useTheme } from "@/ui";
+import { useReducedMotion } from "@/ui/theme";
 import { useColors } from "../shared/hooks";
 import { useSheet } from "../shared/SheetHost";
+import { quotaRingFontSize } from "./logic";
 import { Meter } from "./parts";
 import { openQuotas } from "./QuotasScreen";
 
-/** The ring on its round bar button's 40-point plate. */
-const RING = 36;
+/** The ring on its round bar button's 40-point plate, 4 points from its edge. */
+const RING = 32;
 /** The same dial at the head of the sheet. */
-const RING_LARGE = 72;
+const RING_LARGE = 56;
 
 /** A plan's color in this theme, or the color its level gives it near a limit. */
 function useQuotaTone() {
@@ -47,38 +47,58 @@ function useQuotaTone() {
   };
 }
 
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+/** How long the arc takes to reach a new percent. */
+const ARC_MS = 360;
+
 /**
- * A circle per account in pixels, the closest to a limit outermost, and that one's percent in pixel digits in the
- * middle (`quotaPixels`): the app's dither, as its skies, with the plans' colors.
+ * The ring (ADR 0063 addendum 2026-11-23): a thin track and one arc with round ends for the account closest to a limit,
+ * its percent in the middle in tabular digits. The arc is the soft text color with room, amber from 70% and red from
+ * 90% (`quotaRingTone`); it moves only when the percent does, and not at all with reduced motion. A dash while none
+ * reports limits.
  */
-function QuotaDial({ rings, size }: { rings: readonly QuotaRingLine[]; size: number }) {
+function QuotaDial({ used, size }: { used: number | null; size: number }) {
   const c = useColors();
-  const top = rings[0];
-  const { toneOf } = useQuotaTone();
-  const number = top ? String(top.used) : "–";
-  const used = rings.map((r) => r.used).join(",");
-  const pixels = useMemo(() => quotaPixels(used ? used.split(",").map(Number) : []), [used]);
-  const grid = quotaGrid(rings.length);
-  const digits = useMemo(() => quotaDigitPixels(number, grid), [number, grid]);
-  const cell = (p: { x: number; y: number }) => `M${p.x} ${p.y}h1v1h-1z`;
-  const tones = top ? rings.map((r) => toneOf(r.hue, r.level)) : [c.muted];
-  const path = (ring: number, pick: (p: QuotaPixel) => boolean) =>
-    pixels
-      .filter((p) => p.ring === ring && pick(p))
-      .map(cell)
-      .join("");
+  const reduced = useReducedMotion();
+  const scale = size / RING;
+  const stroke = 3 * scale;
+  const radius = (size - stroke) / 2;
+  const around = 2 * Math.PI * radius;
+  const tone = quotaRingTone(used);
+  const arc = tone === "danger" ? c.danger : tone === "warn" ? c.warn : c.muted;
+  const target = used === null ? 0 : Math.min(Math.max(used, 0), 100) / 100;
+  // Drawn where it stands at first; only a change of the percent moves it.
+  const shown = useSharedValue(target);
+  useEffect(() => {
+    shown.value = reduced ? target : withTiming(target, { duration: ARC_MS, easing: Easing.out(Easing.cubic) });
+  }, [target, reduced, shown]);
+  const props = useAnimatedProps(() => ({ strokeDashoffset: around * (1 - shown.value) }));
+  const number = used === null ? "–" : String(used);
+  const circle = { cx: size / 2, cy: size / 2, r: radius, strokeWidth: stroke, fill: "none" };
   return (
     <View style={{ width: size, height: size }}>
-      <Svg width={size} height={size} viewBox={`0 0 ${grid} ${grid}`}>
-        {tones.map((tone, i) => (
-          <G key={rings[i]?.account.key ?? "none"}>
-            <Path d={path(i, (p) => !p.lit)} fill={c.ink} fillOpacity={0.22} />
-            <Path d={path(i, (p) => p.lit && !p.half)} fill={tone} />
-            <Path d={path(i, (p) => p.half)} fill={tone} fillOpacity={0.55} />
-          </G>
-        ))}
-        <Path d={digits.map(cell).join("")} fill={top && top.level !== "ok" ? toneOf(top.hue, top.level) : c.ink} />
+      <Svg width={size} height={size} style={styles.turned}>
+        <Circle {...circle} stroke={c.ink} strokeOpacity={0.14} />
+        {target > 0 ? (
+          <AnimatedCircle
+            {...circle}
+            stroke={arc}
+            strokeLinecap="round"
+            strokeDasharray={`${around} ${around}`}
+            animatedProps={props}
+          />
+        ) : null}
       </Svg>
+      <View style={styles.number} pointerEvents="none">
+        <Text
+          variant="caption"
+          allowFontScaling={false}
+          numberOfLines={1}
+          style={[styles.bold, styles.tabular, { color: c.ink, fontSize: quotaRingFontSize(number) * scale }]}
+        >
+          {number}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -96,8 +116,8 @@ function useQuotaOverview() {
 
 /**
  * The plan limits ring for the bar of Conversas (ADR 0063 addendum 2026-11-18), a round button of its own beside "+":
- * the percent of the account closest to a limit, in the ink over the plate so it always reads, and an arc in the
- * positive tone with room, then the tones the meters give near and at a limit. Pressed, the sheet with every account.
+ * the percent of the account closest to a limit, in the ink over the plate so it always reads, and an arc in the soft
+ * text color with room, amber from 70% and red from 90%. Pressed, the sheet with every account.
  * Null while the workspace has no AI account; a dash while none reports limits.
  */
 export function useQuotaRing(): ReactNode {
@@ -109,7 +129,7 @@ export function useQuotaRing(): ReactNode {
     <IconButton
       plate
       icon="chart"
-      mark={<QuotaDial rings={overview.rings} size={RING} />}
+      mark={<QuotaDial used={overview.tightest?.used ?? null} size={RING} />}
       label={quotaRingLabel(t, overview, (a) => accountName(t, a))}
       onPress={() => sheet.open(<QuotaSheet />)}
     />
@@ -132,7 +152,7 @@ function QuotaSheet() {
   return (
     <>
       <View style={styles.top}>
-        {overview.rings.length > 0 ? <QuotaDial rings={overview.rings} size={RING_LARGE} /> : null}
+        {overview.tightest ? <QuotaDial used={overview.tightest.used} size={RING_LARGE} /> : null}
         <View style={styles.lead}>
           <Text variant="title">{t("quotas.ring.title")}</Text>
           {alert ? (
@@ -263,6 +283,9 @@ function QuotaSheetLine({ line, now }: { line: QuotaLine; now: number }) {
 }
 
 const styles = StyleSheet.create({
+  // The arc starts at the top.
+  turned: { transform: [{ rotate: "-90deg" }] },
+  number: { ...StyleSheet.absoluteFill, alignItems: "center", justifyContent: "center" },
   top: { flexDirection: "row", alignItems: "center", gap: 12 },
   lead: { flex: 1, gap: 3 },
   key: { flexDirection: "row", alignItems: "center", gap: 8 },

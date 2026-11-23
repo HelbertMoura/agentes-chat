@@ -2,6 +2,7 @@ import {
   EXTRA_USAGE_LABEL,
   limitRoom,
   PLAN_ALMOST,
+  PLAN_CRITICAL,
   type PlanLevel,
   planLevel,
   planState,
@@ -156,7 +157,7 @@ export interface QuotaLine {
   hue: WallpaperHue;
 }
 
-/** How many accounts the ring draws. */
+/** How many accounts the ring's card keys (the ring itself draws the first). */
 export const QUOTA_RINGS = 4;
 
 /** The colors an account can take in the ring, for the light and the dark theme. */
@@ -183,118 +184,28 @@ const MAKER_HUES: Partial<Record<string, WallpaperHue>> = {
   grok: "graphite",
 };
 
-/** One circle of the ring, in a 36-unit box. */
+/** One account the ring stands for: what its key in the ring's card says. */
 export interface QuotaRingLine {
   account: PlanAccountUsage;
   used: number;
   level: PlanLevel;
   /** The account's tightest window. */
   window: QuotaWindowLine | null;
-  radius: number;
-  stroke: number;
   hue: WallpaperHue;
 }
 
-const RING_SHAPES: readonly (readonly (readonly [radius: number, stroke: number])[])[] = [
-  [[15, 4]],
-  [
-    [15.6, 3.2],
-    [11.4, 3.2],
-  ],
-  [
-    [16, 2.6],
-    [12.7, 2.6],
-    [9.4, 2.6],
-  ],
-  [
-    [16.2, 2.1],
-    [13.5, 2.1],
-    [10.8, 2.1],
-    [8.1, 2.1],
-  ],
-];
-
-/** Each circle's radius and stroke for a ring of `count` (none yet: one empty circle). */
-export const quotaRingShape = (count: number) => RING_SHAPES[Math.max(count, 1) - 1] ?? RING_SHAPES[0] ?? [];
-
-/** The pixel ring's grid: this many cells a side, each a pixel of the drawing. */
-export const QUOTA_GRID = 24;
-/** Four circles and the digits inside them need a finer grid: the same drawing in smaller cells. */
-const QUOTA_GRID_FOUR = 28;
-/** The grid for a ring of `count` circles (`quotaPixels`, `quotaDigitPixels` and the drawing's view box). */
-export const quotaGrid = (count: number) => (count >= 4 ? QUOTA_GRID_FOUR : QUOTA_GRID);
-const PIXEL_RADII: readonly (readonly number[])[] = [[10.2], [10.6, 7.6], [11, 8.6, 6.2], [12.9, 10.6, 8.3, 6]];
-const PIXEL_WIDTHS = [2.4, 2.1, 1.8, 1.7];
-/** The front of what is used, as a share of the circle: drawn every other cell, as the sky's dither. */
-const PIXEL_EDGE = 0.05;
-
-/** One cell of the pixel ring: its account (by place, outermost 0), and whether it is used, and at the dithered front. */
-export interface QuotaPixel {
-  x: number;
-  y: number;
-  ring: number;
-  lit: boolean;
-  half: boolean;
-}
+/** From here the ring's arc turns amber: room is running out, well before the meters' own warning. */
+export const QUOTA_RING_WARN = 70;
 
 /**
- * The ring drawn in pixels (the app's dither, as its skies): a stepped circle per account, from the top clockwise, its
- * unused part every other cell. `used`: each circle's percent, outermost first; none: one empty circle.
+ * The ring's one arc (ADR 0063 addendum 2026-11-23): the tightest account's percent, in the soft text color with room
+ * (`calm`), amber from `QUOTA_RING_WARN`, red from `PLAN_CRITICAL`. Nothing known yet: `none`.
  */
-export function quotaPixels(used: readonly number[]): QuotaPixel[] {
-  const count = Math.min(Math.max(used.length, 1), QUOTA_RINGS);
-  const radii = PIXEL_RADII[count - 1] ?? [];
-  const width = PIXEL_WIDTHS[count - 1] ?? 2;
-  const grid = quotaGrid(count);
-  const out: QuotaPixel[] = [];
-  for (let y = 0; y < grid; y++) {
-    for (let x = 0; x < grid; x++) {
-      const dx = x + 0.5 - grid / 2;
-      const dy = y + 0.5 - grid / 2;
-      const turn = (Math.atan2(dx, -dy) / (2 * Math.PI) + 1) % 1;
-      const ring = radii.findIndex((r) => Math.abs(Math.hypot(dx, dy) - r) <= width / 2);
-      if (ring < 0) continue;
-      const share = Math.min(used[ring] ?? 0, 100) / 100;
-      const lit = turn < share;
-      const checker = (x + y) % 2 === 1;
-      if (!lit && checker) continue;
-      out.push({ x, y, ring, lit, half: lit && checker && turn > share - PIXEL_EDGE });
-    }
-  }
-  return out;
-}
+export type QuotaRingTone = "none" | "calm" | "warn" | "danger";
 
-/** The pixel digits, 5 cells tall; a 1 is narrower, so 100 fits inside the innermost circle. */
-const DIGITS: Record<string, readonly string[]> = {
-  "0": ["111", "101", "101", "101", "111"],
-  "1": ["01", "11", "01", "01", "01"],
-  "2": ["111", "001", "111", "100", "111"],
-  "3": ["111", "001", "111", "001", "111"],
-  "4": ["101", "101", "111", "001", "001"],
-  "5": ["111", "100", "111", "001", "111"],
-  "6": ["111", "100", "111", "101", "111"],
-  "7": ["111", "001", "010", "010", "010"],
-  "8": ["111", "101", "111", "101", "111"],
-  "9": ["111", "101", "111", "001", "111"],
-  "–": ["000", "000", "111", "000", "000"],
-};
-
-/** The cells of `text` in pixel digits, centered on the ring's grid (`quotaGrid`). */
-export function quotaDigitPixels(text: string, grid = QUOTA_GRID): { x: number; y: number }[] {
-  const glyphs = [...text].map((ch) => DIGITS[ch] ?? DIGITS["–"] ?? []);
-  const width = glyphs.reduce((w, g) => w + (g[0]?.length ?? 0), 0) + Math.max(glyphs.length - 1, 0);
-  let x0 = Math.round(grid / 2 - width / 2);
-  const y0 = Math.round(grid / 2 - 2.5);
-  const out: { x: number; y: number }[] = [];
-  for (const g of glyphs) {
-    g.forEach((row, y) => {
-      [...row].forEach((bit, x) => {
-        if (bit === "1") out.push({ x: x0 + x, y: y0 + y });
-      });
-    });
-    x0 += (g[0]?.length ?? 0) + 1;
-  }
-  return out;
+export function quotaRingTone(used: number | null | undefined): QuotaRingTone {
+  if (used === null || used === undefined) return "none";
+  return used >= PLAN_CRITICAL ? "danger" : used >= QUOTA_RING_WARN ? "warn" : "calm";
 }
 
 export interface QuotaOverview {
@@ -303,7 +214,7 @@ export interface QuotaOverview {
    * think with (`forMe`). Someone else's private plan never colors their ring. Null while none of those reports limits.
    */
   tightest: (QuotaRoom & { account: PlanAccountUsage }) | null;
-  /** The accounts the ring draws, the closest to a limit outermost: those same accounts, `QUOTA_RINGS` at most. */
+  /** The accounts the ring's card keys, the closest to a limit first: those same accounts, `QUOTA_RINGS` at most. */
   rings: QuotaRingLine[];
   /** Every account: the closest to a limit first, those with no limits known after them in Cotas' order. */
   lines: QuotaLine[];
@@ -347,14 +258,11 @@ export function quotaOverview(
     })
     .sort((a, b) => (b.room?.used ?? -1) - (a.room?.used ?? -1));
   const concerning = lines.filter((l) => l.room && (l.account.mine || l.account.forMe)).slice(0, QUOTA_RINGS);
-  const shape = quotaRingShape(concerning.length);
-  const rings = concerning.flatMap((l, i): QuotaRingLine[] => {
-    const circle = shape[i];
-    if (!l.room || !circle) return [];
-    const level = quotaLevel(l.room);
-    const [radius, stroke] = circle;
-    return [{ account: l.account, used: l.room.used, level, window: l.windows[0] ?? null, radius, stroke, hue: l.hue }];
-  });
+  const rings = concerning.flatMap((l): QuotaRingLine[] =>
+    l.room
+      ? [{ account: l.account, used: l.room.used, level: quotaLevel(l.room), window: l.windows[0] ?? null, hue: l.hue }]
+      : [],
+  );
   const first = concerning[0];
   return { tightest: first?.room ? { ...first.room, account: first.account } : null, rings, lines };
 }
