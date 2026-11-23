@@ -44590,6 +44590,12 @@
   "quotas.ring.limited": {
     "value": "Plan limits: {{account}} at the limit"
   },
+  "quotas.ring.many": {
+    "value": "Plan limits: {{list}}"
+  },
+  "quotas.ring.item": {
+    "value": "{{account}} {{percent}}% used"
+  },
   "quotas.ring.none": {
     "value": "Plan limits: none of your accounts reports limits"
   },

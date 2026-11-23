@@ -29,7 +29,8 @@ function acct(over: Partial<PlanAccountUsage>): PlanAccountUsage {
     email: null,
     signedOut: false,
     usage: null,
-    agents: [],
+    // An agent thinks with it now: the ring draws only accounts in use.
+    agents: [{ agentId: "ag_ada", name: "Ada", tokens: 10, now: true }],
     monthTokens: 0,
     ...over,
   };
@@ -81,11 +82,35 @@ test("the tightest percent is written in the ring, named for a screen reader and
   const el = await ring([metered(92), noLimits]);
   expect(el?.querySelector(".quota-dial")?.getAttribute("data-used")).toBe("92");
   expect(el?.dataset.level).toBe("critical");
-  // One clean arc in red from 90%, no pixel cells.
+  // One account in use: one clean arc, red from 90%, no pixel cells.
   expect(el?.querySelector(".quota-dial")?.getAttribute("data-tone")).toBe("danger");
   expect(el?.querySelectorAll(".quota-dial__arc")).toHaveLength(1);
+  expect(el?.querySelector(".quota-dial g")?.getAttribute("data-tone")).toBe("danger");
   expect(el?.querySelector(".quota-dial__num")?.textContent).toBe("92");
   expect(el?.getAttribute("aria-label")).toBe("Plan limits: Trabalho almost at the limit, 92% used");
+  cleanup();
+});
+
+test("three accounts in use: three circles in their own colors, the tightest outermost; a paused one takes none", async () => {
+  const account = (id: string, label: string, used: number, over: Partial<PlanAccountUsage> = {}) =>
+    metered(used, { accountId: id, key: `machine_1:claude_code:${id}`, label, ...over });
+  const paused = account("g", "Gemini", 99, { kind: "antigravity", key: "machine_1:antigravity:g", agents: [] });
+  const el = await ring([account("a", "GLM", 40), account("b", "Kimi", 12), paused, account("c", "Claude", 75)]);
+  const groups = [...(el?.querySelectorAll(".quota-dial g") ?? [])];
+  expect(groups).toHaveLength(3);
+  expect(groups.map((g) => g.getAttribute("data-tone"))).toEqual(["warn", "calm", "calm"]);
+  // Each its own color: the plan's hue stays until 70%.
+  expect(new Set(groups.map((g) => g.getAttribute("data-hue"))).size).toBe(3);
+  expect(groups.map((g) => Number(g.querySelector(".quota-dial__track")?.getAttribute("r")))).toEqual([
+    14.75, 11.5, 8.25,
+  ]);
+  // No room for a number inside three: the name says every percent.
+  expect(el?.querySelector(".quota-dial__num")).toBeNull();
+  expect(el?.querySelector(".quota-dial")?.getAttribute("data-used")).toBe("75");
+  expect(el?.getAttribute("aria-label")).toBe("Plan limits: Claude 75% used, GLM 40% used, Kimi 12% used");
+  // The paused account is still in the card.
+  fireEvent.click(el as HTMLButtonElement);
+  expect((await opened()).textContent).toContain("Gemini");
   cleanup();
 });
 
@@ -131,7 +156,7 @@ test("a press opens every account with its windows, recent use where none is rep
 test("a dash while no account reports limits; nothing with no account at all", async () => {
   const el = await ring([noLimits]);
   expect(el?.querySelector(".quota-dial")?.getAttribute("data-used")).toBe("–");
-  expect(el?.getAttribute("aria-label")).toBe("Plan limits: none of your accounts reports limits");
+  expect(el?.getAttribute("aria-label")).toBe("Plan limits: no account in use reports limits");
   cleanup();
   expect(await ring([])).toBeNull();
   cleanup();

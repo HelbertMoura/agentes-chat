@@ -17495,6 +17495,8 @@
       "ok": "플랜 한도: 한도에 가장 가까운 {{account}}에서 {{percent}}% 사용",
       "almost": "플랜 한도: {{account}} 한도 임박, {{percent}}% 사용",
       "limited": "플랜 한도: {{account}} 한도 도달",
+      "many": "플랜 한도: {{list}}",
+      "item": "{{account}} {{percent}}%",
       "none": "플랜 한도: 한도를 알려주는 내 계정이 없어요",
       "title": "플랜 한도"
     },

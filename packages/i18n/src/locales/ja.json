@@ -17503,6 +17503,8 @@
       "ok": "プランの上限: 上限に最も近い {{account}} で {{percent}}% 使用",
       "almost": "プランの上限: {{account}} はまもなく上限、{{percent}}% 使用",
       "limited": "プランの上限: {{account}} は上限に達しました",
+      "many": "プランの上限：{{list}}",
+      "item": "{{account}} {{percent}}%",
       "none": "プランの上限: 上限を報告しているあなたのアカウントはありません",
       "title": "プランの上限"
     },

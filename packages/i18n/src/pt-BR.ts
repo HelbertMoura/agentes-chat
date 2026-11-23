@@ -18515,12 +18515,15 @@ export const ptBR = {
       accounts_other: "{{count}} contas de IA",
     },
     notReported: "Sem cota informada pelo provedor.",
-    /** O anel de limites em todas as telas: o percentual da conta mais perto de um limite. */
+    /** O anel de limites em todas as telas: um círculo por conta em uso (até 3), a mais perto de um limite por fora. */
     ring: {
       ok: "Limites dos planos: {{percent}}% usados em {{account}}, a conta mais perto do limite",
       almost: "Limites dos planos: {{account}} quase no limite, {{percent}}% usados",
       limited: "Limites dos planos: {{account}} no limite",
-      none: "Limites dos planos: nenhuma das suas contas informa limites",
+      /** Vários círculos: {{list}} é cada `item`, separados por vírgula, o mais perto do limite primeiro. */
+      many: "Limites dos planos: {{list}}",
+      item: "{{account}} {{percent}}% usados",
+      none: "Limites dos planos: nenhuma conta em uso informa limites",
       title: "Limites dos planos",
     },
     /** O ritmo de uma janela até agora: quando chega ao limite antes de renovar ({{when}}: "às 15:10", "sexta às 10:00"), ou a folga. */

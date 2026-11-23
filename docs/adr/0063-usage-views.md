@@ -93,7 +93,13 @@ Cotas answers "where do my plans stand" only for whoever goes there, and a plan 
 
 ## Addendum (2026-11-23): the ring drawn plainly
 
-Drawn in pixels with a circle per account, the ring crowded the account menu beside it in the sidebar. It is now one clean vector ring on the web and the phone: a thin track, one arc with round ends for the account closest to a limit (the same account and percent as before), and that percent in the middle in small tabular digits. Nothing else: no dither, no glow, no other circles. The arc is the soft text color with room, amber from 70% and red from 90% (`quotaRingTone`, `QUOTA_RING_WARN` in `packages/client/src/lib/quotas.ts`), from the kit's tokens, so it reads in both themes and turns before the alert at 90% does. It moves only when the percent changes, briefly, and never under reduced motion. The card it opens is unchanged: every account the ring stands for (up to four, `QUOTA_RINGS`) keyed in its own color, then every account's windows, pace and the way to Cotas.
+Drawn in pixels with a circle per account, the ring crowded the account menu beside it in the sidebar. It is now clean vector rings on the web and the phone, no dither and no glow: one thin circle per main account, up to three (`QUOTA_RINGS`), one inside the other on a 32-unit dial (32 px on the web, 32 points on the phone; `QUOTA_DIAL`: a 2.5 stroke per ring, 0.75 between them, `quotaDialRadii`). Each is a faint track and an arc with round ends in its account's own color (`QUOTA_HUES`, the same the card keys it with), turning amber from 70% and red from 90% (`quotaRingTone`, `QUOTA_RING_WARN`), from the kit's tokens, so it reads in both themes and turns before the alert at 90% does; with room it never trades its color for a neutral one.
+
+- **Which three.** The accounts that concern the viewer (as before: theirs, or one their own agents or right hand think with) and that an agent thinks with now (`forMe`, or an agent of `agents` with `now`), the closest to a limit outermost. An account nobody uses, such as a paused one, takes no circle and stays listed in the card and in Cotas. One or two accounts: one or two circles.
+- **The number.** The largest percent of them, in small tabular digits, inside one or two circles; inside three the hole is too small to read, so there is none (`quotaDialShowsNumber`). The ring's name always lists each circle's account and percent, the closest first (`quotaRingLabel`).
+- **Motion.** An arc moves only when its percent changes, briefly, and never under reduced motion.
+
+The card it opens is unchanged: the accounts the ring draws keyed in their colors, then every account's windows, pace and the way to Cotas. The rules are in `packages/client/src/lib/quotas.ts`.
 
 ## Addendum (2026-11-23): MiniMax's plan reports its limits
 

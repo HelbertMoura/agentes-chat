@@ -17562,6 +17562,8 @@
       "ok": "Batas paket: {{percent}}% terpakai di {{account}}, akun yang paling dekat dengan batas",
       "almost": "Batas paket: {{account}} hampir mencapai batas, {{percent}}% terpakai",
       "limited": "Batas paket: {{account}} mencapai batas",
+      "many": "Batas paket: {{list}}",
+      "item": "{{account}} {{percent}}%",
       "none": "Batas paket: tidak ada akunmu yang melaporkan batas",
       "title": "Batas paket"
     },
