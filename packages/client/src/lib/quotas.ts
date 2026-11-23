@@ -26,6 +26,8 @@ import { WALLPAPER_HUES, type WallpaperHue } from "./wallpaper";
 export type QuotaStanding = "limited" | "almost" | "ok" | "none";
 
 /** The makers in the order Cotas lists them; any other after them, by name. */
+/** The plans the ring draws first (Dev Maniac's: MiniMax, Antigravity, OpenCode Go, then Codex, Claude last). */
+const RING_PRIORITY = ["minimax", "antigravity", "opencode", "codex", "claude_code"];
 const MAKER_ORDER = ["claude_code", "codex", "antigravity", "opencode", "zai", "kimi", "minimax", "grok", "cursor"];
 
 /** The mark an account's maker goes by (`ProviderLogo`): a coding plan's maker, else its CLI. */
@@ -282,8 +284,14 @@ export function quotaOverview(
       };
     })
     .sort((a, b) => (b.room?.used ?? -1) - (a.room?.used ?? -1));
+  // Our order of use, not the closest to a limit: the main plans take the circles, the rest wait in `lines`.
+  const ringPlace = (maker: string) => {
+    const i = RING_PRIORITY.indexOf(maker);
+    return i === -1 ? RING_PRIORITY.length : i;
+  };
   const concerning = lines
     .filter((l) => l.room && (l.account.mine || l.account.forMe) && inUse(l.account))
+    .sort((a, b) => ringPlace(a.maker) - ringPlace(b.maker))
     .slice(0, QUOTA_RINGS);
   const rings = concerning.flatMap((l): QuotaRingLine[] =>
     l.room
