@@ -22,9 +22,9 @@ import {
   Segmented,
   SHEET_BAR,
   SHEET_X,
-  SheetBar,
   SheetSurface,
   Text,
+  useRouteSheetHeader,
   useRouteSheetScrollable,
 } from "@/ui";
 import { chatHref } from "../links/logic";
@@ -115,9 +115,33 @@ function Consultation({
   // The consulted agent's own words came: its last one is the answer. Left out (its run also answers a question
   // from another conversation), the answer shows on its own.
   const said = list.some((m) => m.author.id === q?.consultedAgentId && m.channelId !== channelId);
-  // The bar rides pinned inside the list and the foot lies over its end, each on the sheet's own color, with the
-  // foot's height kept free under the last row. The list is the sheet's scroll view (dragging at its top moves the
-  // sheet).
+  // The two agents' names are the sheet's header, above the list and outside it: a drag on them always moves the sheet
+  // (pinned inside the list, it scrolled the list unless it was at its very top). The foot lies over the list's end on
+  // the sheet's own color, with its height kept free under the last row. The list is the sheet's scroll view.
+  const title = q
+    ? t("chat.consultPanel.title", {
+        from: from.name,
+        to:
+          choices.length > 1
+            ? namesText(
+                t,
+                choices.map((ch) => nameOf(ch.agentId)),
+                1,
+              )
+            : to.name,
+      })
+    : "";
+  const head = useMemo(
+    () => (
+      <View style={[styles.head, { backgroundColor: c.bg }]}>
+        <Text variant="title" accessibilityRole="header" numberOfLines={1} style={styles.title}>
+          {title}
+        </Text>
+      </View>
+    ),
+    [title, c.bg],
+  );
+  useRouteSheetHeader(head);
   const [footHeight, setFootHeight] = useState(0);
   const scroll = useRef<ScrollViewInstance>(null);
   useRouteSheetScrollable(scroll);
@@ -131,31 +155,9 @@ function Consultation({
       <ScrollView
         ref={scroll}
         style={[styles.screen, { backgroundColor: c.bg }]}
-        stickyHeaderIndices={[0]}
         contentContainerStyle={[styles.list, { paddingBottom: footHeight + 12 }]}
         scrollIndicatorInsets={{ bottom: footHeight }}
       >
-        <View style={[styles.head, { backgroundColor: c.bg }]}>
-          <SheetBar
-            inset
-            onClose={() => goBack(chatHref(channelId))}
-            title={
-              q
-                ? t("chat.consultPanel.title", {
-                    from: from.name,
-                    to:
-                      choices.length > 1
-                        ? namesText(
-                            t,
-                            choices.map((ch) => nameOf(ch.agentId)),
-                            1,
-                          )
-                        : to.name,
-                  })
-                : ""
-            }
-          />
-        </View>
         {choices.length > 1 && picked ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pad}>
             <Segmented
@@ -258,9 +260,15 @@ function Consultation({
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  // The task sheets' bar (`SheetBar`: the close plate, the two agents' names in its middle), at every sheet's sides
-  // and with the bar's own room under the grabber, on this conversation's color.
-  head: { paddingHorizontal: SHEET_X, paddingTop: SHEET_BAR.top },
+  // The sheet's header: the two agents' names in its middle, at every sheet's sides, with the task sheets' room under
+  // the grabber and their bar's height (a comfortable place to take the sheet by).
+  head: {
+    paddingHorizontal: SHEET_X,
+    paddingTop: SHEET_BAR.top,
+    minHeight: SHEET_BAR.top + SHEET_BAR.height,
+    justifyContent: "center",
+  },
+  title: { textAlign: "center" },
   list: { gap: 2 },
   pad: { paddingHorizontal: SCREEN_X },
   // Room for a few turns of the skeleton, which sits at the bottom of what it is given (cut at its top).

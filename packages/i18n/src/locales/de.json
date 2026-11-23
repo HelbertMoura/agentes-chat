@@ -13258,13 +13258,49 @@
   },
   "connectors": {
     "title": "Konnektoren",
-    "add": "Konnektor hinzufügen",
-    "mcp": {
-      "title": "MCP",
-      "add": "MCP hinzufügen",
-      "list": "Verbundene MCP-Server",
-      "none": "Hier erscheinen die MCP-Server, die du über ihre Adresse verbindest."
+    "store": {
+      "featured": "Empfohlen",
+      "suggested": "Vorgeschlagen",
+      "seeAll": "Alle ansehen",
+      "more": "Mehr ansehen",
+      "moreName": "Mehr über {{name}}",
+      "connected": "Verbunden",
+      "browse": "Konnektoren entdecken",
+      "notListed": "Fehlt ein Dienst im Store?",
+      "howLabel": "So wird verbunden",
+      "whoAll": "Alle Agenten",
+      "whoChoose": "Wählst du später",
+      "asksLabel": "Freigabe",
+      "asksSensitive": "Heikle Aktionen fragen dich",
+      "afterTitle": "Nach dem Verbinden",
+      "agents_one": "{{count}} Agent",
+      "agents_other": "{{count}} Agenten",
+      "whoEvery_one": "Dein Agent nutzt ihn.",
+      "whoEvery_other": "Alle {{count}} Agenten nutzen ihn.",
+      "whoSome_one": "{{names}}. Der andere Agent nutzt ihn nicht.",
+      "whoSome_other": "{{names}}. Die anderen {{count}} Agenten nutzen ihn nicht.",
+      "change": "Ändern",
+      "see": "Ansehen",
+      "account": "Konto",
+      "toolsText": "Was Agenten damit tun können und was dich fragt.",
+      "addressesText": "Mit wem Agenten über dieses Postfach schreiben können.",
+      "bandTitle_one": "{{count}} Dienst zum Verbinden",
+      "bandTitle_other": "{{count}} Dienste zum Verbinden",
+      "bandText": "{{names}} und mehr.",
+      "appMissing": "Die App dieses Servers ist noch nicht erstellt",
+      "appEvents": "Der App fehlen Ereignisse",
+      "appLine": "App dieses Servers",
+      "eventsLine": "Ereignisse"
     },
+    "howShort": {
+      "oneClick": "Ein Klick",
+      "oauthOrKey": "Ein Klick oder ein API-Schlüssel",
+      "key": "API-Schlüssel",
+      "appPassword": "App-Passwort",
+      "addressPassword": "Adresse und Passwort",
+      "composio": "Über Composio"
+    },
+    "add": "Konnektor hinzufügen",
     "personal": {
       "note": "Nur du öffnest diese Verbindungen. Deine Agenten verwenden sie nur, wenn du sie darum bittest.",
       "noteOne": "Nur du öffnest diese Verbindung. Deine Agenten verwenden sie nur, wenn du sie darum bittest.",
@@ -13296,9 +13332,6 @@
       "moveText": "Alle im Workspace sehen es. Wer Agenten verwaltet, wählt, welche Agenten es nutzen, und der Besitzer eines Agenten kann es bei seinem ausschalten. Ein Agent, der alle verbundenen Apps nutzt, bekommt es sofort.",
       "moved": "{{name}} gehört jetzt dem Team."
     },
-    "addTitle": "Konnektor hinzufügen",
-    "catalogText": "Einmal für {{org}} verbinden. Dann wählst du, was jeder Agent nutzen darf.",
-    "catalog": "Verfügbare Konnektoren",
     "categories": "Kategorien",
     "category": {
       "all": "Alle",
@@ -13319,8 +13352,6 @@
     "connectName": "{{name}} verbinden",
     "reconnectName": "{{name}} erneut verbinden",
     "addAccountName": "Weiteres {{name}}-Konto hinzufügen",
-    "other": "Nicht gefunden?",
-    "otherText": "Verbinde jeden Dienst über seine Adresse.",
     "search": "Konnektoren durchsuchen",
     "searchPlaceholder": "Nach Name oder Funktion suchen",
     "empty": "Kein Konnektor passt zu „{{q}}“",
@@ -13334,8 +13365,6 @@
     "more": "Weitere Dienste",
     "tileConnected": "{{name}}, verbunden",
     "tileSoon": "{{name}}, bald",
-    "otherTitle": "Anderer Dienst",
-    "otherDetail": "Jeder Dienst, der eine Verbindung für Agenten anbietet, über seine Adresse (sie beginnt mit https://).",
     "otherSteps": {
       "1": "Du fügst die Adresse ein und autorisierst auf der Seite des Dienstes",
       "2": "Wir finden heraus, was jedes seiner Tools macht",
@@ -13343,16 +13372,13 @@
     },
     "otherConnect": "Über Adresse verbinden",
     "detail": {
-      "close": "Details schließen",
       "can": "Was Agenten tun können",
       "afterText": "Kein Agent nutzt ihn, bis du es festlegst.",
       "allText": "Nach dem Verbinden kann jeder Agent ihn nutzen. Das kannst du später anpassen.",
       "addAccount": "Weiteres Konto hinzufügen",
       "accountsText": "Jedes Konto hat seine eigenen Agenten und Stufen.",
       "reconnect": "Erneut verbinden",
-      "replaceText": "Ersetzt die aktuelle Anmeldung. Wer sie nutzt, bleibt gleich.",
-      "connected": "Bereits verbunden",
-      "how": "So funktioniert es"
+      "replaceText": "Ersetzt die aktuelle Anmeldung. Wer sie nutzt, bleibt gleich."
     },
     "how": {
       "oneClick": "Ein Klick: Du autorisierst auf der Seite des Dienstes",
@@ -13573,6 +13599,10 @@
         "2": "Kampagnen erstellen und anpassen",
         "ask": "Anzeigen einschalten und Budgets ändern fragt immer nach deiner Freigabe"
       },
+      "tiktok_ads": {
+        "1": "Kampagnen, Anzeigengruppen und Ergebnisse ansehen",
+        "2": "Kampagnen und Anzeigen erstellen und anpassen"
+      },
       "google_docs": {
         "1": "Dokumente suchen und lesen",
         "2": "Dokumente erstellen und bearbeiten"
@@ -13725,7 +13755,6 @@
         "ask": "Jeder Upload fragt immer nach deiner Freigabe"
       }
     },
-    "connectedList": "Verbunden",
     "connected": "Verbunden",
     "connectedAs": "Verbunden als {{account}}",
     "reconnectAdds": "Verbinde {{name}} neu, damit Agenten auch {{what}} können.",
@@ -13850,6 +13879,7 @@
       "amplitude": "Diagramme, Dashboards und Experimente.",
       "himetrica": "Besucher, Funnels, Umsatz und Suchtraffic.",
       "meta_ads": "Werbekampagnen auf Facebook und Instagram und ihre Ergebnisse.",
+      "tiktok_ads": "TikTok-Werbekampagnen, Anzeigengruppen, Anzeigen und ihre Ergebnisse.",
       "klaviyo": "Kampagnen, Flows, Listen und Profile.",
       "millionsend": "E-Mail-Kampagnen, Listen und Kontakte.",
       "semrush": "Daten zu Keywords, Domains und Backlinks.",

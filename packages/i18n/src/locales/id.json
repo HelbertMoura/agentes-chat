@@ -12772,13 +12772,45 @@
   },
   "connectors": {
     "title": "Konektor",
-    "add": "Tambah konektor",
-    "mcp": {
-      "title": "MCP",
-      "add": "Tambah MCP",
-      "list": "Server MCP yang terhubung",
-      "none": "Server MCP yang kamu hubungkan lewat alamatnya muncul di sini."
+    "store": {
+      "featured": "Unggulan",
+      "suggested": "Disarankan",
+      "seeAll": "Lihat semua",
+      "more": "Lihat selengkapnya",
+      "moreName": "Lihat selengkapnya tentang {{name}}",
+      "connected": "Terhubung",
+      "browse": "Jelajahi konektor",
+      "notListed": "Ada layanan yang tidak ada di toko?",
+      "howLabel": "Cara terhubung",
+      "whoAll": "Semua agen",
+      "whoChoose": "Kamu pilih nanti",
+      "asksLabel": "Persetujuan",
+      "asksSensitive": "Tindakan sensitif menanyakan kamu",
+      "afterTitle": "Setelah terhubung",
+      "agents_other": "{{count}} agen",
+      "whoEvery_other": "{{count}} agen memakainya.",
+      "whoSome_other": "{{names}}. {{count}} agen lainnya tidak memakainya.",
+      "change": "Ubah",
+      "see": "Lihat",
+      "account": "Akun",
+      "toolsText": "Apa yang bisa dilakukan agen dengannya, dan apa yang menanyakan kamu.",
+      "addressesText": "Dengan siapa agen bisa berbicara lewat kotak surat ini.",
+      "bandTitle_other": "{{count}} layanan untuk dihubungkan",
+      "bandText": "{{names}}, dan lainnya.",
+      "appMissing": "Aplikasi server ini belum dibuat",
+      "appEvents": "Aplikasi kekurangan event",
+      "appLine": "Aplikasi server ini",
+      "eventsLine": "Event"
     },
+    "howShort": {
+      "oneClick": "Satu klik",
+      "oauthOrKey": "Satu klik atau kunci API",
+      "key": "Kunci API",
+      "appPassword": "Kata sandi aplikasi",
+      "addressPassword": "Alamat dan kata sandi",
+      "composio": "Lewat Composio"
+    },
+    "add": "Tambah konektor",
     "personal": {
       "note": "Hanya kamu yang membuka koneksi ini. Agenmu hanya menggunakannya saat kamu minta.",
       "noteOne": "Hanya kamu yang membuka koneksi ini. Agenmu hanya menggunakannya saat kamu minta.",
@@ -12810,9 +12842,6 @@
       "moveText": "Semua orang di workspace melihatnya. Yang mengelola agen memilih agen mana yang memakainya, dan pemilik agen bisa mematikannya di agennya. Agen yang memakai semua aplikasi terhubung langsung mendapatkannya.",
       "moved": "{{name}} sekarang milik tim."
     },
-    "addTitle": "Tambah konektor",
-    "catalogText": "Hubungkan sekali untuk {{org}}. Lalu pilih apa yang bisa dipakai tiap agen.",
-    "catalog": "Konektor yang tersedia",
     "categories": "Kategori",
     "category": {
       "all": "Semua",
@@ -12833,8 +12862,6 @@
     "connectName": "Hubungkan {{name}}",
     "reconnectName": "Hubungkan ulang {{name}}",
     "addAccountName": "Tambah akun {{name}} lain",
-    "other": "Tidak menemukannya?",
-    "otherText": "Hubungkan layanan apa pun lewat alamatnya.",
     "search": "Cari konektor",
     "searchPlaceholder": "Cari berdasarkan nama atau fungsinya",
     "empty": "Tidak ada konektor yang cocok dengan “{{q}}”",
@@ -12848,8 +12875,6 @@
     "more": "Layanan lainnya",
     "tileConnected": "{{name}}, terhubung",
     "tileSoon": "{{name}}, segera",
-    "otherTitle": "Layanan lain",
-    "otherDetail": "Layanan apa pun yang menyediakan koneksi untuk agen, lewat alamatnya (diawali https://).",
     "otherSteps": {
       "1": "Kamu menempel alamatnya dan memberi izin di halaman layanan",
       "2": "Kami memilah fungsi tiap alatnya",
@@ -12857,16 +12882,13 @@
     },
     "otherConnect": "Hubungkan lewat alamat",
     "detail": {
-      "close": "Tutup detail",
       "can": "Apa yang bisa dilakukan agen",
       "afterText": "Tidak ada agen yang memakainya sampai kamu memilih.",
       "allText": "Setelah terhubung, semua agen bisa memakainya. Kamu bisa menyesuaikannya nanti.",
       "addAccount": "Tambah akun lain",
       "accountsText": "Tiap akun punya agen dan levelnya sendiri.",
       "reconnect": "Hubungkan ulang",
-      "replaceText": "Menggantikan sesi masuk saat ini. Siapa yang memakainya tetap sama.",
-      "connected": "Sudah terhubung",
-      "how": "Cara kerjanya"
+      "replaceText": "Menggantikan sesi masuk saat ini. Siapa yang memakainya tetap sama."
     },
     "how": {
       "oneClick": "Sekali klik: kamu memberi izin di halaman layanan",
@@ -13087,6 +13109,10 @@
         "2": "Membuat dan menyesuaikan kampanye",
         "ask": "Mengaktifkan iklan dan mengubah anggaran selalu meminta persetujuan Anda"
       },
+      "tiktok_ads": {
+        "1": "Melihat kampanye, grup iklan, dan hasilnya",
+        "2": "Membuat dan menyesuaikan kampanye dan iklan"
+      },
       "google_docs": {
         "1": "Mencari dan membaca dokumen",
         "2": "Membuat dan mengedit dokumen"
@@ -13239,7 +13265,6 @@
         "ask": "Setiap unggahan selalu meminta persetujuan Anda"
       }
     },
-    "connectedList": "Terhubung",
     "connected": "Terhubung",
     "connectedAs": "Terhubung sebagai {{account}}",
     "reconnectAdds": "Hubungkan ulang {{name}} agar agen juga bisa {{what}}.",
@@ -13359,6 +13384,7 @@
       "amplitude": "Grafik, dashboard, dan eksperimen.",
       "himetrica": "Pengunjung, funnel, pendapatan, dan trafik pencarian.",
       "meta_ads": "Kampanye iklan Facebook dan Instagram beserta hasilnya.",
+      "tiktok_ads": "Kampanye, grup iklan, dan iklan TikTok beserta hasilnya.",
       "klaviyo": "Kampanye, flow, daftar, dan profil.",
       "millionsend": "Kampanye email, daftar, dan kontak.",
       "semrush": "Data kata kunci, domain, dan backlink.",
