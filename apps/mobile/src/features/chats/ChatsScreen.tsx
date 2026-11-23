@@ -166,6 +166,8 @@ function Home() {
   // What the person chose to open when the app starts goes over Conversas, once (ADR 0108).
   useOpenStart(focused);
   const tabHeader = useTabHeader();
+  // Beside "+", where the AI accounts' limits stand (ADR 0063 addendum 2026-11-18).
+  const quotaRing = useQuotaRing();
   const dir = useDirectory();
   // A team's Conversas lists its conversations by latest activity or by sector: the choice is a glass button beside
   // "+" that opens the system's menu (Android: the app's picker). Its icon stays the same whichever view is on (one
