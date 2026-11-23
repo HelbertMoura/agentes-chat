@@ -1522,6 +1522,7 @@
     "criteriaOf": "{{done}} из {{total}}",
     "linkMessage": "Сообщение в #{{channel}}",
     "linkMessagePlain": "Исходное сообщение",
+    "removeFileText": "Файл останется в Drive.",
     "subIssues": "Подзадачи",
     "talk": "Чат",
     "finish": "Отметить выполненной",

@@ -1478,6 +1478,8 @@ export const featureKeysEn = {
     criteriaOf: "{{done}} of {{total}}",
     linkMessage: "Message in #{{channel}}",
     linkMessagePlain: "The original message",
+    /** The text of the confirm before a file comes off a task (its title: "Remove {{name}} from the task"). */
+    removeFileText: "The file stays in the Drive.",
     subIssues: "Subtasks",
     talk: "Chat",
     finish: "Mark done",

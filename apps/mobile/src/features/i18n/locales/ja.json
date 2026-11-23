@@ -1276,6 +1276,7 @@
     "criteriaOf": "{{done}}/{{total}}",
     "linkMessage": "#{{channel}}のメッセージ",
     "linkMessagePlain": "元のメッセージ",
+    "removeFileText": "ファイルはDriveに残ります。",
     "subIssues": "サブタスク",
     "talk": "チャット",
     "finish": "完了にする",

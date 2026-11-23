@@ -1358,6 +1358,7 @@
     "criteriaOf": "{{done}} van {{total}}",
     "linkMessage": "Bericht in #{{channel}}",
     "linkMessagePlain": "Het oorspronkelijke bericht",
+    "removeFileText": "Het bestand blijft in de Drive.",
     "subIssues": "Subtaken",
     "talk": "Gesprek",
     "finish": "Afvinken",

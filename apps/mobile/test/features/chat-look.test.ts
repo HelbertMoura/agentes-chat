@@ -247,6 +247,12 @@ describe("Tamanho do texto on the phone", () => {
     );
   });
 
+  test("a list item keeps its words in a bubble as wide as its words", async () => {
+    const words = await read("chat/MessageText.tsx");
+    expect(words).toContain("style={[line, styles.item, inked]}");
+    expect(words).toContain("item: { flexShrink: 1 },");
+  });
+
   test("every conversation reads the step from its look, and Conversa saves it on the server with a preview", async () => {
     expect(await read("chat/look.ts")).toContain("const text = CHAT_TEXT[textSizeOf(org?.chatPrefs)];");
     expect(await read("chat/look.ts")).toMatch(/ROW_LOOK_DEFAULT: RowLook = \{[^}]*\btext: null,?\s*\}/);

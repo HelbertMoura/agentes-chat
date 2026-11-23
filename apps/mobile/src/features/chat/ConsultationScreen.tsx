@@ -20,7 +20,9 @@ import {
   PixelOrbit,
   SCREEN_X,
   Segmented,
+  SHEET_BAR,
   SHEET_X,
+  SheetBar,
   SheetSurface,
   Text,
   useRouteSheetScrollable,
@@ -29,7 +31,6 @@ import { chatHref } from "../links/logic";
 import { LoadFailed } from "../shared/FirstUse";
 import { useColors, useDirectory, useMeId, useOrgId } from "../shared/hooks";
 import { agentLook } from "../shared/logic";
-import { SheetTitle } from "../shared/PromptForm";
 import { FocusLive, goBack } from "../shared/parts";
 import { SheetHostProvider } from "../shared/SheetHost";
 import { ChatSkeleton } from "./ChatSkeleton";
@@ -114,7 +115,7 @@ function Consultation({
   // The consulted agent's own words came: its last one is the answer. Left out (its run also answers a question
   // from another conversation), the answer shows on its own.
   const said = list.some((m) => m.author.id === q?.consultedAgentId && m.channelId !== channelId);
-  // The title rides pinned inside the list and the foot lies over its end, each on the sheet's own color, with the
+  // The bar rides pinned inside the list and the foot lies over its end, each on the sheet's own color, with the
   // foot's height kept free under the last row. The list is the sheet's scroll view (dragging at its top moves the
   // sheet).
   const [footHeight, setFootHeight] = useState(0);
@@ -135,7 +136,9 @@ function Consultation({
         scrollIndicatorInsets={{ bottom: footHeight }}
       >
         <View style={[styles.head, { backgroundColor: c.bg }]}>
-          <SheetTitle
+          <SheetBar
+            inset
+            onClose={() => goBack(chatHref(channelId))}
             title={
               q
                 ? t("chat.consultPanel.title", {
@@ -255,9 +258,9 @@ function Consultation({
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  // At every sheet's sides; well clear of the grabber (every sheet's 24 put the title right under it, the list's
-  // first line pinned up there with it), the two agents' names alone (it opens over the conversation it was asked from).
-  head: { paddingHorizontal: SHEET_X, paddingTop: 40, paddingBottom: 12 },
+  // The task sheets' bar (`SheetBar`: the close plate, the two agents' names in its middle), at every sheet's sides
+  // and with the bar's own room under the grabber, on this conversation's color.
+  head: { paddingHorizontal: SHEET_X, paddingTop: SHEET_BAR.top },
   list: { gap: 2 },
   pad: { paddingHorizontal: SCREEN_X },
   // Room for a few turns of the skeleton, which sits at the bottom of what it is given (cut at its top).

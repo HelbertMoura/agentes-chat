@@ -1437,6 +1437,7 @@
     "criteriaOf": "{{done}} de {{total}}",
     "linkMessage": "Mensaje en #{{channel}}",
     "linkMessagePlain": "El mensaje original",
+    "removeFileText": "El archivo sigue en el Drive.",
     "subIssues": "Subtareas",
     "talk": "Chatear",
     "finish": "Marcar como lista",

@@ -41,9 +41,10 @@ describe("two agents' conversation", () => {
     // At the sides every screen and sheet keeps.
     expect(screen).toContain("pad: { paddingHorizontal: SCREEN_X },");
     expect(screen).toMatch(/foot: \{[^}]*paddingHorizontal: SCREEN_X,/);
-    // Well clear of the grabber, the two agents' names alone: no line under them.
-    expect(screen).toMatch(/head: \{ paddingHorizontal: SHEET_X, paddingTop: 40,/);
-    expect(screen).not.toContain("subtitle=");
+    // The task sheets' bar: the close plate and the two agents' names, with the bar's own room under the grabber.
+    expect(screen).toMatch(/<SheetBar\s+inset\s+onClose=\{\(\) => goBack\(chatHref\(channelId\)\)\}/);
+    expect(screen).toContain("head: { paddingHorizontal: SHEET_X, paddingTop: SHEET_BAR.top },");
+    expect(screen).not.toContain("SheetTitle");
   });
 });
 

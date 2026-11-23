@@ -1276,6 +1276,7 @@
     "criteriaOf": "{{done}}/{{total}}",
     "linkMessage": "#{{channel}} 中的消息",
     "linkMessagePlain": "原始消息",
+    "removeFileText": "文件仍保留在 Drive 中。",
     "subIssues": "子任务",
     "talk": "聊天",
     "finish": "标为完成",
