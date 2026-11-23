@@ -39,6 +39,7 @@ import { Tile } from "../shared/parts";
 import { useActiveWork, useHiddenAgents, useWorkingNow } from "../shared/queries";
 import { SheetHostProvider } from "../shared/SheetHost";
 import { useTabHeader } from "../shared/tabHeader";
+import { useQuotaRing } from "../usage/QuotaRing";
 import { alongInAccessory } from "../work-along/logic";
 import { useHasWorkAlong } from "../work-along/WorkAlong";
 import { ChatsSplit, OpenFirstChat, SplitHandoff } from "./ChatsSplit";
@@ -165,6 +166,8 @@ function Home() {
   // What the person chose to open when the app starts goes over Conversas, once (ADR 0108).
   useOpenStart(focused);
   const tabHeader = useTabHeader();
+  // Beside "+", where the AI accounts' limits stand (ADR 0063 addendum 2026-11-18).
+  const quotaRing = useQuotaRing();
   const dir = useDirectory();
   // A team's Conversas lists its conversations by latest activity or by sector: the choice is a glass button beside
   // "+" that opens the system's menu (Android: the app's picker). Its icon stays the same whichever view is on (one
@@ -347,6 +350,7 @@ function Home() {
     <LargeTitleScreen
       title={t("mobile.chats.title")}
       {...header}
+      apart={quotaRing}
       // The sky stands behind the bar and the large title and scrolls with them: the title is drawn with it.
       drawnTitle
       backdrop={empty || failed ? undefined : <GreetingSky />}
