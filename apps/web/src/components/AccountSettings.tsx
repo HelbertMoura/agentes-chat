@@ -190,6 +190,13 @@ export function AccountSection() {
             status={t(me.user.hasPassword === false ? "shell.addPasswordHint" : "shell.newPasswordRow")}
             onOpen={() => setAccount("password")}
           />
+          <PrefRow
+            id="account-two-factor"
+            icon="lock"
+            label={t("shell.twoFactor.row")}
+            status={t(me.user.twoFactorEnabled ? "shell.twoFactor.rowOn" : "shell.twoFactor.rowOff")}
+            onOpen={() => setAccount("two-factor")}
+          />
         </div>
       </Card>
       {plans.length > 0 && (

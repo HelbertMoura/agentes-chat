@@ -952,6 +952,7 @@ export async function myAccount(db: Database, userId: string) {
       locale: users.locale,
       localeAuto: users.localeAuto,
       workArea: users.workArea,
+      twoFactorEnabled: users.twoFactorEnabled,
       deletionDueAt: users.deletionDueAt,
       deletionRequestedAt: users.deletionRequestedAt,
     })
@@ -965,6 +966,7 @@ export async function myAccount(db: Database, userId: string) {
     locale: row?.locale ?? null,
     localeAuto: row?.localeAuto ?? true,
     workArea: row?.workArea ?? null,
+    twoFactorEnabled: row?.twoFactorEnabled ?? false,
   };
 }
 

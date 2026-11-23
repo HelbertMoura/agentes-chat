@@ -177,6 +177,9 @@ const Me = z
         description:
           "On a server that sends email, an address never confirmed (ADR 0006, addendum 2026-11-22): `required` while the account is in no workspace, which then makes none (403 `org.create_unconfirmed`) until the link is opened, so the apps show only “check your inbox”; `reminder` for one already in a workspace, which keeps working under a line that asks for it. Null otherwise.",
       }),
+      twoFactorEnabled: z.boolean().openapi({
+        description: "Signing in also takes a code from an authenticator app (ADR 0219).",
+      }),
       confirmsOnThisMac: z.boolean().openapi({
         description:
           "A sign-in in the last 10 minutes is their proof before a deletion, with no password or code: the installation's owner on the desktop app's own server (an owner key, no email), whom the app signs in again with Continue on this Mac.",
@@ -261,6 +264,7 @@ export function accountRoutes(deps: AppDeps) {
           verified,
           workspaces: memberships.length,
         }),
+        twoFactorEnabled: account.twoFactorEnabled,
         confirmsOnThisMac: onThisMac,
         locale: account.locale,
         localeAuto: account.localeAuto,

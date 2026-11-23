@@ -375,6 +375,8 @@ export interface User {
   hasPassword?: boolean;
   /** Opened the link that confirms the email address. */
   emailVerified?: boolean;
+  /** Signing in also takes a code from an authenticator app (ADR 0219; absent from an older server: false). */
+  twoFactorEnabled?: boolean;
   /**
    * On a server that sends email, an address never confirmed: `required` while in no workspace (the apps show only
    * "check your inbox", and none can be made), `reminder` once in one (a line asks for it). Null or absent: nothing.

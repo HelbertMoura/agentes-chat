@@ -190,6 +190,7 @@ const AddPasswordDialog = lazyDialog(() => import("./AddPassword").then((m) => m
 const ChangeAvatarDialog = lazyDialog(() => import("./AvatarBuilder").then((m) => m.ChangeAvatarDialog));
 const DeleteAccountDialog = lazyDialog(() => import("./DeleteAccount").then((m) => m.DeleteAccountDialog));
 const OpenOnPhoneDialog = lazyDialog(() => import("./OpenOnPhone").then((m) => m.OpenOnPhoneDialog));
+const TwoFactorDialog = lazyDialog(() => import("./TwoFactor").then((m) => m.TwoFactorDialog));
 
 /** An agent's sky for its busy chip (`.sidebar__busy`): both themes, the CSS picks one. */
 const selectionSky = (color: AgentColor) =>
@@ -2096,6 +2097,7 @@ function AccountMenu({ personal = false }: { personal?: boolean }) {
     phone: useEverTrue(phone),
     email: useEverTrue(account === "email"),
     password: useEverTrue(account === "password"),
+    twoFactor: useEverTrue(account === "two-factor"),
     delete: useEverTrue(account === "delete"),
   };
   // The app's "Show QR code" for this server (Preferences › Servers).
@@ -2276,6 +2278,13 @@ function AccountMenu({ personal = false }: { personal?: boolean }) {
         {mounted.phone && <OpenOnPhoneDialog open={phone} onClose={() => setPhone(false)} />}
         {mounted.email && <EmailDialog open={account === "email"} onClose={() => setAccount(null)} />}
         {mounted.password && <AddPasswordDialog open={account === "password"} onClose={() => setAccount(null)} />}
+        {mounted.twoFactor && (
+          <TwoFactorDialog
+            open={account === "two-factor"}
+            onClose={() => setAccount(null)}
+            onAddPassword={() => setAccount("password")}
+          />
+        )}
         {mounted.delete && <DeleteAccountDialog open={account === "delete"} onClose={() => setAccount(null)} />}
       </Suspense>
     </>
