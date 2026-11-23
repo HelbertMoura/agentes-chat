@@ -373,7 +373,7 @@ describe("IA e uso › Contas: the quota per model", () => {
     expect(rows[1]?.[1]).toMatch(/^Sem cota · renova /);
   });
 
-  test("an account whose plan's maker shares no usage names the maker, never a number", async () => {
+  test("a MiniMax account with no reading yet never says its usage isn't shared, nor shows a number", async () => {
     const minimax: AiAccounts["accounts"][number] = {
       ...TEAM,
       id: "acct_mm",
@@ -385,7 +385,7 @@ describe("IA e uso › Contas: the quota per model", () => {
     };
     await go("settings/usage", onPlans(), [minimax]);
     const row = await openRow("MiniMax");
-    expect(row.textContent).toContain("MiniMax não mostra o uso por aqui.");
+    expect(row.textContent).not.toContain("não mostra o uso");
     expect(row.textContent).not.toContain("%");
   });
 });

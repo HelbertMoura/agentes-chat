@@ -223,10 +223,11 @@ describe("Quem pensa: a coding plan's models", () => {
     expect(rows.map((r) => r[1]).join(" ")).not.toContain("%");
   });
 
-  test("a plan whose maker shares no usage names the maker, instead of a number", async () => {
+  test("a plan whose usage is read but not yet known says nothing of it, and invents no number", async () => {
+    // MiniMax shares its usage too (`plans.ts` `usage`): no "doesn't share" line, no model line before a reading.
     await onPlan("minimax");
     const d = await brainDialog();
-    expect(d.querySelector(".plan-models__none")?.textContent).toBe("MiniMax não mostra o uso por aqui.");
+    expect(d.querySelector(".plan-models__none")).toBeNull();
     expect(d.querySelector(".plan-model")).toBeNull();
   });
 

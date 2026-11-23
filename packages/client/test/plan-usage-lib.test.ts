@@ -553,9 +553,9 @@ describe("the quota per model of a plan whose models have limits of their own", 
     expect(rows.map((r) => r.text).join(" ")).not.toContain("%");
   });
 
-  test("a plan with no usage source names its maker; another plan or no plan invents nothing", () => {
-    // MiniMax publishes no usage endpoint (`plans.ts`): nothing to list, and the line says whose usage it is.
-    expect(notSharedText(t, "minimax")).toBe("MiniMax doesn't share usage here.");
+  test("every plan's usage is read, so none says it isn't shared; another plan or no plan invents nothing", () => {
+    // MiniMax's endpoint (`plans.ts` `usage`) is read like the others'.
+    expect(notSharedText(t, "minimax")).toBeNull();
     expect(
       planModelUsage(t, "en", withModels({ "glm-5.3": { at: NOW.toISOString(), off: true } }), "minimax", NOW),
     ).toEqual([]);

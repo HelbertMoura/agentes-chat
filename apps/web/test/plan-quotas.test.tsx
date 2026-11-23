@@ -99,7 +99,8 @@ test("Cotas: a card per maker, every window open, a model group under its headin
   expect(within(gemini).getByText("Only Claude and GPT")).toBeTruthy();
   expect(within(gemini).getAllByText(/^\d+%$/)).toHaveLength(3);
   const mm = panel.querySelectorAll(".quotas__accounts")[2] as HTMLElement;
-  expect(within(mm).getByText("No quota reported by the provider.")).toBeTruthy();
+  // MiniMax reports its limits, none read yet: the line says when they show up, the recent use stays.
+  expect(within(mm).getByText("The limit shows up after this account is used again.")).toBeTruthy();
   expect([...mm.querySelectorAll(".quotas__period dt")].map((d) => d.textContent)).toEqual([
     "Last 24 hours",
     "Last 7 days",

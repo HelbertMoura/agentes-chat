@@ -132,14 +132,15 @@ describe("where an account stands", () => {
     expect(limitsReported({ kind: "codex", provider: null, accountId: null })).toBe(true);
     expect(limitsReported({ kind: "claude_code", provider: "opencode", accountId: "a" })).toBe(true);
     expect(limitsReported({ kind: "claude_code", provider: "zai", accountId: "a" })).toBe(true);
-    expect(limitsReported({ kind: "claude_code", provider: "minimax", accountId: "a" })).toBe(false);
+    expect(limitsReported({ kind: "claude_code", provider: "minimax", accountId: "a" })).toBe(true);
     expect(limitsReported({ kind: "cursor", provider: null, accountId: "a" })).toBe(false);
     expect(limitsReported({ kind: "grok", provider: null, accountId: "a" })).toBe(false);
     expect(limitsReported({ kind: "opencode", provider: null, accountId: "a" })).toBe(false);
     expect(limitsReported({ kind: "opencode", provider: "zen", accountId: "a" })).toBe(true);
     expect(limitsReported({ kind: "antigravity", provider: null, accountId: "a" })).toBe(true);
     expect(limitsReported({ kind: "antigravity", provider: null, accountId: null })).toBe(false);
-    expect(noQuotaText(t, account("m", { provider: "minimax", agents: [] }))).toBe("quotas.notReported");
+    expect(noQuotaText(t, account("m", { kind: "cursor", agents: [] }))).toBe("quotas.notReported");
+    expect(noQuotaText(t, account("m", { provider: "minimax", agents: [] }))).toBe("usageViews.unused");
     expect(noQuotaText(t, account("c", { agents: [{ agentId: "x", name: "Dev", tokens: 1, now: true }] }))).toBe(
       "usageViews.noWindows",
     );

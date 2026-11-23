@@ -268,10 +268,56 @@ function opencodeWindows(body: unknown): PlanWindow[] {
   return out;
 }
 
+/** MiniMax's `model_remains` fields for each window: what is left (%), the counts, and when it ends (ms). */
+const MINIMAX_WINDOWS = [
+  {
+    kind: "five_hour",
+    left: "current_interval_remaining_percent",
+    used: "current_interval_usage_count",
+    total: "current_interval_total_count",
+    ends: "end_time",
+  },
+  {
+    kind: "seven_day",
+    left: "current_weekly_remaining_percent",
+    used: "current_weekly_usage_count",
+    total: "current_weekly_total_count",
+    ends: "weekly_end_time",
+  },
+] as const;
+
+/**
+ * MiniMax's `/v1/token_plan/remains`: `model_remains`, one entry per model, each with its 5-hour interval and its week
+ * (times in milliseconds). A plan billed by credits sends every count as 0, so what is left (`*_remaining_percent`)
+ * comes first and the counts only where no percent does. A `base_resp.status_code` other than 0 (1004: the key
+ * refused) is no reading, whatever the HTTP status. With several models, each window is the fullest one's.
+ */
+function minimaxWindows(body: unknown): PlanWindow[] {
+  if (!isObj(body) || !isObj(body.base_resp) || numeric(body.base_resp.status_code) !== 0) return [];
+  const models = Array.isArray(body.model_remains) ? body.model_remains.filter(isObj) : [];
+  const out: PlanWindow[] = [];
+  for (const f of MINIMAX_WINDOWS) {
+    let fullest: PlanWindow | undefined;
+    for (const m of models) {
+      const left = numeric(m[f.left]);
+      const used = numeric(m[f.used]);
+      const total = numeric(m[f.total]);
+      const pct =
+        left !== undefined ? 100 - left : total && total > 0 && used !== undefined ? (used / total) * 100 : undefined;
+      if (pct === undefined) continue;
+      const w = planWindow({ kind: f.kind }, pct, m[f.ends]);
+      if (!fullest || w.usedPercent > fullest.usedPercent) fullest = w;
+    }
+    if (fullest) out.push(fullest);
+  }
+  return out;
+}
+
 /** How each coding plan's usage endpoint (`plans.ts` `usage`) answers, as windows. */
 const PLAN_KEY_WINDOWS: Partial<Record<PlanId, (body: unknown) => PlanWindow[]>> = {
   zai: zaiWindows,
   kimi: kimiWindows,
+  minimax: minimaxWindows,
   opencode: opencodeWindows,
 };
 

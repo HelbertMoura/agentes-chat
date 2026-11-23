@@ -175,7 +175,7 @@ export function planModelUsage(
 }
 
 /**
- * "MiniMax não mostra o uso por aqui": the plan's maker has no usage endpoint we can read (`plans.ts` `usage`). Null
+ * "{{maker}} não mostra o uso por aqui": the plan's maker has no usage endpoint we can read (`plans.ts` `usage`). Null
  * for a plan we read, and for no plan at all (a computer's own sign-in, which its CLI reports).
  */
 export function notSharedText(t: TFunction, provider: string | null | undefined): string | null {

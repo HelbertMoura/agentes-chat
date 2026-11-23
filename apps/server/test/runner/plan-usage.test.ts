@@ -449,12 +449,105 @@ test("coding plans: each provider's endpoint, the key only in Authorization, no 
     throw new Error(`refused ${KEY}`);
   }) as unknown as typeof fetch;
   expect(await fetchPlanKeyUsage("zai", KEY, { fetch: thrown })).toBeNull();
-  // A plan with no endpoint, or a key that would split a header: nothing is asked.
+  // Not a plan, or a key that would split a header: nothing is asked.
   const none = scripted(200, {});
-  expect(await fetchPlanKeyUsage("minimax", KEY, { fetch: none.fetch })).toBeNull();
   expect(await fetchPlanKeyUsage("zai", "a\nb", { fetch: none.fetch })).toBeNull();
   expect(await fetchPlanKeyUsage("__proto__", KEY, { fetch: none.fetch })).toBeNull();
   expect(none.calls).toHaveLength(0);
+});
+
+/** MiniMax's `token_plan/remains` as it answered a plan billed by credits: every count 0, only the percentages left. */
+const MINIMAX_GENERAL = {
+  start_time: 1795442676339,
+  end_time: 1795460676339,
+  remains_time: 6885484,
+  current_interval_total_count: 0,
+  current_interval_usage_count: 0,
+  model_name: "general",
+  current_weekly_total_count: 0,
+  current_weekly_usage_count: 0,
+  weekly_start_time: 1795293057811,
+  weekly_end_time: 1795897857811,
+  weekly_remains_time: 444066956,
+  current_interval_status: 1,
+  current_interval_remaining_percent: 92,
+  current_weekly_status: 1,
+  current_weekly_remaining_percent: 75,
+};
+const minimaxOk = (model_remains: unknown) => ({ model_remains, base_resp: { status_code: 0, status_msg: "success" } });
+
+test("MiniMax: what is left of each window, by percent; counts only without one; a refused key or odd body reads nothing", async () => {
+  const real = scripted(200, minimaxOk([MINIMAX_GENERAL]));
+  expect((await fetchPlanKeyUsage("minimax", KEY, { fetch: real.fetch, now: NOW })) as PlanUsage).toEqual({
+    windows: [
+      { kind: "five_hour", usedPercent: 8, resetsAt: new Date(1795460676339).toISOString() },
+      { kind: "seven_day", usedPercent: 25, resetsAt: new Date(1795897857811).toISOString() },
+    ],
+    source: "probe",
+    at: new Date(NOW).toISOString(),
+  });
+  expect(real.calls[0]?.url).toBe("https://api.minimax.io/v1/token_plan/remains");
+  expect((real.calls[0]?.init?.headers as Record<string, string> | undefined)?.Authorization).toBe(`Bearer ${KEY}`);
+  expect(real.calls[0]?.init?.redirect).toBe("error");
+
+  // Several models: each window is the fullest one's; one with neither percent nor counts is passed over.
+  const several = scripted(
+    200,
+    minimaxOk([
+      MINIMAX_GENERAL,
+      {
+        ...MINIMAX_GENERAL,
+        model_name: "video",
+        end_time: 1795460000000,
+        current_interval_remaining_percent: 40,
+        current_weekly_remaining_percent: 90,
+      },
+      { model_name: "speech", end_time: 1795460000001 },
+    ]),
+  );
+  expect(((await fetchPlanKeyUsage("minimax", KEY, { fetch: several.fetch, now: NOW })) as PlanUsage).windows).toEqual([
+    { kind: "five_hour", usedPercent: 60, resetsAt: new Date(1795460000000).toISOString() },
+    { kind: "seven_day", usedPercent: 25, resetsAt: new Date(1795897857811).toISOString() },
+  ]);
+
+  // No percent but real counts: used over total, window by window.
+  const counted = { ...MINIMAX_GENERAL } as Record<string, unknown>;
+  delete counted.current_interval_remaining_percent;
+  delete counted.current_weekly_remaining_percent;
+  Object.assign(counted, {
+    current_interval_total_count: 600,
+    current_interval_usage_count: 150,
+    current_weekly_total_count: 3000,
+    current_weekly_usage_count: 2999,
+  });
+  expect(
+    (
+      (await fetchPlanKeyUsage("minimax", KEY, {
+        fetch: scripted(200, minimaxOk([counted])).fetch,
+        now: NOW,
+      })) as PlanUsage
+    ).windows.map((w) => [w.kind, w.usedPercent]),
+  ).toEqual([
+    ["five_hour", 25],
+    ["seven_day", 100],
+  ]);
+
+  // A refused key answers 200 too: the body says so. Neither it nor an unexpected body is a reading.
+  const refused = { base_resp: { status_code: 1004, status_msg: "login fail: Please carry the API secret key" } };
+  expect(await fetchPlanKeyUsage("minimax", KEY, { fetch: scripted(200, refused).fetch })).toBeNull();
+  expect(
+    await fetchPlanKeyUsage("minimax", KEY, {
+      fetch: scripted(200, { model_remains: [MINIMAX_GENERAL], base_resp: { status_code: 1004 } }).fetch,
+    }),
+  ).toBeNull();
+  expect(
+    await fetchPlanKeyUsage("minimax", KEY, { fetch: scripted(200, { model_remains: [MINIMAX_GENERAL] }).fetch }),
+  ).toBeNull();
+  expect(await fetchPlanKeyUsage("minimax", KEY, { fetch: scripted(200, minimaxOk("general")).fetch })).toBeNull();
+  expect(
+    await fetchPlanKeyUsage("minimax", KEY, { fetch: scripted(200, minimaxOk([{ model_name: "x" }])).fetch }),
+  ).toBeNull();
+  expect(await fetchPlanKeyUsage("minimax", KEY, { fetch: scripted(200, [1, 2]).fetch })).toBeNull();
 });
 
 // ── Probes: a short-lived CLI ────────────────────────────────────────────────

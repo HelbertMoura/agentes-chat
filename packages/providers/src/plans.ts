@@ -150,6 +150,8 @@ export const CODING_PLANS = {
       tokenEnv: "ANTHROPIC_AUTH_TOKEN",
       models: [{ id: "MiniMax-M3.1-Flash[1m]", label: "MiniMax M3.1 Flash", alias: "sonnet" }],
     },
+    // The plan's 5-hour and weekly room per model; it answers 200 even to a refused key (`base_resp.status_code`).
+    usage: { url: "https://api.minimax.io/v1/token_plan/remains", auth: "bearer" },
   },
   opencode: {
     label: "OpenCode Go",
