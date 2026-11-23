@@ -346,6 +346,12 @@ function Home() {
     if (moves) live++;
     return { row: r, facts, live: moves };
   });
+  // A row's face moves only while its agent works: at rest each one would redraw many times a second for nothing.
+  const rowMoves = (open: boolean, facts: { face?: string }) => {
+    const moves = open && facts.face === "run" && live < LIVE_ROWS;
+    if (moves) live++;
+    return moves;
+  };
   return (
     <LargeTitleScreen
       title={t("mobile.chats.title")}
@@ -440,7 +446,10 @@ function Home() {
                             row={r}
                             facts={factsOf(r, agentStates.get(r.key))}
                             divider={i > 0}
-                            live={!sectorsFold.collapsed.includes(section.key) && live++ < LIVE_ROWS}
+                            live={rowMoves(
+                              !sectorsFold.collapsed.includes(section.key),
+                              factsOf(r, agentStates.get(r.key)),
+                            )}
                             pinLabel={menus.pinLabelOf(r)}
                             onHold={menus.openRowMenu}
                             holdLabel={holdLabel}
@@ -479,7 +488,7 @@ function Home() {
                           row={r}
                           facts={factsOf(r, agentStates.get(r.key))}
                           divider={i > 0}
-                          live={!collapsed.includes("recent") && live++ < LIVE_ROWS}
+                          live={rowMoves(!collapsed.includes("recent"), factsOf(r, agentStates.get(r.key)))}
                           pinLabel={menus.pinLabelOf(r)}
                           onHold={menus.openRowMenu}
                           holdLabel={holdLabel}
