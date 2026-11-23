@@ -18675,6 +18675,8 @@
       "ok": "Limites des forfaits : {{percent}} % utilisés sur {{account}}, le compte le plus proche de sa limite",
       "almost": "Limites des forfaits : {{account}} presque à la limite, {{percent}} % utilisés",
       "limited": "Limites des forfaits : {{account}} à la limite",
+      "many": "Limites des forfaits : {{list}}",
+      "item": "{{account}} {{percent}} %",
       "none": "Limites des forfaits : aucun de vos comptes n’indique de limites",
       "title": "Limites des forfaits"
     },

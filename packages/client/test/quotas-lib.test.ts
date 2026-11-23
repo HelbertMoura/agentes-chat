@@ -8,6 +8,9 @@ import {
   limitsReported,
   noQuotaText,
   planLimitNotice,
+  QUOTA_DIAL,
+  quotaDialRadii,
+  quotaDialShowsNumber,
   quotaLevel,
   quotaOverview,
   quotaPace,
@@ -38,6 +41,7 @@ const usage = (windows: PlanUsage["windows"], limited?: boolean): NonNullable<Pl
   at: "2026-11-17T11:55:00.000Z",
 });
 
+/** An account an agent thinks with now, unless `over` says otherwise. */
 const account = (key: string, over: Partial<PlanAccountUsage> = {}): PlanAccountUsage => ({
   key,
   machineId: "m1",
@@ -52,13 +56,13 @@ const account = (key: string, over: Partial<PlanAccountUsage> = {}): PlanAccount
   email: null,
   signedOut: false,
   usage: null,
-  agents: [],
+  agents: [{ agentId: "ada", name: "Ada", tokens: 1, now: true }],
   monthTokens: 0,
   ...over,
 });
 
 describe("the ring's tone", () => {
-  test("the soft text color with room, amber from 70%, red from 90%; nothing known, none", () => {
+  test("the plan's own color with room, amber from 70%, red from 90%; nothing known, none", () => {
     expect([null, 0, 69, 70, 89, 90, 100].map((used) => quotaRingTone(used))).toEqual([
       "none",
       "calm",
@@ -75,20 +79,56 @@ describe("the ring's circles", () => {
   const at = (key: string, usedPercent: number, over: Partial<PlanAccountUsage> = {}) =>
     account(key, { usage: usage([{ kind: "five_hour", usedPercent, resetsAt: IN_2H }]), ...over });
 
-  test("the four accounts closest to a limit that concern the viewer, the tightest outermost", () => {
+  test("the three accounts in use closest to a limit that concern the viewer, the tightest outermost", () => {
     const { rings, tightest } = quotaOverview(
       [at("a", 10), at("b", 61), at("c", 85), at("d", 30), at("f", 5), at("e", 99, { mine: false, forMe: false })],
       NOW,
     );
-    expect(rings.map((r) => [r.account.key, r.used, r.level])).toEqual([
-      ["c", 85, "almost"],
-      ["b", 61, "ok"],
-      ["d", 30, "ok"],
-      ["a", 10, "ok"],
+    expect(rings.map((r) => [r.account.key, r.used, r.level, r.tone])).toEqual([
+      ["c", 85, "almost", "warn"],
+      ["b", 61, "ok", "calm"],
+      ["d", 30, "ok", "calm"],
     ]);
-    expect(new Set(rings.map((r) => r.hue)).size).toBe(4);
+    expect(new Set(rings.map((r) => r.hue)).size).toBe(3);
     expect(tightest?.account.key).toBe("c");
     expect(rings[0]?.window?.kind).toBe("five_hour");
+  });
+
+  test("an account no agent thinks with now stays listed but takes no circle; the right hand's counts", () => {
+    const paused = at("gemini", 97, {
+      kind: "antigravity",
+      agents: [{ agentId: "x", name: "Dev", tokens: 9, now: false }],
+    });
+    const o = quotaOverview([paused, at("glm", 40), at("kimi", 12)], NOW);
+    expect(o.rings.map((r) => r.account.key)).toEqual(["glm", "kimi"]);
+    expect(o.tightest).toMatchObject({ used: 40, account: { key: "glm" } });
+    expect(o.lines.map((l) => l.account.key)).toContain("gemini");
+    // Only the right hand thinks with it: in use.
+    expect(quotaOverview([{ ...paused, forMe: true }], NOW).rings.map((r) => r.account.key)).toEqual(["gemini"]);
+    expect(quotaOverview([paused], NOW).tightest).toBeNull();
+  });
+
+  test("the dial: rings outward in, one track for the dash, the percent inside one or two rings only", () => {
+    expect(quotaDialRadii(3)).toEqual([14.75, 11.5, 8.25]);
+    expect(quotaDialRadii(1)).toEqual([14.75]);
+    expect(quotaDialRadii(0)).toEqual([14.75]);
+    expect(quotaDialRadii(5)).toHaveLength(3);
+    expect([0, 1, 2, 3].map(quotaDialShowsNumber)).toEqual([true, true, true, false]);
+    // Each ring's stroke stays clear of the next one's, and the innermost leaves a hole.
+    const [outer, , inner] = quotaDialRadii(3);
+    expect((outer ?? 0) + QUOTA_DIAL.stroke / 2).toBeLessThanOrEqual(QUOTA_DIAL.size / 2);
+    expect((inner ?? 0) - QUOTA_DIAL.stroke / 2).toBeGreaterThan(5);
+  });
+
+  test("its name lists each circle's account and percent, the closest first", () => {
+    const o = quotaOverview([at("Kimi", 12), at("GLM", 92), at("Claude", 40)], NOW);
+    expect(quotaRingLabel(t, o, (a) => a.key)).toBe(
+      `quotas.ring.many {"list":"${[
+        'quotas.ring.item {\\"account\\":\\"GLM\\",\\"percent\\":92}',
+        'quotas.ring.item {\\"account\\":\\"Claude\\",\\"percent\\":40}',
+        'quotas.ring.item {\\"account\\":\\"Kimi\\",\\"percent\\":12}',
+      ].join(", ")}"}`,
+    );
   });
 
   test("each plan its maker's color, the viewer's choice over it; none known, none drawn", () => {
@@ -144,7 +184,7 @@ describe("where an account stands", () => {
     expect(noQuotaText(t, account("c", { agents: [{ agentId: "x", name: "Dev", tokens: 1, now: true }] }))).toBe(
       "usageViews.noWindows",
     );
-    expect(noQuotaText(t, account("c"))).toBe("usageViews.unused");
+    expect(noQuotaText(t, account("c", { agents: [] }))).toBe("usageViews.unused");
   });
 });
 

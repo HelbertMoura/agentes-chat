@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { waitingCardOf } from "@agenteschat/client/lib/notifications";
 import { personAmount, usageLimitLine } from "@agenteschat/client/lib/person-usage";
+import { QUOTA_DIAL, quotaDialRadii } from "@agenteschat/client/lib/quotas";
 import { notificationHref } from "../../src/features/links/logic";
 import { peopleMonthLine, quotaRingFontSize } from "../../src/features/usage/logic";
 import { notification, translator } from "./fixtures";
@@ -104,10 +105,14 @@ describe("an account's use by kind on the phone (the web's KindShares)", () => {
   });
 });
 
-test("the limits ring's number fits inside its stroke: 100 smaller than two digits", () => {
-  // The room inside the stroke on the 34-point circle, at a bold digit's width (about 0.62 of its size).
-  const inside = 34 - 2 * 3.5;
-  for (const text of ["–", "7", "50", "99", "100"])
-    expect(text.length * quotaRingFontSize(text) * 0.62).toBeLessThan(inside - 4);
-  expect(quotaRingFontSize("100")).toBeLessThan(quotaRingFontSize("99"));
+test("the limits ring's number fits inside its rings: 100 smaller than two digits, smaller again inside two", () => {
+  // The hole inside the innermost ring of the 32-point dial, at a bold digit's width (about 0.62 of its size).
+  for (const rings of [1, 2]) {
+    const inner = quotaDialRadii(rings).at(-1) ?? 0;
+    const inside = 2 * (inner - QUOTA_DIAL.stroke / 2);
+    for (const text of ["–", "7", "50", "99", "100"])
+      expect(text.length * quotaRingFontSize(text, rings) * 0.62).toBeLessThan(inside - 2);
+    expect(quotaRingFontSize("100", rings)).toBeLessThan(quotaRingFontSize("99", rings));
+  }
+  expect(quotaRingFontSize("99", 2)).toBeLessThan(quotaRingFontSize("99", 1));
 });

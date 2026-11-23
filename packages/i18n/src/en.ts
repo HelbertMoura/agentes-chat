@@ -18647,12 +18647,15 @@ export const en = {
       accounts_other: "{{count}} AI accounts",
     },
     notReported: "No quota reported by the provider.",
-    /** The plan limits ring on every screen: the percent of the account closest to a limit. */
+    /** The plan limits ring on every screen: a circle per account in use (up to 3), the closest to a limit outermost. */
     ring: {
       ok: "Plan limits: {{percent}}% used on {{account}}, the account closest to its limit",
       almost: "Plan limits: {{account}} almost at the limit, {{percent}}% used",
       limited: "Plan limits: {{account}} at the limit",
-      none: "Plan limits: none of your accounts reports limits",
+      /** Several circles: {{list}} is each `item`, comma-separated, the closest to a limit first. */
+      many: "Plan limits: {{list}}",
+      item: "{{account}} {{percent}}% used",
+      none: "Plan limits: no account in use reports limits",
       title: "Plan limits",
     },
     /** A window's pace so far: when it reaches its limit before it resets ({{when}}: "at 3:10 PM", "Friday at 10:00 AM"), or the room left. */

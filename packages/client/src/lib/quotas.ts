@@ -157,8 +157,27 @@ export interface QuotaLine {
   hue: WallpaperHue;
 }
 
-/** How many accounts the ring's card keys (the ring itself draws the first). */
-export const QUOTA_RINGS = 4;
+/** How many accounts the ring draws, one circle each inside the other, and its card keys. */
+export const QUOTA_RINGS = 3;
+
+/**
+ * The dial's drawing on a 32-unit box (ADR 0063 addendum 2026-11-23): each ring's stroke and the gap between rings.
+ * The web draws it at 32 px, the phone at 32 points.
+ */
+export const QUOTA_DIAL = { size: 32, stroke: 2.5, gap: 0.75 } as const;
+
+/** The radius of each ring, outermost first: one ring when there is nothing to draw (the dash's track). */
+export const quotaDialRadii = (count: number) =>
+  Array.from(
+    { length: Math.min(Math.max(count, 1), QUOTA_RINGS) },
+    (_, i) => QUOTA_DIAL.size / 2 - QUOTA_DIAL.stroke / 2 - i * (QUOTA_DIAL.stroke + QUOTA_DIAL.gap),
+  );
+
+/** The percent fits inside one or two rings (a 14-unit hole inside three is too small to read): never inside three. */
+export const quotaDialShowsNumber = (count: number) => count < QUOTA_RINGS;
+
+/** An agent thinks with the account now: the ring draws only accounts in use, so a paused one never takes a circle. */
+const inUse = (a: Pick<PlanAccountUsage, "forMe" | "agents">) => a.forMe === true || a.agents.some((g) => g.now);
 
 /** The colors an account can take in the ring, for the light and the dark theme. */
 export const QUOTA_HUES: Record<WallpaperHue, { light: string; dark: string }> = {
@@ -192,14 +211,16 @@ export interface QuotaRingLine {
   /** The account's tightest window. */
   window: QuotaWindowLine | null;
   hue: WallpaperHue;
+  /** Its circle's tone: the account's own color with room, amber or red near a limit. */
+  tone: QuotaRingTone;
 }
 
-/** From here the ring's arc turns amber: room is running out, well before the meters' own warning. */
+/** From here a ring's arc turns amber: room is running out, well before the meters' own warning. */
 export const QUOTA_RING_WARN = 70;
 
 /**
- * The ring's one arc (ADR 0063 addendum 2026-11-23): the tightest account's percent, in the soft text color with room
- * (`calm`), amber from `QUOTA_RING_WARN`, red from `PLAN_CRITICAL`. Nothing known yet: `none`.
+ * Each ring's arc (ADR 0063 addendum 2026-11-23): in its account's own color with room (`calm`), amber from
+ * `QUOTA_RING_WARN`, red from `PLAN_CRITICAL`. Nothing known yet: `none`.
  */
 export type QuotaRingTone = "none" | "calm" | "warn" | "danger";
 
@@ -210,11 +231,15 @@ export function quotaRingTone(used: number | null | undefined): QuotaRingTone {
 
 export interface QuotaOverview {
   /**
-   * The closest to a limit among the accounts that concern the viewer: theirs, or one their own agents or right hand
-   * think with (`forMe`). Someone else's private plan never colors their ring. Null while none of those reports limits.
+   * The closest to a limit among the accounts the ring draws (`rings`): its percent is the largest of theirs. Null
+   * while none of those reports limits.
    */
   tightest: (QuotaRoom & { account: PlanAccountUsage }) | null;
-  /** The accounts the ring's card keys, the closest to a limit first: those same accounts, `QUOTA_RINGS` at most. */
+  /**
+   * The accounts the ring draws and its card keys, the closest to a limit first, `QUOTA_RINGS` at most: those that
+   * concern the viewer (theirs, or one their own agents or right hand think with, `forMe`; someone else's private plan
+   * never takes a circle) and that an agent thinks with now. A paused account stays in `lines` only.
+   */
   rings: QuotaRingLine[];
   /** Every account: the closest to a limit first, those with no limits known after them in Cotas' order. */
   lines: QuotaLine[];
@@ -257,10 +282,21 @@ export function quotaOverview(
       };
     })
     .sort((a, b) => (b.room?.used ?? -1) - (a.room?.used ?? -1));
-  const concerning = lines.filter((l) => l.room && (l.account.mine || l.account.forMe)).slice(0, QUOTA_RINGS);
+  const concerning = lines
+    .filter((l) => l.room && (l.account.mine || l.account.forMe) && inUse(l.account))
+    .slice(0, QUOTA_RINGS);
   const rings = concerning.flatMap((l): QuotaRingLine[] =>
     l.room
-      ? [{ account: l.account, used: l.room.used, level: quotaLevel(l.room), window: l.windows[0] ?? null, hue: l.hue }]
+      ? [
+          {
+            account: l.account,
+            used: l.room.used,
+            level: quotaLevel(l.room),
+            window: l.windows[0] ?? null,
+            hue: l.hue,
+            tone: quotaRingTone(l.room.used),
+          },
+        ]
       : [],
   );
   const first = concerning[0];
@@ -326,11 +362,17 @@ export const quotaPaceAlertText = (
 export const quotaLevel = (room: QuotaRoom | null) =>
   room ? planLevel(room.used, room.standing === "limited") : ("ok" as const);
 
-/** The ring's name for a screen reader: the percent and the account, or that no account reports limits. */
+/**
+ * The ring's name for a screen reader: with one circle its percent and account, with several each account and its
+ * percent, the closest to a limit first; or that no account in use reports limits.
+ */
 export function quotaRingLabel(t: TFunction, overview: QuotaOverview, name: (a: PlanAccountUsage) => string) {
   const top = overview.tightest;
   if (!top) return t("quotas.ring.none");
-  return t(`quotas.ring.${top.standing}`, { percent: top.used, account: name(top.account) });
+  if (overview.rings.length < 2)
+    return t(`quotas.ring.${top.standing}`, { percent: top.used, account: name(top.account) });
+  const list = overview.rings.map((r) => t("quotas.ring.item", { account: name(r.account), percent: r.used }));
+  return t("quotas.ring.many", { list: list.join(", ") });
 }
 
 /** What a `plan_limit_near` row says: the account, the percent, the window and, while it is ahead, its reset. */

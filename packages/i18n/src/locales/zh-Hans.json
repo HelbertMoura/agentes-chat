@@ -17546,6 +17546,8 @@
       "ok": "套餐限额：最接近限额的账号 {{account}} 已用 {{percent}}%",
       "almost": "套餐限额：{{account}} 接近限额，已用 {{percent}}%",
       "limited": "套餐限额：{{account}} 已达限额",
+      "many": "套餐限额：{{list}}",
+      "item": "{{account}} {{percent}}%",
       "none": "套餐限额：你的账号都没有报告限额",
       "title": "套餐限额"
     },

@@ -25,7 +25,7 @@
 }
 /* Off the account card (a personal workspace's top row): the size of the collapse beside it. */
 .sidebar:not([data-rail="true"]) .sidebar__org--person .quota-ring {
-  --quota-dial: 24px;
+  --quota-dial: 28px;
   align-self: center;
   width: var(--control-h-sm);
   height: var(--control-h-sm);
@@ -88,18 +88,23 @@
   --quota-hue: #a8a29e;
 }
 
-/* The dial: a thin track, one arc with round ends in the tone of the tightest percent, the number in the middle. */
+/*
+ * The dial: a circle per account in use, one inside the other (`QUOTA_DIAL`), each a faint track and an arc with round
+ * ends in its account's own color, amber from 70% and red from 90%; the largest percent in the middle while it fits.
+ */
 .quota-dial {
   flex: none;
   display: block;
-  width: var(--quota-dial, 28px);
-  height: var(--quota-dial, 28px);
-  --quota-arc: var(--muted);
+  width: var(--quota-dial, 32px);
+  height: var(--quota-dial, 32px);
 }
-.quota-dial[data-tone="warn"] {
+.quota-dial g {
+  --quota-arc: var(--quota-hue, var(--muted));
+}
+.quota-dial g[data-tone="warn"] {
   --quota-arc: var(--warn);
 }
-.quota-dial[data-tone="danger"] {
+.quota-dial g[data-tone="danger"] {
   --quota-arc: var(--danger);
 }
 .quota-dial svg {
@@ -111,10 +116,10 @@
 .quota-dial__track,
 .quota-dial__arc {
   fill: none;
-  stroke-width: 3;
+  stroke-width: 2.5;
 }
 .quota-dial__track {
-  stroke: color-mix(in srgb, var(--ink) 14%, transparent);
+  stroke: color-mix(in srgb, var(--ink) 12%, transparent);
 }
 .quota-dial__arc {
   stroke: var(--quota-arc);
@@ -131,6 +136,10 @@
   letter-spacing: -0.02em;
   text-anchor: middle;
   dominant-baseline: central;
+}
+/* Inside two rings the hole is narrower: still room for 100. */
+.quota-dial[data-rings="2"] .quota-dial__num {
+  font-size: 8px;
 }
 @media (prefers-reduced-motion: reduce) {
   .quota-dial__arc {
