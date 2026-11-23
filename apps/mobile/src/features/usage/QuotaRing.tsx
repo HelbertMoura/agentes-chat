@@ -3,12 +3,12 @@ import { useAiAccounts, usePlanUsage, useSetChatPrefs } from "@agenteschat/clien
 import { accountName, groupUsageAccounts, planMeterText } from "@agenteschat/client/lib/plan-usage";
 import {
   noQuotaText,
-  QUOTA_GRID,
   QUOTA_HUES,
   type QuotaLine,
   type QuotaPixel,
   type QuotaRingLine,
   quotaDigitPixels,
+  quotaGrid,
   quotaOverview,
   quotaPace,
   quotaPaceAlert,
@@ -58,7 +58,8 @@ function QuotaDial({ rings, size }: { rings: readonly QuotaRingLine[]; size: num
   const number = top ? String(top.used) : "–";
   const used = rings.map((r) => r.used).join(",");
   const pixels = useMemo(() => quotaPixels(used ? used.split(",").map(Number) : []), [used]);
-  const digits = useMemo(() => quotaDigitPixels(number), [number]);
+  const grid = quotaGrid(rings.length);
+  const digits = useMemo(() => quotaDigitPixels(number, grid), [number, grid]);
   const cell = (p: { x: number; y: number }) => `M${p.x} ${p.y}h1v1h-1z`;
   const tones = top ? rings.map((r) => toneOf(r.hue, r.level)) : [c.muted];
   const path = (ring: number, pick: (p: QuotaPixel) => boolean) =>
@@ -68,7 +69,7 @@ function QuotaDial({ rings, size }: { rings: readonly QuotaRingLine[]; size: num
       .join("");
   return (
     <View style={{ width: size, height: size }}>
-      <Svg width={size} height={size} viewBox={`0 0 ${QUOTA_GRID} ${QUOTA_GRID}`}>
+      <Svg width={size} height={size} viewBox={`0 0 ${grid} ${grid}`}>
         {tones.map((tone, i) => (
           <G key={rings[i]?.account.key ?? "none"}>
             <Path d={path(i, (p) => !p.lit)} fill={c.ink} fillOpacity={0.22} />

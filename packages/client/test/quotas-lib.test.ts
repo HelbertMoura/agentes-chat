@@ -9,6 +9,7 @@ import {
   noQuotaText,
   planLimitNotice,
   quotaDigitPixels,
+  quotaGrid,
   quotaLevel,
   quotaOverview,
   quotaPace,
@@ -82,24 +83,41 @@ describe("the ring in pixels", () => {
       expect(cells.some((c) => taken.has(`${c.x},${c.y}`))).toBe(false);
     }
   });
+
+  test("four circles take a finer grid, each its own, the number still clear of the innermost", () => {
+    expect(quotaGrid(3)).toBe(24);
+    expect(quotaGrid(4)).toBe(28);
+    const four = quotaPixels([10, 20, 30, 40]);
+    expect(new Set(four.map((p) => p.ring))).toEqual(new Set([0, 1, 2, 3]));
+    expect(four.every((p) => p.x >= 0 && p.y >= 0 && p.x < 28 && p.y < 28)).toBe(true);
+    const taken = new Set(four.map((p) => `${p.x},${p.y}`));
+    for (const text of ["7", "64", "100", "–"]) {
+      const cells = quotaDigitPixels(text, quotaGrid(4));
+      expect(cells.some((c) => taken.has(`${c.x},${c.y}`))).toBe(false);
+    }
+  });
 });
 
 describe("the ring's circles", () => {
   const at = (key: string, usedPercent: number, over: Partial<PlanAccountUsage> = {}) =>
     account(key, { usage: usage([{ kind: "five_hour", usedPercent, resetsAt: IN_2H }]), ...over });
 
-  test("the three accounts closest to a limit that concern the viewer, the tightest outermost", () => {
+  test("the four accounts closest to a limit that concern the viewer, the tightest outermost", () => {
     const { rings, tightest } = quotaOverview(
-      [at("a", 10), at("b", 61), at("c", 85), at("d", 30), at("e", 99, { mine: false, forMe: false })],
+      [at("a", 10), at("b", 61), at("c", 85), at("d", 30), at("f", 5), at("e", 99, { mine: false, forMe: false })],
       NOW,
     );
     expect(rings.map((r) => [r.account.key, r.used, r.level])).toEqual([
       ["c", 85, "almost"],
       ["b", 61, "ok"],
       ["d", 30, "ok"],
+      ["a", 10, "ok"],
     ]);
-    expect(rings.map((r) => r.radius)).toEqual([16, 12.7, 9.4]);
-    expect(new Set(rings.map((r) => r.hue)).size).toBe(3);
+    expect(rings.map((r) => r.radius)).toEqual([16.2, 13.5, 10.8, 8.1]);
+    expect(new Set(rings.map((r) => r.hue)).size).toBe(4);
+    expect(quotaOverview([at("a", 10), at("b", 61), at("c", 85)], NOW).rings.map((r) => r.radius)).toEqual([
+      16, 12.7, 9.4,
+    ]);
     expect(tightest?.account.key).toBe("c");
     expect(rings[0]?.window?.kind).toBe("five_hour");
   });

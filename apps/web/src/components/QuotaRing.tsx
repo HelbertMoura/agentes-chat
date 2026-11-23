@@ -1,10 +1,10 @@
 import { useAiAccounts, usePlanUsage, useSetChatPrefs } from "@agenteschat/client";
 import {
   noQuotaText,
-  QUOTA_GRID,
   type QuotaLine,
   type QuotaRingLine,
   quotaDigitPixels,
+  quotaGrid,
   quotaLevel,
   quotaOverview,
   quotaPace,
@@ -35,7 +35,8 @@ function QuotaDial({ rings }: { rings: readonly QuotaRingLine[] }) {
   const number = top ? String(top.used) : "–";
   const used = rings.map((r) => r.used).join(",");
   const pixels = useMemo(() => quotaPixels(used ? used.split(",").map(Number) : []), [used]);
-  const digits = useMemo(() => quotaDigitPixels(number), [number]);
+  const grid = quotaGrid(rings.length);
+  const digits = useMemo(() => quotaDigitPixels(number, grid), [number, grid]);
   const cell = (p: { x: number; y: number }) => `M${p.x} ${p.y}h1v1h-1z`;
   const paths = (ring: number, kind: "track" | "used" | "front") =>
     pixels
@@ -45,7 +46,7 @@ function QuotaDial({ rings }: { rings: readonly QuotaRingLine[] }) {
   const circles = top ? rings : [null];
   return (
     <span className="quota-dial" data-level={top?.level ?? "none"} data-hue={top?.hue} data-used={number}>
-      <svg viewBox={`0 0 ${QUOTA_GRID} ${QUOTA_GRID}`} shapeRendering="crispEdges" aria-hidden="true">
+      <svg viewBox={`0 0 ${grid} ${grid}`} shapeRendering="crispEdges" aria-hidden="true">
         {circles.map((r, i) => (
           <g
             key={r?.account.key ?? "none"}

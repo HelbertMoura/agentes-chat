@@ -157,7 +157,7 @@ export interface QuotaLine {
 }
 
 /** How many accounts the ring draws. */
-export const QUOTA_RINGS = 3;
+export const QUOTA_RINGS = 4;
 
 /** The colors an account can take in the ring, for the light and the dark theme. */
 export const QUOTA_HUES: Record<WallpaperHue, { light: string; dark: string }> = {
@@ -206,6 +206,12 @@ const RING_SHAPES: readonly (readonly (readonly [radius: number, stroke: number]
     [12.7, 2.6],
     [9.4, 2.6],
   ],
+  [
+    [16.2, 2.1],
+    [13.5, 2.1],
+    [10.8, 2.1],
+    [8.1, 2.1],
+  ],
 ];
 
 /** Each circle's radius and stroke for a ring of `count` (none yet: one empty circle). */
@@ -213,8 +219,12 @@ export const quotaRingShape = (count: number) => RING_SHAPES[Math.max(count, 1) 
 
 /** The pixel ring's grid: this many cells a side, each a pixel of the drawing. */
 export const QUOTA_GRID = 24;
-const PIXEL_RADII: readonly (readonly number[])[] = [[10.2], [10.6, 7.6], [11, 8.6, 6.2]];
-const PIXEL_WIDTHS = [2.4, 2.1, 1.8];
+/** Four circles and the digits inside them need a finer grid: the same drawing in smaller cells. */
+const QUOTA_GRID_FOUR = 28;
+/** The grid for a ring of `count` circles (`quotaPixels`, `quotaDigitPixels` and the drawing's view box). */
+export const quotaGrid = (count: number) => (count >= 4 ? QUOTA_GRID_FOUR : QUOTA_GRID);
+const PIXEL_RADII: readonly (readonly number[])[] = [[10.2], [10.6, 7.6], [11, 8.6, 6.2], [12.9, 10.6, 8.3, 6]];
+const PIXEL_WIDTHS = [2.4, 2.1, 1.8, 1.7];
 /** The front of what is used, as a share of the circle: drawn every other cell, as the sky's dither. */
 const PIXEL_EDGE = 0.05;
 
@@ -235,11 +245,12 @@ export function quotaPixels(used: readonly number[]): QuotaPixel[] {
   const count = Math.min(Math.max(used.length, 1), QUOTA_RINGS);
   const radii = PIXEL_RADII[count - 1] ?? [];
   const width = PIXEL_WIDTHS[count - 1] ?? 2;
+  const grid = quotaGrid(count);
   const out: QuotaPixel[] = [];
-  for (let y = 0; y < QUOTA_GRID; y++) {
-    for (let x = 0; x < QUOTA_GRID; x++) {
-      const dx = x + 0.5 - QUOTA_GRID / 2;
-      const dy = y + 0.5 - QUOTA_GRID / 2;
+  for (let y = 0; y < grid; y++) {
+    for (let x = 0; x < grid; x++) {
+      const dx = x + 0.5 - grid / 2;
+      const dy = y + 0.5 - grid / 2;
       const turn = (Math.atan2(dx, -dy) / (2 * Math.PI) + 1) % 1;
       const ring = radii.findIndex((r) => Math.abs(Math.hypot(dx, dy) - r) <= width / 2);
       if (ring < 0) continue;
@@ -253,7 +264,7 @@ export function quotaPixels(used: readonly number[]): QuotaPixel[] {
   return out;
 }
 
-/** The pixel digits, 5 cells tall; a 1 is narrower, so 100 fits inside three circles. */
+/** The pixel digits, 5 cells tall; a 1 is narrower, so 100 fits inside the innermost circle. */
 const DIGITS: Record<string, readonly string[]> = {
   "0": ["111", "101", "101", "101", "111"],
   "1": ["01", "11", "01", "01", "01"],
@@ -268,12 +279,12 @@ const DIGITS: Record<string, readonly string[]> = {
   "–": ["000", "000", "111", "000", "000"],
 };
 
-/** The cells of `text` in pixel digits, centered on the ring's grid. */
-export function quotaDigitPixels(text: string): { x: number; y: number }[] {
+/** The cells of `text` in pixel digits, centered on the ring's grid (`quotaGrid`). */
+export function quotaDigitPixels(text: string, grid = QUOTA_GRID): { x: number; y: number }[] {
   const glyphs = [...text].map((ch) => DIGITS[ch] ?? DIGITS["–"] ?? []);
   const width = glyphs.reduce((w, g) => w + (g[0]?.length ?? 0), 0) + Math.max(glyphs.length - 1, 0);
-  let x0 = Math.round(QUOTA_GRID / 2 - width / 2);
-  const y0 = Math.round(QUOTA_GRID / 2 - 2.5);
+  let x0 = Math.round(grid / 2 - width / 2);
+  const y0 = Math.round(grid / 2 - 2.5);
   const out: { x: number; y: number }[] = [];
   for (const g of glyphs) {
     g.forEach((row, y) => {
