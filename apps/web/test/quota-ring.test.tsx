@@ -9,7 +9,7 @@ import { act, cleanup, fireEvent, waitFor, within } from "@testing-library/react
 import { createFakeApi, ORG_ID, seedState, withRightHand } from "./fake-api";
 import { renderApp, settle, showIn } from "./render";
 
-/** The plan limits ring beside the bell (ADR 0063 addendum 2026-11-18): the tightest percent, and every account. */
+/** The plan limits ring beside the account menu (ADR 0063 addendum 2026-11-18): the tightest percent, and every account. */
 
 const soon = (h: number) => new Date(Date.now() + h * 3_600_000).toISOString();
 

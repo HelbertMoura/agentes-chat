@@ -1,4 +1,4 @@
-/* The plan limits ring (QuotaRing.tsx): a tile as the bell's beside it, holding the dial. */
+/* The plan limits ring (QuotaRing.tsx): a tile beside the account menu, holding the dial. */
 .quota-ring {
   position: relative;
   flex: none;
@@ -18,12 +18,12 @@
 .quota-ring[data-state="open"] {
   background: var(--side-hover);
 }
-/* On the account card, as tall as the bell beside it. */
+/* On the account card, as tall as the card. */
 .sidebar__me .quota-ring {
   align-self: stretch;
   height: auto;
 }
-/* Off the account card (a personal workspace's top row): the size of the bell and the collapse beside it. */
+/* Off the account card (a personal workspace's top row): the size of the collapse beside it. */
 .sidebar:not([data-rail="true"]) .sidebar__org--person .quota-ring {
   --quota-dial: 32px;
   align-self: center;
@@ -352,13 +352,7 @@
 .quota-pop__more:hover {
   background: color-mix(in srgb, var(--ink) 6%, var(--glass-solid));
 }
-/* The bell beside the ring, on the same pixel grid: 2 points a cell. */
-.pixel-bell {
-  width: 20px;
-  height: 20px;
-  fill: currentColor;
-}
-/* The ring and the bell: two tiles of one width, centered on one line. */
+/* On the account card, a tile of the card's controls' width. */
 .sidebar__me .quota-ring {
   width: var(--control-h-md);
 }

@@ -65,7 +65,7 @@ function QuotaDial({ rings }: { rings: readonly QuotaRingLine[] }) {
 }
 
 /**
- * The plan limits ring (ADR 0063 addendum 2026-11-18), beside the bell on every screen: how much of its limit the
+ * The plan limits ring (ADR 0063 addendum 2026-11-18), beside the account menu on every screen: how much of its limit the
  * account closest to one has used, the number always written in it, the color the meters give that percent. Resting on
  * it, focusing it or pressing it opens every account with its windows and a way to Cotas. Nothing while the workspace
  * has no AI account; a dash while none reports limits.
@@ -253,30 +253,5 @@ function QuotaPopLine({ line, locale, now }: { line: QuotaLine; locale: string; 
         <p className="quota-pop__none">{recent ? `${recent.label}: ${recent.value}` : noQuotaText(t, account)}</p>
       )}
     </li>
-  );
-}
-
-/** The bell beside the ring, drawn on the same pixel grid, in the color it is given. */
-const BELL = [
-  "....##....",
-  "...####...",
-  "..######..",
-  "..######..",
-  ".########.",
-  ".########.",
-  ".########.",
-  "##########",
-  "..........",
-  "....##....",
-];
-
-export function PixelBell() {
-  const d = BELL.flatMap((row, y) => [...row].flatMap((bit, x) => (bit === "#" ? [`M${x} ${y}h1v1h-1z`] : []))).join(
-    "",
-  );
-  return (
-    <svg className="pixel-bell" viewBox="0 0 10 10" shapeRendering="crispEdges" aria-hidden="true">
-      <path d={d} />
-    </svg>
   );
 }
