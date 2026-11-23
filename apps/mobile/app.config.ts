@@ -204,6 +204,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
     "expo-web-browser",
     "expo-apple-authentication",
+    // The app lock (ADR 0220): Face ID's text on iOS (each language's in assets/locales); Android's biometric
+    // permissions come with the plugin.
+    ["expo-local-authentication", { faceIDPermission: "To unlock the app with Face ID, when you turn its lock on." }],
     [
       "expo-splash-screen",
       {
@@ -229,6 +232,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
     // Android release builds signed with the upload key from the environment (the Android build workflow).
     "./plugins/with-android-release-signing",
+    // Long-press shortcuts on Android's icon. Listed BEFORE with-app-icons: mods run last registered first, and this
+    // one adds its metadata to the launcher aliases that plugin makes.
+    "./plugins/with-app-shortcuts",
     // The app icons a person may pick (ADR 0179): iOS's alternate icons and Android's launcher aliases.
     "./plugins/with-app-icons",
     [

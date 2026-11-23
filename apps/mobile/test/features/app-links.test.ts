@@ -4,6 +4,7 @@ import { APP_LINK_PATHS, APP_LINK_WEB_QUERIES } from "../../../server/src/app-li
 import { APP_LINK_PATTERNS } from "../../app.config";
 import {
   appLinkFromUrl,
+  appPathOf,
   linkWorkspace,
   ownLinkHref,
   resolveLink,
@@ -175,6 +176,13 @@ describe("the link screen", () => {
   const api = {
     threads: { get: async (_o: string, id: string) => ({ id, channelId: "c9" }) as never },
     dms: { open: async (_o: string, to: object) => ({ channelId: "agentId" in to ? "d-agent" : "d-person" }) },
+    agents: {
+      list: async () =>
+        [
+          { id: "a-rh", builtin: "right_hand" },
+          { id: "a2", builtin: null },
+        ] as never,
+    },
     notifications: {
       read: async (_o: string, id: string) =>
         ({ id, kind: "mention", source: { channelId: "c2", messageId: "m9" }, actors: [], latest: {} }) as never,
@@ -191,6 +199,12 @@ describe("the link screen", () => {
     expect(await resolveLink(api, O, {})).toBe("/");
   });
 
+  test("the launcher's Braço direito opens the DM with the right hand, or Conversas without one", async () => {
+    expect(await resolveLink(api, O, { rightHand: "1" })).toBe("/chat/d-agent");
+    const none = { ...api, agents: { list: async () => [] } };
+    expect(await resolveLink(none, O, { rightHand: "1" })).toBe("/");
+  });
+
   test("a workspace the person isn't in opens the address on the website, never its ids in the current one", () => {
     expect(linkWorkspace({ org: "o2", web: "/org/o2/c/c1" }, ["o1", "o2"], "o1")).toEqual({ org: "o2" });
     expect(linkWorkspace({}, ["o1"], "o1")).toEqual({ org: "o1" });
@@ -202,5 +216,16 @@ describe("the link screen", () => {
     rememberLink("/link?org=o&to=%2F");
     expect(takeLink()).toBe("/link?org=o&to=%2F");
     expect(takeLink()).toBeNull();
+  });
+});
+
+describe("the app's own scheme as a path (ADR 0220: a link held behind the lock)", () => {
+  test("agenteschat:// URLs become the app's path, never a URL the system would open the app with again", () => {
+    expect(appPathOf("agenteschat:///")).toBe("/");
+    expect(appPathOf("agenteschat://")).toBe("/");
+    expect(appPathOf("agenteschat:///chat/abc?x=1")).toBe("/chat/abc?x=1");
+    expect(appPathOf("agenteschat://chat/abc")).toBe("/chat/abc");
+    expect(appPathOf("/activity")).toBe("/activity");
+    expect(appPathOf("activity")).toBe("/activity");
   });
 });

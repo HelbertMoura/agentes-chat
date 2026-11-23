@@ -12,6 +12,8 @@ import { Platform, StyleSheet, View } from "react-native";
 import Animated, { Easing, FadeIn, FadeInUp } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { signOut } from "@/features/account";
+import { AppLockAfterRow, AppLockRow } from "@/features/lock/AppLockRow";
+import { useAppLock } from "@/features/lock/store";
 import { useOrg } from "@/providers/org";
 import { WorkspaceSky } from "@/sky/Sky";
 import {
@@ -331,6 +333,7 @@ function MePage() {
         />
       ) : null,
   };
+  const appLock = useAppLock();
   // Sons and Aparência, a few fixed choices, change in their row through the app's picker (the one in use checked);
   // Idioma, one of many, is a pushed list of its own.
   const { pickSound, pickTheme, soundValue, themeValue } = useMePickers();
@@ -548,6 +551,8 @@ function MePage() {
               menu
               onPress={pickSound}
             />
+            <AppLockRow key="appLock" />
+            {appLock.enabled ? <AppLockAfterRow key="appLockAfter" /> : null}
             <GroupedRow
               key="appearance"
               icon={theme.scheme === "dark" ? "moon" : "sun"}

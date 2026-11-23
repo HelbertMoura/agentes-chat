@@ -3,6 +3,7 @@ import { usePathname } from "expo-router";
 import { ShareIntentModule, useShareIntent } from "expo-share-intent";
 import { useEffect, useRef } from "react";
 import { Platform } from "react-native";
+import { whenUnlocked } from "@/features/lock/store";
 import { reportError } from "@/lib/error-reports";
 import { router } from "@/ui/navigation";
 import { receiveShare, SHARE_ROUTE, sharedFromIntent } from "./inbox";
@@ -50,7 +51,10 @@ export function ShareInbox() {
     settled.current = link.current;
     // Through one of the share sheet's suggestions, its link names the agent (ADR 0213).
     receiveShare({ ...shared, to: pickedOfShareLink(link.current) });
-    if (where.current !== SHARE_ROUTE) router.push(SHARE_ROUTE);
+    // Behind the app lock (ADR 0220), "Compartilhar com…" opens once the lock opens, never under it.
+    whenUnlocked(() => {
+      if (where.current !== SHARE_ROUTE) router.push(SHARE_ROUTE);
+    });
   }, [hasShareIntent, shareIntent, resetShareIntent]);
 
   useEffect(() => {

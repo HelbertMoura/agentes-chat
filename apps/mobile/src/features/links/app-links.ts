@@ -1,5 +1,6 @@
 import type { ApiClient, MessageCard } from "@agenteschat/client";
 import { messagePath } from "@agenteschat/client/lib/message-links";
+import { isRightHand } from "@agenteschat/client/lib/right-hand";
 import { liveActivityTargetOf } from "../live-activity/props";
 import { isSafeId } from "../shared/logic";
 import { chatHref, notificationHref } from "./logic";
@@ -160,6 +161,16 @@ function workspaceScreen(rest: string[], q: Record<string, string>): Record<stri
 }
 
 /**
+ * The app's own path in a URL of its scheme (`agenteschat:///chat/x` or `agenteschat://chat/x` → `/chat/x`), a path
+ * as it is. Navigating to the URL itself would hand it to the system, which opens the app with it again.
+ */
+export function appPathOf(url: string): string {
+  const m = /^[a-z][a-z0-9+.-]*:\/\/\/?(.*)$/i.exec(url);
+  if (!m) return url.startsWith("/") ? url : `/${url}`;
+  return `/${m[1] ?? ""}`;
+}
+
+/**
  * A URL the app was opened with → where it goes. Only the web's addresses (`https://<host>/…`) change: the app's own
  * scheme (`agenteschat://chat/…`) and paths stay as they are (null). A screen of `current` (the workspace on screen)
  * that needs nothing looked up opens straight away; anything else goes through `/link`, which switches workspace or
@@ -230,6 +241,8 @@ export interface LinkParams {
   person?: unknown;
   notification?: unknown;
   m?: unknown;
+  /** The launcher's "Braço direito" shortcut: the DM with the workspace's right hand (ADR 0137). */
+  rightHand?: unknown;
 }
 
 /**
@@ -239,7 +252,7 @@ export interface LinkParams {
 export async function resolveLink(
   api: { threads: Pick<ApiClient["threads"], "get">; dms: Pick<ApiClient["dms"], "open"> } & {
     notifications: Pick<ApiClient["notifications"], "read">;
-  },
+  } & { agents: Pick<ApiClient["agents"], "list"> },
   orgId: string,
   p: LinkParams,
 ): Promise<string> {
@@ -248,6 +261,10 @@ export async function resolveLink(
   if (isSafeId(p.thread)) {
     const thread = await api.threads.get(orgId, p.thread);
     return chatHref(thread.channelId, thread.id, m);
+  }
+  if (p.rightHand === "1") {
+    const hand = (await api.agents.list(orgId)).find(isRightHand);
+    return hand ? chatHref((await api.dms.open(orgId, { agentId: hand.id })).channelId) : "/";
   }
   const dm = isSafeId(p.agent) ? { agentId: p.agent } : isSafeId(p.person) ? { userId: p.person } : null;
   if (dm) return chatHref((await api.dms.open(orgId, dm)).channelId, null, m);
