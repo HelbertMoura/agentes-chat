@@ -21,7 +21,7 @@ import { rememberConfirmationSent } from "./confirmation";
 import { useHumanCheck } from "./HumanCheck";
 import { CheckCancelled, earlyAccessRequests, refusalOf, refusalText, signUpClosed } from "./human-check";
 import { DidYouMean, ErrorLine, InviteTerms } from "./invite-parts";
-import { type SignInStep, signInStepHref, stepDepth, TWO_FACTOR_STEP_PATH, useSignInStepFlow } from "./sign-in-flow";
+import { type SignInStep, signInStepHref, stepDepth, twoFactorStepHref, useSignInStepFlow } from "./sign-in-flow";
 
 /*
  * The steps after the sign-in's e-mail (`AuthFlow`), each a screen of its own pushed over the one before
@@ -124,9 +124,8 @@ export function PasswordStep() {
       );
       // The account's second step (ADR 0219): its code, on a screen of its own.
       if (!refused && code) {
-        rememberSignIn("email");
         void writeValue(LAST_EMAIL, email);
-        router.push(TWO_FACTOR_STEP_PATH as never);
+        router.push(twoFactorStepHref("email") as never);
         return;
       }
       if (refused) {
@@ -198,6 +197,7 @@ export function PasswordStep() {
  */
 export function TwoFactorStep() {
   const { t } = useTranslation();
+  const { way } = useLocalSearchParams<{ way?: string }>();
   const [code, setCode] = useState("");
   const [recovery, setRecovery] = useState(false);
   const [pending, setPending] = useState(false);
@@ -219,6 +219,8 @@ export function TwoFactorStep() {
         return;
       }
       haptics.success();
+      // "Last used" names a way that worked: this one, now that its code did.
+      if (way === "email" || way === "google" || way === "github" || way === "apple") rememberSignIn(way);
     } catch (e) {
       const network = e instanceof TypeError && /network|fetch/i.test(e.message);
       setError(t(network ? "mobile.auth.errors.network" : "mobile.auth.errors.generic"));
