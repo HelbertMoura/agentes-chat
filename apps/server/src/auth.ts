@@ -512,7 +512,7 @@ export function createAuth(deps: {
           const seen = authRequest.getStore();
           if (seen) seen.giveBack = giveBack;
         }
-        if (ctx.path.startsWith("/two-factor/")) return twoFactorBefore(ctx, rateLimiter);
+        if (ctx.path.startsWith("/two-factor/")) return twoFactorBefore(ctx, { db, rateLimiter });
         if (ctx.path !== "/sign-up/email") return;
         // Better Auth's own limit is the main address's; here, where no bot check runs, fewer, since each can email.
         if (ctx.headers && (await hostLook(db, ctx.headers.get("host")))) {

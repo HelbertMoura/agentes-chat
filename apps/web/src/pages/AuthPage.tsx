@@ -268,6 +268,9 @@ export function AuthPage({
     });
   }, [ownerAgain, t]);
 
+  // "Add account" (ADR 0183): a provider's refusal, or its account's code (ADR 0219), comes back to the same mode.
+  const addingBack = adding ? `/login?${new URLSearchParams({ redirect: redirect ?? "/", add: "1" })}` : undefined;
+
   // "Add account": whoever is signed in stays so, one click back.
   const stays = useQuery({ ...meQuery(api), enabled: adding }).data ?? null;
 
@@ -785,6 +788,7 @@ export function AuthPage({
                   <div className="auth__or">{t("common.or")}</div>
                   <SocialButtons
                     callbackURL={redirect ?? "/"}
+                    errorCallbackURL={addingBack}
                     providers={offeredProviders}
                     onSocial={desktop ? (p) => void signInInBrowser(p) : undefined}
                     earlyAccess={access}
@@ -822,6 +826,7 @@ export function AuthPage({
                 <>
                   <SocialButtons
                     callbackURL={redirect ?? "/"}
+                    errorCallbackURL={addingBack}
                     providers={linkedProviders}
                     onSocial={desktop ? (p) => void signInInBrowser(p) : undefined}
                   />

@@ -26,12 +26,19 @@ export const Route = createFileRoute("/login")({
     ]);
     // An OAuth callback that waited for a sign-in (under /api/) is the server's: a full load.
     // A provider's return that waits for its account's code (ADR 0219) is another account's sign-in: the page asks.
-    if (me && !search.add && search.error !== TWO_FACTOR_REQUIRED) {
+    const waitsForCode = search.error === TWO_FACTOR_REQUIRED;
+    if (me && !search.add && !waitsForCode) {
       throw redirect({ href: search.redirect ?? "/", reloadDocument: search.redirect?.startsWith("/api/") });
     }
     // Signed out, with another of the browser's accounts still in (ADR 0183): the app opens as that one. The page
     // is loading again by then, so this one waits.
-    if (!me && !search.add && !config.firstRun && (await fallBackToAccount(context.api, search.redirect ?? "/"))) {
+    if (
+      !me &&
+      !search.add &&
+      !waitsForCode &&
+      !config.firstRun &&
+      (await fallBackToAccount(context.api, search.redirect ?? "/"))
+    ) {
       await new Promise(() => {});
     }
     // A brand-new instance has nobody to sign in: go straight to the first account.

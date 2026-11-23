@@ -179,6 +179,18 @@ describe("signing in with it on", () => {
     expect(await emailOf(again)).toBeNull();
   });
 
+  test("a signed-in session with it on has no code to verify: no guessing there, no recovery code spent", async () => {
+    t = await createTestServer();
+    const b = browser(t);
+    const { uri, backupCodes } = await withTwoFactor(b, "ana@example.com");
+    expect((await verify(b, totp(uri))).status).toBe(400);
+    expect((await b("/api/auth/two-factor/verify-backup-code", { json: { code: backupCodes[0] } })).status).toBe(400);
+    const again = await passwordSignIn("ana@example.com");
+    expect((await again("/api/auth/two-factor/verify-backup-code", { json: { code: backupCodes[0] } })).status).toBe(
+      200,
+    );
+  });
+
   test("no trusted device, and no code spent without a session", async () => {
     t = await createTestServer();
     const { uri, backupCodes } = await withTwoFactor(browser(t), "ana@example.com");
