@@ -35,7 +35,7 @@ import {
   Text,
   useToast,
 } from "@/ui";
-import { LandOn, router } from "@/ui/navigation";
+import { router } from "@/ui/navigation";
 import { chatHref } from "../links/logic";
 import { Gap, SettingsPage, useUnsavedGuard } from "../settings/parts";
 import { AccessList } from "../shared/AccessList";
@@ -65,12 +65,6 @@ import {
 /** The web's words for each key (`channel.perms.keys.*`) and the icon its row leads with. */
 const KEY_I18N = { post: "post", talk_to_agents: "callAgents", manage_channels: "manage" } as const;
 const KEY_ICON: Record<ChannelKey, IconName> = { post: "chat", talk_to_agents: "agent", manage_channels: "shield" };
-/** Who may join, in the words of the "Quem vê" screen the row opens. */
-const ACCESS_LABEL = {
-  public: "rolesPage.everyoneName",
-  roles: "mobile.roles.someRoles",
-  private: "mobile.roles.channels.invited",
-} as const;
 /** A face or a role's mark in a target's row: the lists' size, in GroupedRow's 36 column. */
 const MARK = 30;
 /** The server's limit on a channel's description (the web's field takes as much). */
@@ -121,12 +115,10 @@ function useArchiveWithUndo() {
         router.push(chatHref(c.id));
       })
       .catch(failed);
-  /** `onDone` runs before the screens close: a form's guard let go, so leaving asks nothing. */
-  const run = (c: Pick<Channel, "id" | "name">, onDone?: () => void) =>
+  const run = (c: Pick<Channel, "id" | "name">) =>
     archive.mutate(c.id, {
       onSuccess: () => {
         successHaptic();
-        onDone?.();
         router.dismissTo("/");
         toast({
           title: t("channel.archived", { channel: c.name }),
@@ -190,7 +182,7 @@ export function ChannelSettingsScreen({ channelId }: { channelId: string }) {
       },
     );
   };
-  const access = ACCESS_LABEL[accessOf(channel).mode];
+  const access = accessOf(channel).mode;
   return (
     <SettingsPage
       title={title}
@@ -232,7 +224,7 @@ export function ChannelSettingsScreen({ channelId }: { channelId: string }) {
               <GroupedRow
                 icon="lock"
                 label={t("newChannel.visibility")}
-                sub={t(access)}
+                sub={t(`newChannel.${access}`)}
                 chevron
                 onPress={() => router.push(channelAdminHrefs.who(channelId))}
               />
@@ -258,7 +250,7 @@ export function ChannelSettingsScreen({ channelId }: { channelId: string }) {
                 label={t("channel.archive")}
                 danger
                 disabled={archive.pending}
-                onPress={() => archive.run(channel, leave)}
+                onPress={() => archive.run(channel)}
               />
             ) : null}
             {deletes ? (
@@ -267,11 +259,7 @@ export function ChannelSettingsScreen({ channelId }: { channelId: string }) {
                 label={t("channel.delete")}
                 danger
                 chevron
-                onPress={() => {
-                  // Deleting closes this screen too: edits not saved go with it, never asked mid-way.
-                  leave();
-                  router.push(channelAdminHrefs.remove(channelId));
-                }}
+                onPress={() => router.push(channelAdminHrefs.remove(channelId))}
               />
             ) : null}
           </GroupedList>
@@ -455,9 +443,7 @@ export function DeleteChannelScreen({ channelId }: { channelId: string }) {
   const { channels, channel } = useChannel(channelId);
   const remove = useDeleteChannel(orgId);
   const [typed, setTyped] = useState("");
-  if (!channel) return <NoChannel title={t("channel.delete")} channels={channels} />;
-  // Opened by an old link without the right (or for #general): nothing to delete here.
-  if (!deletesChannel(channel, org)) return <LandOn href="/" />;
+  if (!channel || !deletesChannel(channel, org)) return <NoChannel title={t("channel.delete")} channels={channels} />;
   const ready = matchesName(typed.replace(/^#/, ""), channel.name) && !remove.isPending;
   const confirm = () => {
     if (!ready) return;
