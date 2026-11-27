@@ -147,7 +147,7 @@ describe("IA e uso: budget only where the workspace uses the API", () => {
       within(screen().getByRole("tablist", { name: "IA e uso" }))
         .getAllByRole("tab")
         .map((tab) => tab.textContent),
-    ).toEqual(["Contas de IA", "Uso", "Pessoas"]);
+    ).toEqual(["Contas de IA", "Uso", "Cotas", "Pessoas"]);
     expect(screen().getByRole("region", { name: "Contas" })).toBeTruthy();
     expect(
       within(screen().getByRole("region", { name: "Contas" })).getByRole("region", { name: "Chaves de API" }),

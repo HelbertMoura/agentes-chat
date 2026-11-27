@@ -303,7 +303,7 @@ describe("IA e uso › Pessoas", () => {
     expect(text(document.body)).not.toContain("US$");
   });
 
-  test("alone in a personal workspace: Resumo and Cotas, no Pessoas; with someone else here, Pessoas too (ADR 0159)", async () => {
+  test("alone in a personal workspace: its accounts, Uso and Cotas, no Pessoas; with someone else here, Pessoas too (ADR 0159)", async () => {
     const personal = (alone: boolean) => {
       const state = seedState();
       const org = state.me?.organizations[0];
@@ -315,7 +315,7 @@ describe("IA e uso › Pessoas", () => {
     await renderApp(`/org/${ORG_ID}/settings/usage`, { api: createFakeApi(personal(true)) });
     await settle(5);
     // Cotas is the person's own limits too (ADR 0063 addendum 2026-11-17): its tab stays.
-    expect(screen().getByRole("tab", { name: "Resumo" })).toBeTruthy();
+    expect(screen().getByRole("tab", { name: "Uso" })).toBeTruthy();
     expect(screen().getByRole("tab", { name: "Cotas" })).toBeTruthy();
     expect(screen().queryByRole("tab", { name: "Pessoas" })).toBeNull();
     cleanup();

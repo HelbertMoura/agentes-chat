@@ -41,7 +41,7 @@ export function DriveTrashScreen() {
       refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} />}
     >
       <Text variant="subhead" tone="muted" style={styles.lead}>
-        {`${t("drive.trashNote")} ${t("drive.trashStorage")}`}
+        {t("common.joinSentences", { a: t("drive.trashNote"), b: t("drive.trashStorage") })}
       </Text>
       {/* Loading: the rows' own shape; failed: what happened and the way to ask again; empty: says so. */}
       {trash.isLoading ? <SkeletonList rows={4} /> : null}

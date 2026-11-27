@@ -55,7 +55,9 @@ export function QuotasScreen() {
         ) : !accounts ? (
           <LoadFailed onRetry={() => void usage.refetch()} />
         ) : accounts.length === 0 ? (
-          <GroupedFooter>{`${t("quotas.empty")} ${t("usageViews.accounts.empty")}`}</GroupedFooter>
+          <GroupedFooter>
+            {t("common.joinSentences", { a: t("quotas.empty"), b: t("usageViews.accounts.empty") })}
+          </GroupedFooter>
         ) : (
           <>
             <GroupedFooter>{t("quotas.lead")}</GroupedFooter>
