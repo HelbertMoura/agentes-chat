@@ -245,8 +245,11 @@ describe("Quem pensa: the account on the computer and the effort (ADR 0041)", ()
     expect(d.textContent).toContain("Quase no limite");
     await click(within(d).getByRole("button", { name: "Usar walt@reserva.com (12%)" }));
     await settle(6);
-    expect(brainCalls(state).at(-1)).toEqual({ brain: "claude_code", account: "acct_roomy" });
-    expect(brainScreen(d)).toBe("Pronto");
+    expect(brainCalls(state).at(-1)).toMatchObject({ brain: "claude_code", account: "acct_roomy" });
+    // Switched at once, on the first screen: the note says so, with Desfazer, and the offer is gone.
+    expect(brainScreen(d)).toBe("Quem pensa pela Ada");
+    expect(within(d).getByRole("button", { name: "Desfazer" })).toBeTruthy();
+    expect(within(d).queryByRole("button", { name: /^Usar walt/ })).toBeNull();
     // Under 90%: nothing new.
     cleanup();
     await onMac({ account: "acct_work", accounts: [{ ...near, usage: some(89) }, roomy], accountPinned: true });
