@@ -57,6 +57,9 @@ export const RESET_KEEPS = [
   "provider_credentials",
   "machines",
   "machine_accounts",
+  // Which AI account windows were told they are near their limit (ADR 0063 addendum 2026-11-18): kept with the
+  // accounts, so a reset doesn't tell the same period again.
+  "plan_limit_alerts",
   "machine_provisioning",
   "machine_phones",
   "machine_connect_links",
