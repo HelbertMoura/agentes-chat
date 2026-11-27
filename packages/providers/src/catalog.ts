@@ -107,6 +107,11 @@ export interface ModelInfo {
    * a little (it can't be turned off). Absent: `none` goes as `low`.
    */
   leastThinking?: "off" | "minimal";
+  /**
+   * Returns the notes it writes between tool calls as progress-update thinking blocks, empty unless asked for with
+   * `thinking.display: "updates"` (Anthropic beta `thinking-display-updates-2026-08-18`).
+   */
+  thinkingUpdates?: true;
   /** Suggested for new agents of that provider. */
   recommended?: boolean;
   /** Its size in the provider's line, for "Automático": each run picks a tier, mapped back to a model. */
@@ -122,6 +127,11 @@ export interface ModelInfo {
   efforts?: readonly string[];
   /** It can't follow an `outputSchema`: never a pick for routing, the judge or summaries. */
   structuredOutput?: false;
+  /**
+   * Reads tool results' pictures (no PDFs) through its provider's Anthropic-compatible endpoint (`ProviderInfo.compat`),
+   * which otherwise gets them left out.
+   */
+  images?: true;
   /**
    * `false`: the pickers offer it only to a workspace with its provider's key (OpenRouter's long list, Command Code's).
    * `true`: a long list's good pick, shown first, greyed without a key. Absent: a catalog model.
@@ -193,6 +203,7 @@ export const MODEL_CATALOG: Record<string, ModelInfo> = {
     maxOutputTokens: 128_000,
     efforts: CLAUDE_EFFORTS,
     serverSideFallback: true,
+    thinkingUpdates: true,
   },
   // Its 1M-token window from platform.claude.com/docs/en/about-claude/models/overview, all of it at these prices
   // (2026-11-09). No tier and no pick for routing or system tasks: "Automático" never chooses it, people do.
@@ -204,6 +215,7 @@ export const MODEL_CATALOG: Record<string, ModelInfo> = {
     maxOutputTokens: 128_000,
     efforts: CLAUDE_EFFORTS,
     serverSideFallback: true,
+    thinkingUpdates: true,
   },
   "claude-opus-5-5": {
     provider: "anthropic",
@@ -213,6 +225,7 @@ export const MODEL_CATALOG: Record<string, ModelInfo> = {
     maxOutputTokens: 128_000,
     efforts: CLAUDE_EFFORTS,
     serverSideFallback: true,
+    thinkingUpdates: true,
     tier: "large",
   },
   "claude-sonnet-5-5": {
@@ -223,6 +236,7 @@ export const MODEL_CATALOG: Record<string, ModelInfo> = {
     maxOutputTokens: 128_000,
     efforts: CLAUDE_EFFORTS,
     serverSideFallback: true,
+    thinkingUpdates: true,
     recommended: true,
     tier: "medium",
   },
@@ -415,6 +429,10 @@ export const MODEL_CATALOG: Record<string, ModelInfo> = {
     leastThinking: "off",
     recommended: true,
     tier: "small",
+    // DeepSeek's Anthropic API guide (api-docs.deepseek.com/guides/anthropic_api, read 2026-11-25): "deepseek-flash
+    // supports images in user messages and tool_result content" (base64 PNG, JPEG, GIF, WebP); a document goes only by
+    // `file` or `text` source, so a PDF stays out. `deepseek-v4-pro` swaps a picture for "[Unsupported Image]".
+    images: true,
   },
   "deepseek-v4-pro": {
     provider: "deepseek",
@@ -722,7 +740,7 @@ export function setListedModels(models: Record<string, ModelInfo>) {
  * A workspace's own endpoint's models (ADR 0146), by organization, under ids `custom:<credentialId>:<model>`: the
  * credential in the id keeps two workspaces' models (and the catalog's ids) apart. Never in `listedModels`.
  */
-let custom = new Map<string, Map<string, ModelInfo>>();
+const custom = new Map<string, Map<string, ModelInfo>>();
 /**
  * Every endpoint model this process has loaded, kept after it is removed or its key revoked: a call already running
  * still settles its cost by it. Only `modelInfo` reads it; who may call a model is `customModelOf`.
@@ -758,12 +776,18 @@ export function endpointModelId(
   return best ? customModelId(credentialId, best.id) : null;
 }
 
-/** Replaces an organization's endpoint models (full ids); an empty record forgets them. */
+/**
+ * Replaces an organization's endpoint models (full ids); an empty record forgets them. Called before every model call,
+ * so in place, and nothing at all for the many organizations with no endpoint.
+ */
 export function setCustomModels(orgId: string, models: Record<string, ModelInfo>) {
-  custom = new Map(custom);
-  for (const [id, info] of Object.entries(models)) lastKnown.set(id, info);
-  if (Object.keys(models).length === 0) custom.delete(orgId);
-  else custom.set(orgId, new Map(Object.entries(models)));
+  const entries = Object.entries(models);
+  if (entries.length === 0) {
+    custom.delete(orgId);
+    return;
+  }
+  for (const [id, info] of entries) lastKnown.set(id, info);
+  custom.set(orgId, new Map(entries));
 }
 
 /** An organization's endpoint models, in the order they were set. */

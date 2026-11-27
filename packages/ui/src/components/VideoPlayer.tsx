@@ -1,4 +1,5 @@
 import {
+  type CSSProperties,
   type KeyboardEvent,
   type PointerEvent,
   type ReactNode,
@@ -10,7 +11,7 @@ import {
 } from "react";
 import { cx } from "../cx";
 import { Icon } from "../icons/Icon";
-import { claimPlayback, type PlaybackState, releasePlayback, seatTile, takeOver } from "./media-playback";
+import { claimPlayback, type PlaybackState, playbackOf, releasePlayback, seatTile, takeOver } from "./media-playback";
 import { PixelSpinner } from "./PixelSpinner";
 
 export interface VideoPlayerLabels {
@@ -38,6 +39,11 @@ export interface VideoPlayerProps {
   name: string;
   /** `tile` in the chat (one box, the video whole inside it; a corner button opens the viewer), `viewer` fills its box. */
   variant?: "tile" | "viewer";
+  /**
+   * A tile's width over its height, when the server read its size: the box has the video's shape from the first
+   * paint (a phone's upright video stands upright). Without it, the box is 16:9 and the video sits whole inside.
+   */
+  ratio?: number;
   labels: VideoPlayerLabels;
   /** The tile's corner button. */
   onOpen?: () => void;
@@ -52,6 +58,11 @@ export interface VideoPlayerProps {
   onTime?: (seconds: number, duration: number) => void;
   /** The video element, to seek or pause from outside and take a frame of it. */
   onVideo?: (video: HTMLVideoElement | null) => void;
+  /**
+   * `anonymous`: loaded under CORS, so a frame drawn into a canvas can be read back (`onVideo`'s frames). The server
+   * then sends the bytes itself, where an element without it may be sent on to the file store, another origin.
+   */
+  crossOrigin?: "anonymous";
   /** Over the timeline (a file's comments as marks, ADR 0208): placed by the caller, in fractions of its length. */
   marks?: ReactNode;
   /**
@@ -66,6 +77,10 @@ const SPEEDS = [1, 1.5, 2];
 /** The controls hide this long after the pointer stops, while it plays. */
 const IDLE_MS = 2000;
 const STEP_S = 5;
+/** `MediaError.MEDIA_ERR_NETWORK`: the bytes stopped coming after the video had loaded. */
+const MEDIA_ERR_NETWORK = 2;
+/** Failing again sooner than this after asking again is no passing drop: the caller shows the file instead. */
+const RELOAD_GAP_MS = 60_000;
 const clock = (seconds: number) => {
   const s = Math.max(0, Math.floor(Number.isFinite(seconds) ? seconds : 0));
   const h = Math.floor(s / 3600);
@@ -161,7 +176,7 @@ function Rail({
       <span className="ac-video__line">
         {buffered !== undefined && <span className="ac-video__buffered" style={{ width: `${buffered * 100}%` }} />}
         <span className="ac-video__filled" style={{ width: `${value * 100}%` }} />
-        <span className="ac-video__knob" style={{ left: `${value * 100}%` }} />
+        <span className="ac-video__knob" style={{ "--at": value } as CSSProperties} />
       </span>
       {tip && shown !== null && (
         <span className="ac-video__tip" style={{ left: `${shown * 100}%` }} aria-hidden="true">
@@ -182,6 +197,7 @@ export function VideoPlayer({
   src,
   name,
   variant = "tile",
+  ratio,
   labels,
   onOpen,
   actions,
@@ -192,9 +208,11 @@ export function VideoPlayer({
   onVideo,
   marks,
   handoff,
+  crossOrigin,
 }: VideoPlayerProps) {
   const root = useRef<HTMLDivElement>(null);
   const video = useRef<HTMLVideoElement>(null);
+  const reloadedAt = useRef(Number.NEGATIVE_INFINITY);
   const frame = useRef(0);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const lastTouch = useRef(false);
@@ -366,6 +384,8 @@ export function VideoPlayer({
       data-phase={phase}
       data-hide={(hidden && phase === "playing") || undefined}
       data-full={full || undefined}
+      data-ratio={tile && ratio ? true : undefined}
+      style={tile && ratio ? ({ "--ratio": String(ratio) } as CSSProperties) : undefined}
       tabIndex={-1}
       onKeyDown={keys}
       onClick={(e) => {
@@ -385,6 +405,7 @@ export function VideoPlayer({
         className="ac-video__media"
         // `#t`: the first frame shows before it plays (Safari shows nothing otherwise).
         src={`${src}${src.includes("#") ? "" : "#t=0.001"}`}
+        crossOrigin={crossOrigin}
         preload="metadata"
         playsInline
         onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
@@ -423,7 +444,19 @@ export function VideoPlayer({
           setMuted(e.currentTarget.muted);
           setVolume(e.currentTarget.volume);
         }}
-        onError={() => onFailed?.()}
+        onError={(e) => {
+          const v = e.currentTarget;
+          // The bytes stopped coming (a network that dropped, a link that expired while the page stayed open for
+          // hours): it asks the address again and goes on from where it was, at most once a minute.
+          if (v.error?.code !== MEDIA_ERR_NETWORK || Date.now() - reloadedAt.current < RELOAD_GAP_MS) {
+            onFailed?.();
+            return;
+          }
+          reloadedAt.current = Date.now();
+          const state = playbackOf(v);
+          v.load();
+          if (state.playing || state.time > 0) resume(state);
+        }}
       />
 
       {phase === "idle" && (

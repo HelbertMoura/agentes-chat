@@ -5,6 +5,7 @@ import { runBrainOf } from "./brains/select";
 import { canceledBy, mayStopRun, runRequester } from "./cancel";
 import { catchUpText } from "./catch-up";
 import { ANSWER_ANYWAY_MS, type ClosedNote } from "./catch-up-triage";
+import { settleHandedWorkTrace } from "./consultations";
 import { ConflictError, ForbiddenError, NotFoundError } from "./errors";
 import { publishChannelEvent } from "./events";
 import { continuedTranscript, type Transcript } from "./executor";
@@ -15,6 +16,7 @@ import { enqueue } from "./outbox";
 import { personCanPost } from "./routine-state";
 import { ACTIVE_RUN_STATUSES, takeInbox } from "./run-inbox";
 import { placeAfter } from "./run-scope";
+import { runState } from "./run-state";
 import { continuableEnd, replyThreadOf } from "./runs";
 import { announceWork, reopenWork, updatesThreadOf } from "./works";
 
@@ -183,7 +185,7 @@ export async function continueRun(
       await tx
         .update(agentRuns)
         .set({
-          transcript: sql`jsonb_set(${agentRuns.transcript}, '{catchUpTriage}', (${agentRuns.transcript}->'catchUpTriage')
+          transcript: sql`jsonb_set(${agentRuns.transcript}, '{catchUpTriage}', (${runState}->'catchUpTriage')
             || jsonb_build_object('overruledBy', ${userId}::text, 'overruledAt', ${new Date().toISOString()}::text))`,
         })
         .where(eq(agentRuns.id, stopped.id));
@@ -206,6 +208,7 @@ export async function continueRun(
   if (!created) throw notContinuable();
   if (work) {
     if (work.issueId) await setWorkIssueState(deps, work, {}).catch(() => null);
+    await settleHandedWorkTrace(deps, work).catch(() => {});
     await announceWork(deps.pubsub, db, orgId, work.id).catch(() => {});
   }
 

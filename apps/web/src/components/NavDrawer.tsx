@@ -1,5 +1,5 @@
 import { isPersonal } from "@agenteschat/client/lib/workspace-mode";
-import { Button, OPEN_LAYER } from "@agenteschat/ui";
+import { Button, CountBadge, OPEN_LAYER } from "@agenteschat/ui";
 import { useRouterState } from "@tanstack/react-router";
 import {
   createContext,
@@ -14,6 +14,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import { useTranslation } from "react-i18next";
+import { droppedCount, useArrivals } from "./lodi-cursor/arrivals";
 import { useOrg } from "./org-context";
 import { MyFace, OrgMark } from "./ProfilePhoto";
 import { openPalette } from "./palette";
@@ -190,19 +191,33 @@ export function NavDrawerProvider({ children }: { children: ReactNode }) {
 export function NavToggle({ className, bare = false }: { className?: string; bare?: boolean }) {
   const { t } = useTranslation();
   const drawer = useNavDrawer();
+  // What Lodi's cursor dropped into the closed menu (a new team at phone width), counted until it opens.
+  const dropped = droppedCount(useArrivals().inDrawer);
   if (!drawer?.compact) return null;
+  const menu = (
+    <Button
+      variant="ghost"
+      iconOnly
+      icon="menu"
+      className={className ? `nav-toggle ${className}` : "nav-toggle"}
+      aria-label={t("shell.openNav")}
+      aria-controls={NAV_ID}
+      aria-expanded={drawer.open}
+      onClick={drawer.toggle}
+    />
+  );
+  const button =
+    dropped === 0 ? (
+      menu
+    ) : (
+      <span className="nav-toggle-wrap">
+        {menu}
+        <CountBadge aria-label={t("lodiCursor.inMenu", { count: dropped })}>{dropped}</CountBadge>
+      </span>
+    );
   return (
     <>
-      <Button
-        variant="ghost"
-        iconOnly
-        icon="menu"
-        className={className ? `nav-toggle ${className}` : "nav-toggle"}
-        aria-label={t("shell.openNav")}
-        aria-controls={NAV_ID}
-        aria-expanded={drawer.open}
-        onClick={drawer.toggle}
-      />
+      {button}
       {!bare && <QuotaRing side="bottom" />}
     </>
   );

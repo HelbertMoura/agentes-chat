@@ -4,7 +4,8 @@
 - Date: 2026-11-20
 - Extends: 0032 ("One reply placement": `replyThreadOf`), 0112 (the floor and one active run per conversation),
   0190 (a run asked in the main timeline that answers under its trigger)
-- Code: db `channels.reply_in_threads`, `agent_runs.reply_in_thread` (migration 0314); engine `runs.ts`
+- Code: db `channels.reply_in_threads`, `agent_runs.reply_in_thread` (migration 0314; on by default since 0325);
+  engine `runs.ts`
   (`replyThreadOf`), `run-scope.ts` (`inChannelRun`, `joinsRun`, `askedBy`, `placeAfter`, `repliesInThreadSql`),
   `messages.ts` (the `floor_runs`, `active`, `runs` and `opened` parts of `insertMessageWithRuns`,
   `postPersonMessage`'s thinking events), `dispatch.ts` (`startOrJoinRun`'s `after` and `several`, `createAgentRuns`),
@@ -26,9 +27,12 @@ in the thread under the message that made it, as bots do in other chat apps (iss
 
 ## Decision
 
-1. **A channel setting.** `channels.reply_in_threads`, off by default, only for regular channels (`kind = 'channel'`;
+1. **A channel setting.** `channels.reply_in_threads`, on by default, only for regular channels (`kind = 'channel'`;
    DMs, task and file conversations keep today's behavior, and `updateChannel` refuses it there with
-   `channel.reply_in_threads`). Whoever may change the channel's topic may change it (its creator or an admin). The
+   `channel.reply_in_threads`; the column's value on those kinds is never read). Migration 0325 turned it on for every
+   existing channel too, since the setting had no way to be chosen before then except in the hours between the two
+   deploys; a channel that wants answers in its main timeline turns it off. Test databases keep the old default
+   (`packages/db/test/pglite.ts`), so the tests that pin main-timeline answers stay as they are. Whoever may change the channel's topic may change it (its creator or an admin). The
    apps read it on the channel list and change it with the channel's `PATCH`.
 2. **A copy on the run, and a place that goes on with it.** A run created on a message in such a channel's main
    timeline gets `agent_runs.reply_in_thread = true` (`repliesInThreadSql`, read once in the statement that creates
@@ -113,3 +117,18 @@ in the thread under the message that made it, as bots do in other chat apps (iss
   asker; the thread's root names the asker for every run that answers under it.
 - **A message calling several agents joins any of them already at work, the rest answering under it.** One message
   then opened two threads, its answer split between the earlier request's thread and its own.
+
+## Addendum (2026-11-25): who a channel starts with sets its default
+
+A thread keeps the main timeline clear for the other people reading it. A channel made with no one but its creator,
+or any channel of a personal workspace (ADR 0159), has nobody else, and every answer one click away in a thread only
+got in the way. So `createChannel` writes `reply_in_threads = false` when no other person is among the members it is
+made with (`members`, added right after the creator with `addChannelMember`'s checks; the web's new-channel dialog and
+the right hand's `create_channel` pass who they pick) or when the workspace is personal; a personal workspace's
+`#general` starts off too (`createOrganization`). Otherwise the column's default stays. It is only the starting
+value: people joining or leaving later change nothing, and the switch, or an agent, changes it like any other choice.
+
+Agents change it with the workspace action `update_channel` (`reply_in_threads`, applied at once with Undo, under the
+same `manage_channels` as the rest of the action); its card says "Agents reply in threads" or "Agents reply in the
+channel".
+

@@ -1,6 +1,8 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { and, type Database, type Executor, eq, gt, gte, inArray, like, lte, ne, or, schema } from "@agenteschat/db";
+import { enqueueAccountContact } from "./account-contacts";
 import { revokeUserApps } from "./apps/revoke";
+import { caches } from "./cache";
 import { sha256 } from "./crypto";
 import { emailLocale, queueEmail } from "./email";
 import { ConflictError, NotFoundError } from "./errors";
@@ -148,6 +150,7 @@ export async function finishEmailChange(
     const from = asked?.from;
     if (!row || !from || from === lower(user.email)) return false;
     await tx.delete(verifications).where(eq(verifications.identifier, askedId(user.id)));
+    await enqueueAccountContact(tx, user.id, from);
     if (asked?.proven !== true) return false;
     const token = randomBytes(32).toString("base64url");
     const until = new Date(now.getTime() + EMAIL_UNDO_DAYS * DAY_MS);
@@ -179,7 +182,7 @@ export async function finishEmailChange(
  * address: nothing changes, and the link still works).
  */
 export async function undoEmailChange(db: Database, token: string, now = new Date()) {
-  return db.transaction(async (tx) => {
+  const undone = await db.transaction(async (tx) => {
     // The delete is the single use: a second one at the same moment waits for this one and finds nothing.
     const [row] = await tx
       .delete(verifications)
@@ -201,6 +204,7 @@ export async function undoEmailChange(db: Database, token: string, now = new Dat
       .where(eq(users.id, undo.userId))
       .returning({ id: users.id });
     if (back.length === 0) throw new NotFoundError("This link expired or was already used", "email.undo_gone");
+    await enqueueAccountContact(tx, undo.userId, undo.to);
     // ponytail: every live undo of the server read to find this account's; a userId in the identifier if they pile up.
     const newer = (await tx.select().from(verifications).where(like(verifications.identifier, "email-undo:%"))).filter(
       (r) => r.createdAt >= row.createdAt && parsed<Undo>(r.value, ["userId", "from", "to"])?.userId === undo.userId,
@@ -240,6 +244,9 @@ export async function undoEmailChange(db: Database, token: string, now = new Dat
     await putRow(tx, undoneId(undo.userId), {}, new Date(markedAt.getTime() + UNDONE_MS), markedAt);
     return { email: undo.from };
   });
+  // Its sessions ended above: no process serves a kept one (`caches.sessions`).
+  caches.sessions.clear();
+  return undone;
 }
 
 /** The account's password goes. Its row stays, so the sign-in page offers "Forgot my password", whose reset fills it. */

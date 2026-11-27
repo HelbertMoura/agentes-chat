@@ -389,7 +389,8 @@ COMPOSE_PROFILES=https
 and run `docker compose up -d`. The `caddy` service gets a Let's Encrypt certificate for `DOMAIN` and
 renews it, redirects http to https, and passes everything to the app, WebSockets included. Its
 certificates are kept in the `caddy-data` volume. Caddy sends the client's address as the only value
-of `X-Forwarded-For`, which the app trusts as is, so leave `TRUSTED_PROXIES` empty. While the app
+of `X-Forwarded-For`, which the app trusts since Caddy reaches it over a private network, so leave
+`TRUSTED_PROXIES` empty. While the app
 restarts or is down, Caddy answers with a page that says so and opens the app again once it's back.
 
 </details>
@@ -475,11 +476,16 @@ Then add to the `server` block:
 Sign-in rate limits count per client address, read from `X-Forwarded-For`; wrong passwords also count
 per account (10 in 15 minutes from one address, 50 from all), each count kept in one server process's
 memory, so a restart starts them again and with several processes behind a load balancer each allows
-that many. A single value, as above, is trusted as is, and the client can't
-forge it (nginx replaces whatever the client sent). With another proxy or a CDN in front of nginx,
-send the chain instead (`$proxy_add_x_forwarded_for`) and list those proxies' addresses or ranges in
-`TRUSTED_PROXIES`, comma-separated: the chain is read from the right past every trusted hop, and the
-first other address is the client.
+that many. The app reads `X-Forwarded-For` only from a connection on loopback or a private network
+(your proxy) or from an address in `TRUSTED_PROXIES`; from any other address the header is ignored and
+the connection's own address counts, so a client that reaches the app directly can't pick its own. A
+single value, as above, is trusted as is, and the client can't forge it (nginx replaces whatever the
+client sent). With another proxy or a CDN in front of nginx, send the chain instead
+(`$proxy_add_x_forwarded_for`) and list those proxies' addresses or ranges in `TRUSTED_PROXIES`,
+comma-separated: the chain is read from the right past every trusted hop, and the first other address
+is the client. The app never reads `CF-Connecting-IP`: with Cloudflare in front, list
+[Cloudflare's ranges](https://www.cloudflare.com/ips/) in `TRUSTED_PROXIES`, or have your proxy
+write `CF-Connecting-IP` into `X-Forwarded-For` for connections from those ranges only.
 
 </details>
 
@@ -521,9 +527,9 @@ The app is published on `127.0.0.1:3000` only; `HOST_PORT` changes the port. To 
 machines, use Tailscale or put it behind HTTPS, or try it through an SSH tunnel first:
 `ssh -L 3000:localhost:3000 your-server`. Don't serve it over plain http to other machines
 (`BIND_ADDRESS=0.0.0.0`), not even on a LAN. Browsers treat http as a secure context only on
-localhost, and parts of the web app need one. With no proxy in front, nothing sets
-`X-Forwarded-For`, so the sign-in rate limits can't tell clients apart. And Docker opens a published
-port past the host's firewall.
+localhost, and parts of the web app need one. With no proxy in front, the sign-in rate limits count
+each connection's address, but a machine on a private network can write its own `X-Forwarded-For`
+(the app takes such a machine for a proxy). And Docker opens a published port past the host's firewall.
 
 </details>
 
@@ -803,7 +809,7 @@ ones a self-hosted instance usually touches:
 | `POSTGRES_PASSWORD` | required | Database password. Read by the compose file only. |
 | `AGENTES_IMAGE` | `ghcr.io/agentes-chat/agentes:latest` | The image to run. A version tag or a digest holds a version. |
 | `BIND_ADDRESS`, `HOST_PORT` | `127.0.0.1`, `3000` | Where the compose file publishes the app. |
-| `AGENTES_MEMORY` | `8g` | The most memory the app's container may take, swap included. Over it, the kernel stops the app alone and Docker restarts it, instead of the machine swapping until something else is killed. On a machine with less than 10 GiB of memory, the setup writes three quarters of it here instead: a limit above the machine's memory never fires. The speech server's is `SPEECH_MEMORY` (Voice messages). |
+| `AGENTES_MEMORY` | `8g` | The most memory the app's container may take, swap included. Over it, the kernel stops the app alone and Docker restarts it, instead of the machine swapping until something else is killed. Before that the app brakes on its own: past 70% of it its job slots stop growing, past 85% it sheds long jobs. On a machine with less than 10 GiB of memory, the setup writes three quarters of it here instead: a limit above the machine's memory never fires. With worker processes taking the runs, `4g` (More at once: worker processes). The speech server's is `SPEECH_MEMORY` (Voice messages). |
 | `COMPOSE_PROFILES` | | How people reach it: `tailscale` (the setup's default), `https` (Caddy for `DOMAIN`), or neither (this machine only). Comma-separated, with other optional services: `backup` (Backups and restore), `speech` (Voice messages), `embeddings` (Search across languages). |
 | `DOMAIN` | | The public domain Caddy gets a certificate for. |
 | `TS_AUTHKEY` | | The auth key or OAuth client secret the server joins your tailnet with, read only until it has joined. The setup empties it then. |
@@ -812,7 +818,7 @@ ones a self-hosted instance usually touches:
 | `TAILSCALE_FUNNEL` | `false` | `true` opens the instance to the internet at the same address (What needs a public URL). Only `true` or `false`. |
 | `ALLOW_SIGNUP` | `false` | `true` lets anyone create an account. |
 | `OWNER_CLAIM_SHA256` | | While no account exists, only the owner link made with it creates the first one (Sign-up, below). `OWNER_KEY_SHA256` is the desktop app's. |
-| `TRUSTED_PROXIES` | | Proxies in front of your proxy (see nginx above). |
+| `TRUSTED_PROXIES` | | Public proxies in front of your proxy, or of the app, such as Cloudflare's ranges (see nginx above). `X-Forwarded-For` counts only from these, loopback and private networks. |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | | "Sign in with Google", redirect URI `{PUBLIC_URL}/api/auth/callback/google`. `GITHUB_*` and `APPLE_*` work the same way. |
 | `APPLE_TEAM_ID` + `APPLE_APP_BUNDLE_ID`, `ANDROID_APP_PACKAGE` + `ANDROID_APP_CERT_SHA256` | | For a phone app you build yourself with `EXPO_PUBLIC_API_URL` set to this server: links to its pages (a conversation, a message, a thread, an agent, a task, a routine, an approval, the inbox, settings, invitations, password resets) open in the app instead of the browser. The server then publishes `/.well-known/apple-app-site-association` (also at `/apple-app-site-association`) and `/.well-known/assetlinks.json`; your proxy must pass them through as they are, with no redirect. Several bundle ids or packages are comma-separated. The fingerprints are the SHA-256 of Google Play's app signing key and of your upload key. Without them, links open the website, as before. |
 | `TERMS_URL`, `PRIVACY_URL` | | Your terms and privacy policy, linked on the sign-in and sign-up screens when both are set. `/terms` and `/privacy` on this server go to them, or say it has none. |
@@ -822,7 +828,7 @@ ones a self-hosted instance usually touches:
 | `EMAIL_FROM`, `EMAIL_REPLY_TO` | `agentes.chat <ping@HOST>`, HOST being the host of `PUBLIC_URL` | Sender of the app's emails. Its domain must be verified with your email provider. |
 | `EMAIL_ART` | `auto` | Where emails get their pictures (the logo, agents' faces): from this server's `/email/` when its address is public, else attached to each message. `attach` always attaches them, for a public address people outside still can't open (an access proxy, a VPN, an IP allowlist). |
 | `FILES_DIR` | `/data/files`, set by the compose file | Folder for uploaded files, on the `files` volume. |
-| `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | | Files in an S3-compatible bucket instead, when all four are set. `S3_REGION` (default `auto`); `S3_PATH_STYLE=true` for MinIO and Garage. |
+| `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | | Files in an S3-compatible bucket instead, when all four are set. `S3_REGION` (default `auto`); `S3_PATH_STYLE=true` for MinIO and Garage. Videos and downloads then come straight from the bucket by short-lived signed links (an `https` endpoint only; an `http` one always goes through the server): set `S3_PRESIGNED_URLS=false` when browsers can't reach `S3_ENDPOINT` (a bucket on a private network), and the server sends every file itself. |
 | `RUN_MIGRATIONS_ON_BOOT` | `true` | `false` only if you run `docker compose run --rm agentes migrate` yourself before each start. |
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn` or `error`. |
 | `LOG_FORMAT` | `json` | `gcp` for Google Cloud Logging (`severity` and `message`). |
@@ -903,7 +909,9 @@ apps, removes the ways to sign in added since the change and clears the password
 one). Nobody can sign up with that address meanwhile. Without email the address changes at once, with no code or link,
 except one a sign-in provider confirmed, which needs email to change.
 
-**Voice messages.** People hold the microphone and send audio; agents read its words, and the audio's words stay hidden until someone opens them on that message. The microphone shows only with a speech engine. As the server's owner, pick a provider and paste its key in **Settings**, or set it in the environment: `ASSEMBLYAI_API_KEY`, `ELEVENLABS_API_KEY`, `SONIOX_API_KEY`, `GROQ_API_KEY`, `OPENAI_SPEECH_API_KEY` or `DEEPINFRA_API_KEY`, with `SPEECH_ENGINES` for the order they are tried. With any of these, the audio goes to that provider to become text. DeepInfra is the cheapest of them, with the same Whisper as Groq. `LOCAL_SPEECH_URL` points at a server of your own that speaks the OpenAI format (Speaches, a local Whisper or Parakeet), and the audio stays with you: `LOCAL_SPEECH_API_KEY` if it asks for a key, and `LOCAL_SPEECH_WARM=on` if it loads its model on demand and can start when someone presses the microphone (`POST <LOCAL_SPEECH_URL>/warm`). Every request to it names the workspace in `X-Agentes-Org`, and one that takes more than half a minute plus twice the recording goes to the next engine. A self-hosted server has no limit on minutes. Engines hear the language in the audio: the app's language goes only to Soniox, as a hint.
+**Voice messages.** People hold the microphone and send audio; agents read its words, and the audio's words stay hidden until someone opens them on that message. The microphone shows with no engine too: a recording then goes as audio people play, and agents are told they can't hear it. As the server's owner, download the speech model to this computer in **Settings › Voice** (below), or pick a provider and paste its key there, or set it in the environment: `ASSEMBLYAI_API_KEY`, `ELEVENLABS_API_KEY`, `SONIOX_API_KEY`, `GROQ_API_KEY`, `OPENAI_SPEECH_API_KEY` or `DEEPINFRA_API_KEY`, with `SPEECH_ENGINES` for the order they are tried. With any of these, the audio goes to that provider to become text. DeepInfra is the cheapest of them, with the same Whisper as Groq. `LOCAL_SPEECH_URL` points at a server of your own that speaks the OpenAI format (Speaches, a local Whisper or Parakeet), and the audio stays with you: `LOCAL_SPEECH_API_KEY` if it asks for a key, and `LOCAL_SPEECH_WARM=on` if it loads its model on demand and can start when someone presses the microphone (`POST <LOCAL_SPEECH_URL>/warm`). Every request to it names the workspace in `X-Agentes-Org`, and one that takes more than half a minute plus twice the recording goes to the next engine. A self-hosted server has no limit on minutes. Engines hear the language in the audio: the app's language goes only to Soniox, as a hint.
+
+**Voice messages on this computer, from Settings.** On a computer with 8 GB of memory and 2 GB free (a container's limit counts), **Settings › Voice › Download and turn on** fetches `agentes-speech` (`tools/speech-helper`, Parakeet and Whisper tiny on sherpa-onnx, about 740 MB) from this project's GitHub release, checks every file's sha256, and runs it on 127.0.0.1 as the `local` engine: no Docker service and no Python. It keeps its files beside `FILES_DIR` (`~/.agentes/speech`, or the `speech-local` volume at `/data/speech`), resumes a stopped download, frees its memory after 10 idle minutes and starts again once if it stops. Its models' licenses are in `tools/speech-helper/NOTICE` (Parakeet: CC BY 4.0).
 
 **Voice messages on this machine.** The `speech` profile runs NVIDIA's Parakeet on this server, as agentes.chat's Cloud does: add `speech` to `COMPOSE_PROFILES` and set `LOCAL_SPEECH_URL=http://speech:8000/v1`, then `docker compose up -d`. The first pull is about 1 GB, its models included; once it has started, it needs no internet, and its network reaches only the app. Parakeet knows 25 European languages and picks the one spoken, once a language guess gives them together at least `SPEECH_LANGUAGE_MIN` (0.7); another language, an unsure guess, a recording it hears no words in, or one that arrives when every worker is taken, goes to the next engine at once, so give it one: `SPEECH_ENGINES=local,deepinfra` with `DEEPINFRA_API_KEY`, for example. Without one, a recording in another language goes out as audio with no words, and a busy server's wait for the job's retries; `SPEECH_LANGUAGE_MIN=0` then gives Parakeet every recording, unsure ones included. By default it takes up to 4 CPUs and 4 GB of memory (`SPEECH_CPUS`, `SPEECH_MEMORY`; Docker refuses more CPUs than the machine has, so set `SPEECH_CPUS=2` on a 2-CPU server), runs 2 recordings at once on 2 threads each (`SPEECH_WORKERS`, `SPEECH_THREADS`) and lets 4 more wait up to 3 seconds each (`SPEECH_QUEUE`, `SPEECH_WAIT_SECONDS`); a short note takes a few seconds. `LOCAL_SPEECH_API_KEY`, when set, is the key both sides use. The service runs `ghcr.io/agentes-chat/speech`, published with each release under the app's tags, and `AGENTES_SPEECH_IMAGE` holds a version; from a checkout, `docker build -t agentes-speech:local deploy/speech` builds it (downloading the models from Hugging Face), with `AGENTES_SPEECH_IMAGE=agentes-speech:local`.
 
@@ -1126,8 +1134,8 @@ for another day, `--org <workspace id>` for one workspace).
 <summary><b>Optional services and what they receive</b></summary>
 
 **The usage report.** The instance sends agentes.chat anonymous usage statistics: counts such as people,
-agents, machine sizes, AI tokens used and how much data the agents' browsers send and receive, never
-messages, files, names or sites. The first goes about an hour after the server first starts, then one a
+agents, machine sizes, AI tokens used, how much data the agents' browsers send and receive, and how fast
+the apps open and run, never messages, files, names or sites. The first goes about an hour after the server first starts, then one a
 day at that time, restarts or not (one that came due while the server was off goes about 10 minutes
 after it starts again), as JSON in a POST to `TELEMETRY_URL` (`https://telemetry.agentes.chat/v1/report`).
 It passes through Cloudflare, which sits in front of agentes.chat and decrypts it on the way.
@@ -1139,7 +1147,7 @@ report replaces it. These are all its fields:
 | `report` | The report's format: `1`. |
 | `instance` | A random id made at the server's first start. Nothing else in the report identifies the server. |
 | `version`, `edition`, `install` | The server's version, as `/api/health` gives it (`0.0.0` while releases aren't numbered yet); `selfhost`; `docker`, `native` or `desktop`. |
-| `os`, `arch`, `uptimeHours` | The server's system (`linux`, `darwin`), processor (`x64`, `arm64`) and hours since it started. |
+| `os`, `osVersion`, `arch`, `uptimeHours` | The server's system (`linux`, `darwin`), its version as numbers alone (a Linux or Darwin kernel's, `6.8.0`, a Windows build, `10.0.19045`; `other` when there are none), processor (`x64`, `arm64`) and hours since it started. |
 | `host.size` | The machine the server runs on: its logical CPUs (`cpus`) and memory (`memoryGb`, to 0.5 GB), the disk holding the server's files (`diskGb`, to 1 GB: `FILES_DIR`, the data volume with Docker, else its working folder), and `limit` (`cpus`, `memoryGb`) when a container lets the server use less of the machine. |
 | `host.container` | Whether the server runs in a container. |
 | `host.load` | How busy that whole machine got over the last day, sampled every 5 minutes: the average and highest load per CPU (`loadAvg`, `loadPeak`: the 5-minute load average divided by the machine's CPUs, 1 is every CPU busy), the average and highest share of its memory in use (`memoryAvg`, `memoryPeak`, from 0 to 1), and the hours the samples cover (`hours`); `null` with no sample from the last day. |
@@ -1150,6 +1158,7 @@ report replaces it. These are all its fields:
 | `lastDay.runs`, `lastDay.toolCalls` | Agent runs started, and tool calls they made, in the last 24 hours. |
 | `lastDay.desktopMinutes`, `lastDay.terminalMinutes` | Minutes people watched or controlled agents' desktops, and had terminals open, in the last 24 hours. |
 | `lastDay.models` | For each AI provider and model used in the last 24 hours (the 50 most used): `provider`, `model`, `calls`, `inputTokens` (cached ones included) and `outputTokens`. A model that isn't in agentes.chat's model list (a name someone typed, a deployment, a fine-tune) goes as `other`. |
+| `lastDay.clientVitals` | How fast the apps ran since the last report, for each platform that said: the phone apps (`ios`, `android`), browsers (`web`) and the desktop app on each system (`macos`, `windows`, `linux`). How many speed reports came (`reports`), and for each measure how many values (`n`) with their median (`p50`) and 95th percentile (`p95`): the opening, to the first screen (`coldStartMs`: the desktop app from its start) and to the first rows (`firstRowsMs`), how late the app's JavaScript ran (`jsLagP95Ms`, `jsLagMaxMs`), its JavaScript heap (`heapBytes`), the memory behind the desktop app's window (`webviewBytes`), the reads after each return to the app (`getsPerReturn`) and the realtime connection's reconnects (`reconnects`). The apps send these numbers to their own server, about once at each start and each return to them, with nobody's id; the server keeps a sample of a few hundred of each until the report goes (none with `TELEMETRY=off`). |
 
 It never holds messages, files, names, emails, hostnames, paths, prompts, IP addresses, the sites agents'
 browsers visit, or ids of workspaces, people or computers (the request itself comes from your server's
@@ -1175,10 +1184,10 @@ report. A report holds:
 | --- | --- |
 | `format`, `source`, `place` | `1`; `server` or `desktop`; where it was sent from (`browser`, `computer`, `run`, `desktop_server`, `settings`). |
 | `instance` | The usage report's random id (`null` from the desktop app). |
-| `code`, `step`, `happenedAt`, `timings` | What failed and at which step, as codes (`browser.no_answer`, a run's error code), when, and counts or durations the screen measured (`attempts`). |
-| `versions` | The server's, the runner's (and its protocol), the desktop app's and the phone app's versions, the server's system and processor, and the browser's family and major version (`chrome 142`), never the whole User-Agent. |
+| `code`, `step`, `happenedAt`, `timings` | What failed and at which step, as codes (`browser.no_answer`, a run's error code), when, and counts or durations the screen measured (`attempts`; from the desktop app, `opening`: how long this opening took, from the app's start to the site's first screen). |
+| `versions` | The server's, the runner's (and its protocol), the desktop app's and the phone app's versions, the server's system and processor, and the browser's family and major version (`chrome 142`), never the whole User-Agent. From the desktop app, its computer's system version too, as numbers alone (`osVersion`: macOS's, Windows' build, Linux's kernel). |
 | `install`, `locale` | `docker`, `native` or `desktop`; the app's language. |
-| `facts` | Which settings differ from their defaults, as `config.<NAME>: "set"`, never their values (`TELEMETRY`, `INSTALL_MODE`, `NODE_ENV`, `LOG_LEVEL` and `MACHINE_PROVISIONING` by value, and `config.publicUrl` as `https`, `http` or `loopback`, never the address); how many workspaces, agents and computers; hours since the server started; migrations applied; for the computer involved, its system, processor, runner version, connection, last sign of life, pause, its coding CLIs' versions and which of its tools are on; for a run, its status, brain, turns and hop. |
+| `facts` | Which settings differ from their defaults, as `config.<NAME>: "set"`, never their values (`TELEMETRY`, `INSTALL_MODE`, `NODE_ENV`, `LOG_LEVEL` and `MACHINE_PROVISIONING` by value, and `config.publicUrl` as `https`, `http` or `loopback`, never the address); how many workspaces, agents and computers; hours since the server started; migrations applied; for the computer involved, its system, processor, runner version, connection, last sign of life, pause, its coding CLIs' versions and which of its tools are on; for a run, its status, brain, turns and hop, and its error's words, scrubbed as log lines are (the computer involved is the one its turns ran on); from the desktop app, its computer's CPUs, memory and the memory behind its window (`desktop.cpus`, `desktop.memoryGb`, `desktop.webviewMb`). |
 | `logs` | The last lines of the computer's `runner.log` (up to 300, from its app when it answers within 5 seconds), and the server's own last log lines from the last 30 minutes (only when the installation's owner sends it); the desktop app's server log and setup steps. Every line is scrubbed first: emails, IP addresses, keys, tokens and cookie headers masked, links cut to their origin (with any user and password in them), home folders as `~`, and the names of the server, its workspaces, computers, agents and the sender replaced by `[server]`, `[workspace]`, `[computer]`, `[agent]`, `[person]`. Lines over 1,000 characters are cut. |
 | `note`, `replyTo` | What the person wrote (credentials masked) and an email for a reply, both optional and empty unless filled in. |
 
@@ -1273,11 +1282,11 @@ without an OAuth app) or the GitHub App.
 Connected with a person's GitHub account, agents open pull requests and comment as that person. With the
 GitHub App, they do it as the app: pull requests, issues, comments and commits come from the app's bot, each
 body ends with one line naming the agent and the person it works for, and commits credit that person
-(`Co-authored-by`) when they signed in with GitHub. Where the app isn't installed, the account connection is
+(`Co-Authored-By`) when they signed in with GitHub. Where the app isn't installed, the account connection is
 used, as before.
 
 Every commit an agent makes, through GitHub or with git on its computer, ends with its own line too:
-`Co-authored-by: <agent's name> <noreply@agentes.chat>`, next to the coding CLI's own (`Co-Authored-By: Claude …`)
+`Co-Authored-By: <agent's name> <noreply@agentes.chat>`, next to the coding CLI's own (`Co-Authored-By: Claude …`)
 and the person's, never twice. It is on by default; to turn it off for the whole workspace, ask any agent ("stop
 adding your co-author line to commits"), and ask again to turn it back on. On a computer the runner adds it with git
 hooks of its own, handed only to the agents' processes through their environment: your own git, outside them, is
@@ -1365,17 +1374,20 @@ no commands) and `--no-service`.
 That computer runs the commands agents execute, the browser they drive (the computer's own Google
 Chrome, which must be installed there: get it from google.com/chrome; it keeps itself up to date, and
 each agent uses a profile of its own, never yours), and Claude Code, Codex, Cursor's, OpenCode's, xAI's Grok
-Build or Google's Antigravity CLI when an agent thinks with a subscription signed in there (OpenCode's free models need no sign-in at all).
+Build, Google's Antigravity CLI or Cognition's Devin CLI when an agent thinks with a subscription signed in there (OpenCode's free models need no sign-in at all).
 Install the ones you want on that computer, as the user that runs the runner: Cursor's with
 `curl https://cursor.com/install -fsS | bash` (it lands in `~/.local/bin`, which the runner looks in
 even when its service's PATH lacks it), OpenCode's with `npm install -g opencode-ai@1.19.5`, Grok Build with
 `curl -fsSL https://x.ai/cli/install.sh | bash` (it puts `grok` in `~/.local/bin` too; agents think with it only
 through a Grok account added in Settings, AI and usage, never the computer's own sign-in. On Linux its sandbox needs
-bubblewrap, `sudo apt install -y bubblewrap`, or Grok Build refuses to start and every turn fails), Google's
+bubblewrap, `sudo apt install -y bubblewrap`, or Grok Build refuses to start and every turn fails; on Ubuntu 24.04 and later it also needs the AppArmor profile below), Google's
 Antigravity CLI with
 `curl -fsSL https://antigravity.google/cli/install.sh | bash` (`agy` in `~/.local/bin`; Gemini accounts sign in on Linux
 and macOS computers, not Windows yet, each in a folder of its own (on a Mac, with a keychain of its own there), and a personal Google plan used this way is against Google's terms for
-consumer plans: Gemini Enterprise or an API key avoids that). A runner in system mode (each agent
+consumer plans: Gemini Enterprise or an API key avoids that), and the Devin CLI with
+`curl -fsSL https://cli.devin.ai/install.sh | bash` (`devin` in `~/.local/bin`; the installer ends with Devin's own
+setup, which you may skip; Devin accounts sign in on Linux and macOS computers, each in a folder of its own, and think
+with the models of the person's Devin plan, ADR 0253). A runner in system mode (each agent
 its own system user) needs the CLI where every agent's user can run it, not in one user's home: install it
 under a shared folder and link it into `/usr/local/bin`, for example
 `sudo env HOME=/opt/cursor sh -c 'curl https://cursor.com/install -fsS | bash'`, then
@@ -1386,13 +1398,36 @@ extracted to `/usr/local/bin/opencode`; Grok Build with
 `sudo chmod -R a+rX /opt/grok` and `sudo ln -sf /opt/grok/.local/bin/grok /usr/local/bin/grok`. Grok's installer
 also makes `~/.local/bin/agent`, Cursor's name: where both are installed, link Cursor's `agent` last. The Antigravity
 CLI the same way: `sudo env HOME=/opt/agy sh -c 'curl -fsSL https://antigravity.google/cli/install.sh | bash -s -- --skip-path'`,
-then `sudo chmod -R a+rX /opt/agy` and `sudo ln -sf /opt/agy/.local/bin/agy /usr/local/bin/agy`.
-One installed in root's own `~/.local/bin` there is out of the agents' reach, and the apps say so with the line
-that installs it for all of them. Agents never use a sign-in made in a terminal: Gemini, Grok and the other plans
+then `sudo chmod -R a+rX /opt/agy` and `sudo ln -sf /opt/agy/.local/bin/agy /usr/local/bin/agy`. The Devin CLI too:
+`sudo env HOME=/opt/devin sh -c 'curl -fsSL https://cli.devin.ai/install.sh | bash'`, then
+`sudo chmod -R a+rX /opt/devin` and `sudo ln -sf /opt/devin/.local/bin/devin /usr/local/bin/devin`; there a Devin
+account signs in once per agent.
+One installed in root's own `~/.local/bin` there, or anywhere else an agent's user can't run it, is out of the
+agents' reach: the computer checks each CLI as its agents' users and the apps say so, with the line that installs it
+for all of them or an Install button. Where no agent reaches a copy at all, the runner installs its own pinned build
+for them once an account of that CLI is on the computer (in `/opt/agentes-runner/clis`, linked from `/usr/local/bin`
+unless something is already there). Agents never use a sign-in made in a terminal: Gemini, Grok, Devin and the other plans
 sign in from the apps (Settings, AI and usage), once for all of their owner's agents.
 Commands run as the user that runs the runner, so give it a dedicated user or a VM.
-`agentes-runner tools disable commands` (or `claude`, `codex`, `cursor`, `opencode`, `grok` or `antigravity`) turns a capability off on that
+`agentes-runner tools disable commands` (or `claude`, `codex`, `cursor`, `opencode`, `grok`, `antigravity` or `devin`) turns a capability off on that
 computer, and `agentes-runner folders allow <path>` shares a folder besides the agents' own.
+
+Ubuntu 24.04 and later block unprivileged user namespaces (`kernel.apparmor_restrict_unprivileged_userns = 1`),
+which the bubblewrap sandbox of Grok Build and of the Antigravity CLI's terminal needs. Allow them for `bwrap`
+alone, rather than turning AppArmor off:
+
+```sh
+sudo tee /etc/apparmor.d/bwrap >/dev/null <<'PROFILE'
+abi <abi/4.0>,
+include <tunables/global>
+
+profile bwrap /usr/bin/bwrap flags=(unconfined) {
+  userns,
+  include if exists <local/bwrap>
+}
+PROFILE
+sudo systemctl reload apparmor
+```
 
 On a Linux server, the installer's `--system` option (below) installs Google Chrome from Google's apt
 repository (its signing key checked against its fingerprint) when the computer has none, with a
@@ -1511,7 +1546,9 @@ simple mode, a Mac) each place is a folder and a browser profile of that one use
 Lodi keeps each person's work in their own place and is told never to look outside it, but other agents'
 commands there can read it, and only the person who connected the computer takes control of its desktop or
 opens its terminal. Lodi's page says which of the two a place is. For places nobody else can read, set the
-server up with `--system`. A computer a person connected is never Lodi's. Turn its commands, browser or desktop
+server up with `--system`. A computer a person connected becomes Lodi's only when the workspace has neither, an
+admin connected it, and it is marked the workspace's on its page ("Belongs to the workspace" on, open to everyone in the workspace): a
+VPS you paired works that way without this server's own runner. Turn its commands, browser or desktop
 off for everyone on its page, under what it can use. The computer's shared folder is still shared: every agent
 and every person's Lodi reads and writes it. Without a computer of the workspace's own, Lodi has no computer,
 and its page links here.
@@ -1538,8 +1575,9 @@ computer (`tailscale serve`, an nginx or a Caddy outside Docker) takes
 `sudo agentes-runner services allow tcp/443` too, or agents can't push to its git. Container and VM
 networks on the computer are closed to agents, except ports published on an address other than
 loopback. Each agent also has its own `/tmp`, `/dev/shm` and `/run/lock`, in memory as the computer's
-are (a tmpfs of its own, which counts in the agents' memory), and its own `/var/tmp` on disk (in
-`/var/lib/agentes-runner-tmp`), cleared of what is 10 days old (30 in `/var/tmp`), so a socket or file
+are (its `/tmp` in one tmpfs all agents share, a fifth of the RAM, which counts in the agents' memory), and
+its own `/var/tmp` on disk (in `/var/lib/agentes-runner-tmp`), cleared of what is 10 days old (30 in
+`/var/tmp`; 6 hours in `/tmp` and `/dev/shm` for an agent with nothing running), so a socket or file
 another agent leaves there is out of its reach, and its own adb server port
 (`ANDROID_ADB_SERVER_PORT`). Agents can't schedule cron or at jobs, which would run outside their own
 folders: the runner adds their users to `/etc/cron.deny` and `/etc/at.deny` (a job one scheduled before
@@ -1557,7 +1595,9 @@ have no owner, so a program an agent runs that listens on one without checking w
 the other agents, and an agent can take a name another agent's program wants. An X display's name taken
 before a desktop starts sends that desktop to another display, but an agent holding all 50 stops every new
 or restarted desktop on the computer, and on this server's own computer the names span its
-organizations.
+organizations. A root-owned `networkLauncher` helper that gives each agent its own network namespace
+closes the second ([ADR 0030](docs/adr/0030-runner-isolation.md), [ADR 0096](docs/adr/0096-agents-own-local-ports.md));
+agentes.chat Cloud's computers run one, and none is installed by default.
 
 **Memory and CPUs.** With `--system` the agents share the computer: none has memory or CPUs of its own,
 so one agent's build may use every CPU and all the memory the agents have; when several want the CPUs,
@@ -1566,13 +1606,17 @@ computer), plus swap for a third of that, which keeps the rest for the system, t
 the server. At that limit the kernel stops one process, usually the biggest (Chrome's pages first), and
 only that process: the command it belonged to fails, and the agent is told it was most likely memory
 (with systemd 253 or newer; a desktop or a task already running when you update gets this when it next
-starts). What agents leave in `/tmp` holds RAM until they delete it or the computer restarts. To keep
-it on disk instead, add `"agentTmpOnDisk": true` to `/var/lib/agentes-runner/config.json` as root (on
+starts). What agents leave in `/tmp` holds RAM until they delete it, it ages out or the computer
+restarts, at most a fifth of the RAM for all of them: past that, writes there fail with "no space". An
+agent's desktop nobody used for an hour is put to rest while less than 1.5 GB is free, and one with a
+command still running in its Terminal once nobody used it for a day. To keep `/tmp` on disk instead (its
+small files stay in the page cache, which the kernel takes back when memory is short), add
+`"agentTmpOnDisk": true` to `/var/lib/agentes-runner/config.json` as root (on
 this server's own computer too, for all its organizations): each agent takes it at its first launch
 after the next boot (until then it keeps the `/tmp` it has). The agents' `/tmp` is then a filesystem of
 their own, made anew at every boot in `/var/cache/agentes-runner-tmp` with half of what the system disk
 has free, so they can't fill that disk or take its inodes. It needs loop devices and `mkfs.ext4`
-(e2fsprogs), which an unprivileged container doesn't have.
+(e2fsprogs), which an unprivileged container doesn't have: there `/tmp` stays in memory.
 `agentes-runner computer`, which any agent (or you) can run, prints what the computer has, what is free
 for new work and which agents use the most; agents are told to run it before something heavy, to tell
 the person when another agent's work leaves no room, and to stop what a finished build left running.
@@ -1633,16 +1677,37 @@ installer), so `codex` is on that user's PATH; the app looks at the PATH again e
 restart. The app can install Claude Code there for you, but not Codex. Then sign in to ChatGPT in
 **Settings → AI and usage**. What differs from Linux and macOS:
 
-- Every turn that can run commands runs inside Windows' own isolation (Microsoft Execution Containers),
-  which needs **Windows 11 24H2 or newer** (`winver` shows yours). On an older Windows those turns fail with
-  "This Windows computer can't isolate Codex's commands": update Windows, give that agent Claude or an API
-  key, or move it to a Linux computer. Lodi's turns run no commands, so they work on any Windows.
-- Nothing asks for approval there: what the isolation refuses stays refused, and it has no network, so
-  `git push` or a package install doesn't run from Codex's own commands.
+- Every turn that can run commands runs isolated, and how well depends on the Windows:
+  - **Windows 11 24H2 with the August 2026 update** (build 26100.9278 or newer, `winver` shows yours) runs
+    them inside Windows' own isolation (Microsoft Execution Containers): writes only in the agent's folders,
+    no network.
+  - **Older Windows** (Windows 10, Windows 11 without that update) runs them in Codex's own sandbox: writes
+    still only in the agent's folders, but the network is blocked only through proxy settings (a program
+    that ignores them still gets out), and commands can read anything the Windows user can. The AI choice
+    and the computer's page say so behind an ⓘ.
+  - **When neither starts** (Codex's own sandbox fails to set up on some Windows 10 computers), Codex isn't
+    offered for agents on that computer and says why: give that agent Claude or an API key, update to
+    Windows 11 24H2 or newer with its latest updates, or move it to a Linux computer.
+
+  The computer checks which one works by itself, shortly after it starts, and while it runs on Codex's own
+  sandbox it looks for Windows' own isolation again every 10 minutes. Lodi's turns run no commands, so they
+  work on any Windows, ChatGPT included.
+- Nothing asks for approval there: what the isolation refuses stays refused. Windows' own isolation has no
+  network, so `git push` or a package install doesn't run from Codex's own commands. Codex's own sandbox
+  blocks only what honours the proxy settings: a program that ignores them (an SSH `git push`, for one) can
+  still reach the network.
 - No background Codex tasks, and Codex doesn't do a mission's items there (Claude Code or the agent does).
 - No plan on Windows, Codex's or Claude's, picks who answers a message (Plans, below).
 - The isolation leaves the computer's own loopback open: a command can reach a service listening on
   `127.0.0.1` there.
+
+**Grok Build on Windows.** Install it as the Windows user that runs the app, with
+`powershell -ExecutionPolicy Bypass -Command "irm https://x.ai/cli/install.ps1 | iex"` (it puts `grok.exe` in
+`%USERPROFILE%\.grok\bin`), then add a Grok account in **Settings → AI and usage**; a PC can hold several, each
+in a folder of its own. Grok Build's own sandbox doesn't run on Windows, so there its own tools only edit files in
+the agent's folder and run read-only commands (`git status`, `ls`, `grep`); every other command goes through the
+agent's terminal tool, under the same command rules as Claude Code's on Windows. Lodi's turns are the same as
+elsewhere.
 
 Use HTTPS with a certificate from a public authority (Tailscale and the Caddy profile get one). Over
 plain http the computer's token travels unencrypted, and the runner's background service doesn't
@@ -1919,9 +1984,13 @@ The app runs its jobs (agents' runs, routines, messages' routing, notifications,
 process: 48 at once to start with, 12 of them kept for the quick ones. While jobs wait for a slot, it
 gives itself more, every 30 seconds: agents' runs as far as half of its memory holds them, about 4 MB
 each while they wait on their model or their computer, and quick jobs up to 4 per database connection
-(`DATABASE_POOL_MAX`), never while its processor, its database or its memory is what jobs wait on. Its
-memory is its container's limit when it has one; beside Postgres and the speech server on one computer,
-it counts only what it holds and what was free there when it started.
+(`DATABASE_POOL_MAX`), never while its processor, its database or its memory is what jobs wait on, and
+never past 8 jobs per database connection in all (`OUTBOX_MAX_IN_FLIGHT_CEILING` sets another ceiling).
+Its memory is its container's limit when it has one; beside Postgres and the speech server on one
+computer, it counts only what it holds and what was free there when it started. After a restart, the
+runs left waiting start over its first minute, not all at once. Give it at least one database
+connection per 4 job slots (the default 20 is enough for the default 48): it warns as it starts when
+`DATABASE_POOL_MAX` is lower.
 Workspaces take turns, so one workspace's burst of routines makes only that workspace wait. When jobs
 keep waiting anyway, the log says so, with `add a worker process`, and so do the error reports when
 they are on (`SENTRY_DSN`).
@@ -1949,6 +2018,8 @@ app is up:
         condition: service_healthy
     networks: [default, speech]
     restart: unless-stopped
+    mem_limit: "${AGENTES_WORKER_MEMORY:-8g}"
+    memswap_limit: "${AGENTES_WORKER_MEMORY:-8g}"
     stop_grace_period: 40s
     init: true
     security_opt:
@@ -1969,6 +2040,22 @@ written for), so each worker adds as many jobs at once as the app runs. Each pro
 where it can reach them (`S3_*`, or Postgres without `FILES_DIR`), and one on the app's computer
 outside Docker a `PORT` of its own. The built-in database (on this computer, without Docker) belongs
 to one process and takes no worker.
+
+Each process brakes before the kernel stops it: its job slots stop growing past 70% of its container's
+memory limit and its long jobs shed past 85%, so the limit is what decides when. Once workers take
+the runs, the app mostly holds the open apps' connections: give it `AGENTES_MEMORY=4g` and
+`OUTBOX_MAX_IN_FLIGHT_CEILING=32`, and each worker its own `AGENTES_WORKER_MEMORY` (`8g`, as above).
+A process that still grew past its limit is stopped alone and restarts, and every app on it
+reconnects to the others, instead of the whole machine swapping.
+
+When a process is overloaded (its event loop late by over `LOAD_SHED_EVENT_LOOP_MS`, or a database
+connection slower than `LOAD_SHED_DB_WAIT_MS` to come), it turns new connections and the apps' reads
+away with a 503 and a `Retry-After` of 5 to 15 seconds, and the apps try again then; writes and open
+connections carry on. With `LOAD_SHED_MAX_SOCKETS` apps connected, it turns only new connections away.
+Either way its `/api/health` says `overloaded`
+(still with a 200) meanwhile, and `/api/health?load=1` answers 503: point the active health check of a
+reverse proxy in front of several app processes at that one (Caddy: `health_uri /api/health?load=1`),
+so it sends new requests to the others. Never on a single process's check: it would take out the only one.
 
 </details>
 

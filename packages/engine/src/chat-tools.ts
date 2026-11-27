@@ -2,6 +2,7 @@ import type { PubSub } from "@agenteschat/adapters";
 import { and, count, desc, eq, isNull, or, schema, sql } from "@agenteschat/db";
 import { type ArtifactDeps, shareArtifact } from "./artifacts";
 import { recordAudit } from "./audit";
+import { channelNameIs, typedChannelName } from "./channels";
 import { answersAgentsOnly, askerSpeaksIn } from "./consultations";
 import { addAgentReaction, isValidReaction, normalizeReaction } from "./context/feedback";
 import { openPersonAgentDm } from "./dms";
@@ -214,7 +215,7 @@ export function createChatToolSource(deps: {
           // A routine posts where its creator can post, as itself: never with their files.
           const routine = requester ? null : await actingRoutineOfCall(ctx);
           const creator = routine?.creatorUserId ?? null;
-          const name = str(input.channel).trim().replace(/^#/, "").toLowerCase();
+          const name = typedChannelName(str(input.channel));
           const { channels, channelMembers } = schema;
           const [found] = await ctx.db
             .select({
@@ -228,7 +229,7 @@ export function createChatToolSource(deps: {
             .where(
               and(
                 eq(channels.orgId, ctx.orgId),
-                eq(channels.name, name),
+                channelNameIs(name),
                 eq(channels.kind, "channel"),
                 isNull(channels.archivedAt),
               ),
@@ -644,7 +645,7 @@ export function createReactToolSource(deps: { pubsub?: PubSub }): ToolSource {
   const tool: ToolDefinition = {
     name: REACT_TOOL,
     description:
-      'React with one emoji instead of replying, when a message only acknowledges or thanks ("valeu", "ok, pode seguir"), or when asked to react. Reacts to the message you answer; for another one, `to` its author ("@caio", "Ana"), plus `quote` (a few of its words) if not their latest. Then end with no text. Never react and also reply.',
+      'React with one emoji instead of replying, when a message only acknowledges or thanks ("valeu", "perfeito"), or when asked to react. Reacts to the message you answer; for another one, `to` its author ("@caio", "Ana"), plus `quote` (a few of its words) if not their latest. Then end with no text. Never react and also reply.',
     scope: "",
     inputSchema: {
       type: "object",

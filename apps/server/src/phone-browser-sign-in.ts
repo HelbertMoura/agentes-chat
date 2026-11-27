@@ -21,7 +21,7 @@ import { TWO_FACTOR_CHALLENGE, TWO_FACTOR_CHALLENGE_S } from "./two-factor";
  * App builds from before the challenge get the session in the link, as they always did, while `LEGACY_PHONE_SIGN_IN`
  * is on; the browser keeps no session for them either.
  *
- * An account with a second step (ADR 0219) gets no session at the callback, but the challenge for its code: the
+ * An account with a second step (ADR 0259) gets no session at the callback, but the challenge for its code: the
  * code in the link then trades, with the same verifier, for that challenge instead, and the app asks for the code.
  */
 
@@ -166,7 +166,7 @@ export function phoneBrowserSignIn() {
           const found = await ctx.context.internalAdapter.consumeVerificationValue(PHONE_CODE_PREFIX + code);
           const kept = found && found.expiresAt >= new Date() ? parseRecord(found.value) : null;
           if (!kept || kept.challenge !== desktopChallenge(ctx.body.verifier)) return ctx.json({ signedIn: false });
-          // The account's second step (ADR 0219): the app gets the challenge, and the code it asks for ends it.
+          // The account's second step (ADR 0259): the app gets the challenge, and the code it asks for ends it.
           if (typeof kept.twoFactor === "string") {
             const twoFactor = ctx.context.createAuthCookie(TWO_FACTOR_CHALLENGE, { maxAge: TWO_FACTOR_CHALLENGE_S });
             await ctx.setSignedCookie(twoFactor.name, kept.twoFactor, ctx.context.secret, twoFactor.attributes);

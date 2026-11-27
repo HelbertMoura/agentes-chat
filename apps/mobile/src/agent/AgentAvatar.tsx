@@ -58,7 +58,12 @@ const GAZE: Record<Gaze, { look: [number, number]; turn: [number, number] }> = {
   down: { look: [0, 0.14], turn: [0, 0.35] },
 };
 
-/** One frame of an agent as drawing commands (the engine draws, the recorder keeps the commands). */
+/**
+ * One frame of an agent as drawing commands (the engine draws, the recorder keeps the commands). `extra.px`: screen
+ * pixels per unit of `size` (the screen's scale when `size` is in points). The engine's thinnest line, its pixel
+ * snapping and its overlaps are in canvas pixels, as on the web's canvas, so it draws at that scale: in points, the
+ * eyes' 1.4 floor came out three times as thick, and on a 13pt face the two arcs of happy or closed eyes met in one bar.
+ */
 export function agentFrame(
   agent: AgentLookInput,
   size: number,
@@ -69,7 +74,7 @@ export function agentFrame(
   frame?: { dark: boolean },
   expression?: Expression,
   dark = frame?.dark ?? false,
-  extra?: { gaze?: Gaze | undefined; bodyless?: boolean | undefined; sky?: boolean | undefined },
+  extra?: { gaze?: Gaze | undefined; bodyless?: boolean | undefined; sky?: boolean | undefined; px?: number },
 ) {
   const accessory = agent.accessory && agent.accessory !== "none" ? agent.accessory : undefined;
   const box = frame ? framedLayout(size, Boolean(accessory)) : agentLayout(size, Boolean(accessory));
@@ -79,7 +84,10 @@ export function agentFrame(
   if (frame && extra?.bodyless) return compile(rec.commands);
   const base = poseFor(mode, t, seed, reduced);
   const looked = extra?.gaze ? { ...base, ...GAZE[extra.gaze] } : base;
-  drawAgent(asCtx(rec), box.x, box.y, box.inner, {
+  const px = extra?.px ?? 1;
+  rec.save();
+  rec.scale(1 / px, 1 / px);
+  drawAgent(asCtx(rec), box.x * px, box.y * px, box.inner * px, {
     color: agent.color,
     eyes: agent.eyes,
     cells: box.cells,
@@ -98,6 +106,7 @@ export function agentFrame(
         );
     },
   });
+  rec.restore();
   return compile(rec.commands);
 }
 
@@ -134,6 +143,8 @@ interface FaceLook {
   expression: Expression | undefined;
   gaze: Gaze | undefined;
   bodyless: boolean;
+  /** Screen pixels per point (`agentFrame`'s `px`). */
+  px: number;
 }
 
 /** The face at `t`, without its sky (drawn once, under it). */
@@ -148,7 +159,7 @@ function facePicture(f: FaceLook, t: number): SkPicture {
     f.tile ? { dark: f.dark } : undefined,
     f.expression,
     f.dark,
-    { gaze: f.gaze, bodyless: f.bodyless, sky: false },
+    { gaze: f.gaze, bodyless: f.bodyless, sky: false, px: f.px },
   );
   return createPicture((canvas) => replay(canvas, frame), { width: f.size, height: f.size });
 }
@@ -200,6 +211,8 @@ function AgentAvatarView({
       return createPicture((canvas) => replay(canvas, ops), { width: size, height: size });
     });
   }, [color, drawn, size, dark, tile]);
+  // Drawn in the screen's pixels, as the web draws its canvas (see `agentFrame`).
+  const px = PixelRatio.get();
   const face = useMemo<FaceLook>(
     () => ({
       look: { color, eyes, accessory },
@@ -212,8 +225,9 @@ function AgentAvatarView({
       expression,
       gaze,
       bodyless,
+      px,
     }),
-    [color, eyes, accessory, size, mode, seed, reduced, tile, dark, expression, gaze, bodyless],
+    [color, eyes, accessory, size, mode, seed, reduced, tile, dark, expression, gaze, bodyless, px],
   );
   const key = useMemo(
     () =>
@@ -233,16 +247,15 @@ function AgentAvatarView({
       }),
     [drawn, eyes, accessory, size, mode, seed, reduced, tile, dark, expression, gaze, bodyless],
   );
-  const ratio = PixelRatio.get();
   // A still face is the same image wherever it shows: drawn once per look and density, never per mount.
   const showImage = !moving || layer === "image";
   const image = useMemo(() => {
     if (!showImage) return null;
-    return kept(images, stillImageKey(key, ratio), () => {
+    return kept(images, stillImageKey(key, px), () => {
       const still = kept(stills, key, () => facePicture(face, STILL_T));
-      return stillImage(sky ? [sky, still] : [still], size, ratio);
+      return stillImage(sky ? [sky, still] : [still], size, px);
     });
-  }, [showImage, key, ratio, face, sky, size]);
+  }, [showImage, key, px, face, sky, size]);
   // No image (Skia couldn't make one): the canvas draws the still frame instead.
   const showCanvas = moving || layer === "canvas" || !image;
   // Over the image, the canvas shows the still frame, so the two never differ while both are up.

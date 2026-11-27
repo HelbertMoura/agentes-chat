@@ -5,35 +5,11 @@
   "app.send": {
     "value": "Send"
   },
-  "categories.title": {
-    "value": "Categories"
-  },
   "categories.where": {
     "value": "Where #{{channel}} shows"
   },
   "categories.whereHelp": {
     "value": "Changes for everyone. Who takes part in the channel stays the same."
-  },
-  "categories.create": {
-    "value": "Create"
-  },
-  "categories.endOfList": {
-    "value": "Goes to the end of the list for everyone."
-  },
-  "categories.channelCount": {
-    "value": {
-      "one": "{{count}} channel",
-      "other": "{{count}} channels"
-    }
-  },
-  "categories.none": {
-    "value": "No categories yet."
-  },
-  "categories.manageHint": {
-    "value": "Order, names and delete"
-  },
-  "categories.deleteTitle": {
-    "value": "Delete {{name}}?"
   },
   "categories.order": {
     "value": "Place in the list"
@@ -44,14 +20,8 @@
   "categories.down": {
     "value": "Move down"
   },
-  "categories.position": {
-    "value": "{{at}} of {{count}}."
-  },
   "categories.channelPosition": {
     "value": "{{at}} of {{count}}."
-  },
-  "categories.itsChannels": {
-    "value": "Channels"
   },
   "blocks.send": {
     "value": "Send"
@@ -2017,6 +1987,9 @@
   "agent.talk": {
     "value": "Chat"
   },
+  "agent.responsible": {
+    "value": "Owner"
+  },
   "agent.task": {
     "value": "Task"
   },
@@ -2120,6 +2093,24 @@
       "other": "{{names}} propose improvements"
     }
   },
+  "activity.kind.proposal_applied": {
+    "value": {
+      "one": "{{names}} applied an improvement",
+      "other": "{{names}} applied {{count}} improvements"
+    }
+  },
+  "activity.kind.proposal_applied_agents": {
+    "value": {
+      "one": "{{names}} applied an improvement",
+      "other": "{{names}} applied {{count}} improvements"
+    }
+  },
+  "activity.kind.proposal_applied_auto": {
+    "value": {
+      "one": "An improvement was applied automatically",
+      "other": "{{count}} improvements were applied automatically"
+    }
+  },
   "activity.kind.mention": {
     "value": {
       "one": "{{names}} mentioned you",
@@ -2212,6 +2203,9 @@
   },
   "activity.kind.admin_ask_webhook": {
     "value": "{{names}} asks you to set up the {{service}} webhook for routines"
+  },
+  "activity.kind.admin_ask_voice": {
+    "value": "{{names}} asks you to turn on voice messages"
   },
   "activity.kind.routine_paused": {
     "value": {
@@ -2423,6 +2417,18 @@
     "value": {
       "one": "A computer needs Google Chrome. Get it at google.com/chrome",
       "other": "Computers need Google Chrome. Get it at google.com/chrome"
+    }
+  },
+  "activity.kind.computer_down": {
+    "value": {
+      "one": "A computer isn't answering",
+      "other": "A computer isn't answering"
+    }
+  },
+  "activity.kind.computer_back": {
+    "value": {
+      "one": "A computer is back",
+      "other": "A computer is back"
     }
   },
   "activity.kind.app_created": {
@@ -2782,12 +2788,6 @@
       "other": "{{count}} with you"
     }
   },
-  "me.proposalsWaiting": {
-    "value": {
-      "one": "{{count}} waiting",
-      "other": "{{count}} waiting"
-    }
-  },
   "me.drive": {
     "value": "Drive"
   },
@@ -3120,9 +3120,6 @@
   },
   "files.type.video": {
     "value": "Video"
-  },
-  "files.type.audio": {
-    "value": "Audio"
   },
   "files.type.pdf": {
     "value": "PDF"
@@ -3595,12 +3592,6 @@
   "memory.confirmed": {
     "value": "Confirmed by a person"
   },
-  "memory.confirm": {
-    "value": "Confirm"
-  },
-  "memory.confirmedToast": {
-    "value": "Confirmed"
-  },
   "memory.details": {
     "value": "Technical details"
   },
@@ -3615,6 +3606,41 @@
   },
   "memory.forgetText": {
     "value": "{{name}} stops using this in future conversations."
+  },
+  "proposals.title": {
+    "value": "Agent improvements"
+  },
+  "proposals.emptyTitle": {
+    "value": "Nothing changed yet"
+  },
+  "proposals.empty": {
+    "value": "When an agent improves its instructions or a teammate's, the change shows here, with Undo."
+  },
+  "proposals.more": {
+    "value": "Show more"
+  },
+  "proposals.reviewing": {
+    "value": "Reviewing…"
+  },
+  "proposals.appliedBy": {
+    "value": "Applied by {{name}}",
+    "female": "Applied by {{name}}"
+  },
+  "proposals.appliedAuto": {
+    "value": "Applied automatically"
+  },
+  "proposals.leftOutBy": {
+    "value": "Left out by {{name}}",
+    "female": "Left out by {{name}}"
+  },
+  "proposals.leftOut": {
+    "value": "Left out"
+  },
+  "proposals.undoneBy": {
+    "value": "Undone by {{name}}"
+  },
+  "proposals.undoneByYou": {
+    "value": "Undone by you"
   },
   "wiki.map": {
     "value": "Page map"
@@ -3750,6 +3776,21 @@
   },
   "coding.next.mergeLocal": {
     "value": "Ready to merge into {{base}}"
+  },
+  "coding.terminal.keys": {
+    "value": "Terminal keys"
+  },
+  "coding.terminal.keyboard": {
+    "value": "Keyboard"
+  },
+  "coding.terminal.pasteHint": {
+    "value": "Paste what you copied into the terminal"
+  },
+  "coding.terminal.key.CtrlC": {
+    "value": "Control-C, interrupt"
+  },
+  "coding.terminal.key.CtrlD": {
+    "value": "Control-D, end of input"
   },
   "taskManager.loadFailed": {
     "value": "Couldn't load the tasks."
@@ -5169,6 +5210,9 @@
   },
   "devices.notice.folder_request": {
     "value": "{{names}} asks for the folder {{path}} on your {{device}}"
+  },
+  "devices.notice.internet_shared": {
+    "value": "Agents now open websites through the internet of {{device}}"
   },
   "devices.notice.allowOnce": {
     "value": "Allow once"
@@ -6884,9 +6928,6 @@
   "dashboards.formatAuto": {
     "value": "{{name}} picks the best one"
   },
-  "dashboards.newWidget.alerts": {
-    "value": "Alerts"
-  },
   "dashboards.newWidget.realData": {
     "value": "Real data"
   },
@@ -6896,8 +6937,14 @@
   "dashboards.newWidget.asked": {
     "value": "“{{ask}}”"
   },
-  "dashboards.newWidget.autoFormat": {
-    "value": "Auto format"
+  "dashboards.newWidget.testReal": {
+    "value": "Test with real data"
+  },
+  "dashboards.newWidget.addHome": {
+    "value": "Add to Home"
+  },
+  "dashboards.newWidget.addTo": {
+    "value": "Add to {{where}}"
   },
   "dashboards.agentPick.search": {
     "value": "Search agents"
@@ -7765,6 +7812,156 @@
   },
   "live.doc.notHere": {
     "value": "This part is edited on the computer"
+  },
+  "aiHub.accounts": {
+    "value": "Accounts"
+  },
+  "aiHub.accountsHint": {
+    "value": "Every plan and API key in this workspace, whoever connected it. Tap an account for its limits and who may use it."
+  },
+  "aiHub.order": {
+    "value": "Order of use"
+  },
+  "aiHub.orderSub": {
+    "value": "At a limit, agents go on with the next account."
+  },
+  "aiHub.skipped": {
+    "value": "skipped"
+  },
+  "aiHub.orderGroup": {
+    "value": "{{plan}} · {{computer}}"
+  },
+  "aiHub.noOrder": {
+    "value": "With two accounts of the same AI on one computer, their order shows here."
+  },
+  "aiHub.keyFallback": {
+    "value": "Go on with the API key when every plan is at its limit"
+  },
+  "aiHub.keyFallbackHint": {
+    "value": "After the last account, agents go on with the workspace's API key, which is paid per use. Missions never move to the key."
+  },
+  "aiHub.keyFallbackLocked": {
+    "value": "Only an admin changes this."
+  },
+  "aiHub.limits": {
+    "value": "Limits"
+  },
+  "aiHub.permissions": {
+    "value": "Permissions"
+  },
+  "aiHub.manage": {
+    "value": "Manage"
+  },
+  "aiHub.manageSub": {
+    "value": "Rename, sign in again, remove"
+  },
+  "aiHub.manageHint": {
+    "value": "Who may rename this account, sign in to it again and remove it. Only whoever connected it changes this."
+  },
+  "aiHub.use": {
+    "value": "Use in agents"
+  },
+  "aiHub.useSub": {
+    "value": "Pick it in Who thinks"
+  },
+  "aiHub.useHint": {
+    "value": "Whose agents may think with this account, and whose Lodi. Whoever manages it changes this."
+  },
+  "aiHub.reply": {
+    "value": "Answer everyone"
+  },
+  "aiHub.replySub": {
+    "value": "Who the agents talk to"
+  },
+  "aiHub.replyHint": {
+    "value": "Who an agent on this account answers besides its own owner. Claude's terms ask that a plan is used by the person who pays for it: check them before opening it to everyone."
+  },
+  "aiHub.audience.owner": {
+    "value": "Only you"
+  },
+  "aiHub.audience.ownerOf": {
+    "value": "Only {{name}}"
+  },
+  "aiHub.audience.admins": {
+    "value": "You and admins"
+  },
+  "aiHub.audience.adminsOf": {
+    "value": "{{name}} and admins"
+  },
+  "aiHub.audience.roles": {
+    "value": "Roles…"
+  },
+  "aiHub.audience.people": {
+    "value": "People…"
+  },
+  "aiHub.audience.everyone": {
+    "value": "Everyone"
+  },
+  "aiHub.audience.agentOwner": {
+    "value": "Only the agent's owner"
+  },
+  "aiHub.audience.rolesCount": {
+    "value": {
+      "one": "{{count}} role",
+      "other": "{{count}} roles"
+    }
+  },
+  "aiHub.audience.peopleCount": {
+    "value": {
+      "one": "{{count}} person",
+      "other": "{{count}} people"
+    }
+  },
+  "aiHub.pickRoles": {
+    "value": "Roles"
+  },
+  "aiHub.pickPeople": {
+    "value": "People"
+  },
+  "aiHub.pickNone": {
+    "value": "Pick at least one."
+  },
+  "aiHub.choice.account": {
+    "value": "Account"
+  },
+  "aiHub.choice.model": {
+    "value": "Model"
+  },
+  "aiHub.choice.effort": {
+    "value": "Effort"
+  },
+  "aiHub.choice.yours": {
+    "value": "Yours"
+  },
+  "aiHub.choice.others": {
+    "value": "Team's"
+  },
+  "aiHub.choice.keys": {
+    "value": "API keys"
+  },
+  "aiHub.choice.workspace": {
+    "value": "The workspace's"
+  },
+  "aiHub.choice.workspaceSub": {
+    "value": "The workspace's API key"
+  },
+  "aiHub.choice.key": {
+    "value": "API key"
+  },
+  "aiHub.choice.keyDefault": {
+    "value": "workspace default"
+  },
+  "aiHub.choice.api": {
+    "value": "API"
+  },
+  "aiHub.choice.asksMove": {
+    "value": "{{agent}} stops using it."
+  },
+  "aiHub.missionAi": {
+    "value": "AI"
+  },
+  "aiHub.missionLocked": {
+    "value": "Who does the work is chosen before Start. The model can change any time."
   },
   "surface.on": {
     "value": "On"

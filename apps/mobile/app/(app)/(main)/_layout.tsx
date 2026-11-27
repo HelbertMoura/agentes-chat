@@ -172,6 +172,8 @@ export default function MainStack() {
       // The computer's screen places its own banner and edges by the side insets (`useSideInsets` would add them twice).
       "computer/[agentId]": { ...solid, contentStyle: { backgroundColor: colors.bg } },
       "browser-profile/[profileId]": solid,
+      // A session's terminal (ADR 0215): the shell's page and its key row lay out below an opaque bar.
+      "coding/[sessionId]/terminal": solid,
     };
     return ({ route, navigation }: StackScreenArgs): NativeStackNavigationOptions => {
       const options = own[route.name] ?? page;

@@ -4,23 +4,12 @@
     "send": "Invia"
   },
   "categories": {
-    "title": "Categorie",
     "where": "Dove appare #{{channel}}",
     "whereHelp": "Cambia per tutti. Chi partecipa al canale resta lo stesso.",
-    "create": "Crea",
-    "endOfList": "Va in fondo all'elenco per tutti.",
-    "channelCount_one": "{{count}} canale",
-    "channelCount_many": "{{count}} canali",
-    "channelCount_other": "{{count}} canali",
-    "none": "Ancora nessuna categoria.",
-    "manageHint": "Ordine, nomi ed eliminazione",
-    "deleteTitle": "Eliminare {{name}}?",
     "order": "Posizione nell'elenco",
     "up": "Sposta su",
     "down": "Sposta giù",
-    "position": "{{at}} di {{count}}.",
-    "channelPosition": "{{at}} di {{count}}.",
-    "itsChannels": "Canali"
+    "channelPosition": "{{at}} di {{count}}."
   },
   "blocks": {
     "send": "Invia",
@@ -872,6 +861,7 @@
   },
   "agent": {
     "talk": "Chatta",
+    "responsible": "Responsabile",
     "task": "Attività",
     "owner": "proprietario: {{name}}",
     "cantTalk": "Questo agente non lavora con te.",
@@ -917,6 +907,15 @@
       "proposal_waiting_one": "{{names}} propone un miglioramento",
       "proposal_waiting_many": "{{names}} propongono miglioramenti",
       "proposal_waiting_other": "{{names}} propongono miglioramenti",
+      "proposal_applied_one": "{{names}} ha applicato un miglioramento",
+      "proposal_applied_many": "{{names}} ha applicato {{count}} miglioramenti",
+      "proposal_applied_other": "{{names}} ha applicato {{count}} miglioramenti",
+      "proposal_applied_agents_one": "{{names}} hanno applicato un miglioramento",
+      "proposal_applied_agents_many": "{{names}} hanno applicato {{count}} miglioramenti",
+      "proposal_applied_agents_other": "{{names}} hanno applicato {{count}} miglioramenti",
+      "proposal_applied_auto_one": "Un miglioramento è stato applicato automaticamente",
+      "proposal_applied_auto_many": "{{count}} miglioramenti sono stati applicati automaticamente",
+      "proposal_applied_auto_other": "{{count}} miglioramenti sono stati applicati automaticamente",
       "mention_one": "{{names}} ti ha menzionato",
       "mention_many": "{{names}} ti hanno menzionato",
       "mention_other": "{{names}} ti hanno menzionato",
@@ -962,6 +961,7 @@
       "admin_ask_channel_agent": "{{names}} ti chiede di aggiungere {{agent}} a #{{label}}",
       "admin_ask_create_agents": "{{names}} chiede di poter creare agenti",
       "admin_ask_webhook": "{{names}} ti chiede di configurare il webhook di {{service}} per le routine",
+      "admin_ask_voice": "{{names}} ti chiede di attivare i messaggi vocali",
       "routine_paused_one": "Routine in pausa",
       "routine_paused_many": "Routine in pausa",
       "routine_paused_other": "Routine in pausa",
@@ -1067,6 +1067,12 @@
       "computer_no_chrome_one": "Un computer ha bisogno di Google Chrome. Scaricalo da google.com/chrome",
       "computer_no_chrome_many": "Alcuni computer hanno bisogno di Google Chrome. Scaricalo da google.com/chrome",
       "computer_no_chrome_other": "Alcuni computer hanno bisogno di Google Chrome. Scaricalo da google.com/chrome",
+      "computer_down_one": "Un computer non risponde",
+      "computer_down_many": "Un computer non risponde",
+      "computer_down_other": "Un computer non risponde",
+      "computer_back_one": "Un computer è di nuovo disponibile",
+      "computer_back_many": "Un computer è di nuovo disponibile",
+      "computer_back_other": "Un computer è di nuovo disponibile",
       "app_created_one": "Un'app di IA ha creato qualcosa per te",
       "app_created_many": "Un'app di IA ha creato qualcosa per te",
       "app_created_other": "Un'app di IA ha creato qualcosa per te"
@@ -1210,9 +1216,6 @@
     "issuesWithMe_one": "{{count}} con te",
     "issuesWithMe_many": "{{count}} con te",
     "issuesWithMe_other": "{{count}} con te",
-    "proposalsWaiting_one": "{{count}} in attesa",
-    "proposalsWaiting_many": "{{count}} in attesa",
-    "proposalsWaiting_other": "{{count}} in attesa",
     "drive": "Drive",
     "connectors": "Connettori e MCP",
     "preferences": "Preferenze",
@@ -1337,7 +1340,6 @@
     "type": {
       "image": "Immagine",
       "video": "Video",
-      "audio": "Audio",
       "pdf": "PDF",
       "document": "Documento",
       "table": "Tabella",
@@ -1532,13 +1534,26 @@
     "uses_many": "Usato {{count}} volte",
     "uses_other": "Usato {{count}} volte",
     "confirmed": "Confermato da una persona",
-    "confirm": "Conferma",
-    "confirmedToast": "Confermata",
     "details": "Dettagli tecnici",
     "before": "Prima diceva: {{text}}",
     "fix": "Correggi",
     "forgetTitle": "Dimenticare questo ricordo?",
     "forgetText": "{{name}} smette di usarlo nelle prossime conversazioni."
+  },
+  "proposals": {
+    "title": "Miglioramenti degli agenti",
+    "emptyTitle": "Ancora nessuna modifica",
+    "empty": "Quando un agente migliora le sue istruzioni o quelle di un collega, la modifica compare qui, con Annulla.",
+    "more": "Mostra altro",
+    "reviewing": "In valutazione…",
+    "appliedBy": "Applicato da {{name}}",
+    "appliedBy_female": "Applicato da {{name}}",
+    "appliedAuto": "Applicato automaticamente",
+    "leftOutBy": "Scartato da {{name}}",
+    "leftOutBy_female": "Scartato da {{name}}",
+    "leftOut": "Scartato",
+    "undoneBy": "Annullato da {{name}}",
+    "undoneByYou": "Annullato da te"
   },
   "wiki": {
     "map": "Mappa delle pagine",
@@ -1595,6 +1610,15 @@
     "next": {
       "pr": "Branch inviato, ancora senza pull request",
       "mergeLocal": "Pronto per il merge in {{base}}"
+    },
+    "terminal": {
+      "keys": "Tasti del terminale",
+      "keyboard": "Tastiera",
+      "pasteHint": "Incolla nel terminale ciò che hai copiato",
+      "key": {
+        "CtrlC": "Control-C, interrompi",
+        "CtrlD": "Control-D, fine dell’input"
+      }
     }
   },
   "taskManager": {
@@ -2190,6 +2214,7 @@
       "tool_request": "{{names}} ti chiede di attivare {{tool}} sul tuo {{device}}",
       "cli_request": "{{names}} ti chiede di installare {{tool}} sul tuo {{device}}",
       "folder_request": "{{names}} ti chiede la cartella {{path}} sul tuo {{device}}",
+      "internet_shared": "Ora gli agenti aprono i siti web tramite la connessione internet di {{device}}",
       "allowOnce": "Consenti una volta",
       "always": "Consenti sempre a {{name}}",
       "no": "No",
@@ -2911,11 +2936,12 @@
     },
     "formatAuto": "{{name}} sceglie il migliore",
     "newWidget": {
-      "alerts": "Avvisa",
       "realData": "Dati reali",
       "editAsk": "Cambia la richiesta",
       "asked": "“{{ask}}”",
-      "autoFormat": "Formato automatico"
+      "testReal": "Prova con dati reali",
+      "addHome": "Aggiungi alla Home",
+      "addTo": "Aggiungi a {{where}}"
     },
     "agentPick": {
       "search": "Cerca agenti",
@@ -3320,6 +3346,64 @@
       "editHint": "Modifica questa parte",
       "notHere": "Questa parte si modifica sul computer"
     }
+  },
+  "aiHub": {
+    "accounts": "Account",
+    "accountsHint": "Tutti i piani e le chiavi API di questo workspace, di chiunque li abbia collegati. Tocca un account per vederne i limiti e chi può usarlo.",
+    "order": "Ordine di utilizzo",
+    "orderSub": "Al limite, gli agenti passano all'account successivo.",
+    "skipped": "saltato",
+    "orderGroup": "{{plan}} · {{computer}}",
+    "noOrder": "Con due account della stessa IA su un computer, il loro ordine compare qui.",
+    "keyFallback": "Continuare con la chiave API quando tutti i piani sono al limite",
+    "keyFallbackHint": "Dopo l'ultimo account, gli agenti continuano con la chiave API del workspace, che si paga a consumo. Le missioni non passano mai alla chiave.",
+    "keyFallbackLocked": "Solo un admin può cambiarlo.",
+    "limits": "Limiti",
+    "permissions": "Permessi",
+    "manage": "Gestire",
+    "manageSub": "Rinominare, accedere di nuovo, rimuovere",
+    "manageHint": "Chi può rinominare questo account, accedervi di nuovo e rimuoverlo. Solo chi l'ha collegato lo cambia.",
+    "use": "Usare negli agenti",
+    "useSub": "Sceglierlo in Chi pensa",
+    "useHint": "Gli agenti di chi possono pensare con questo account, e il Lodi di chi. Chi lo gestisce lo cambia.",
+    "reply": "Rispondere a tutti",
+    "replySub": "Con chi parlano gli agenti",
+    "replyHint": "A chi risponde un agente su questo account oltre al suo proprietario. I termini di Claude chiedono che un piano sia usato da chi lo paga: controllali prima di aprirlo a tutti.",
+    "audience": {
+      "owner": "Solo tu",
+      "ownerOf": "Solo {{name}}",
+      "admins": "Tu e gli admin",
+      "adminsOf": "{{name}} e gli admin",
+      "roles": "Ruoli…",
+      "people": "Persone…",
+      "everyone": "Tutti",
+      "agentOwner": "Solo il proprietario dell'agente",
+      "rolesCount_one": "{{count}} ruolo",
+      "rolesCount_many": "{{count}} ruoli",
+      "rolesCount_other": "{{count}} ruoli",
+      "peopleCount_one": "{{count}} persona",
+      "peopleCount_many": "{{count}} persone",
+      "peopleCount_other": "{{count}} persone"
+    },
+    "pickRoles": "Ruoli",
+    "pickPeople": "Persone",
+    "pickNone": "Scegline almeno uno.",
+    "choice": {
+      "account": "Account",
+      "model": "Modello",
+      "effort": "Impegno",
+      "yours": "Tuoi",
+      "others": "Del team",
+      "keys": "Chiavi API",
+      "workspace": "Quella del workspace",
+      "workspaceSub": "Chiave API del workspace",
+      "key": "Chiave API",
+      "keyDefault": "predefinita del workspace",
+      "api": "API",
+      "asksMove": "{{agent}} smette di usarlo."
+    },
+    "missionAi": "IA",
+    "missionLocked": "Chi fa il lavoro si sceglie prima di Avvia. Il modello si può cambiare in qualsiasi momento."
   },
   "surface": {
     "on": "Attivo",

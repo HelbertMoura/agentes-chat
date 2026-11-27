@@ -4,7 +4,6 @@ import {
   extensionOf,
   fileIcon,
   formatBytes,
-  isAudioFile,
   isCodeName,
   isJsonFile,
   isMarkdownFile,
@@ -13,15 +12,7 @@ import {
   previewKind,
   previewType,
 } from "@agenteschat/client/lib/files";
-import {
-  Icon,
-  Spinner,
-  Tip,
-  VideoPlayer,
-  type VideoPlayerLabels,
-  VoicePlayer,
-  type VoicePlayerLabels,
-} from "@agenteschat/ui";
+import { Icon, Spinner, Tip, VideoPlayer, type VideoPlayerLabels } from "@agenteschat/ui";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useApi } from "@/api/context";
@@ -29,7 +20,7 @@ import { CodeBlock } from "@/components/CodeBlock";
 import { OfficePreview } from "@/components/live/office/OfficePreview";
 import { useOrg } from "@/components/org-context";
 import { Markdown } from "@/lib/markdown";
-import { setVoiceSpeed, useVoiceSpeed } from "@/lib/voice-speed";
+import { FileAudio } from "./FileAudio";
 import { ImageZoom } from "./ImageZoom";
 
 /** Object URLs for blobs (swappable: test DOMs may lack `URL.createObjectURL`). */
@@ -81,61 +72,6 @@ export function useVideoLabels(): VideoPlayerLabels {
   );
 }
 
-/** The audio player's words: a voice message's (an audio file plays in the same player). */
-function useAudioLabels(): VoicePlayerLabels {
-  const { t } = useTranslation();
-  return useMemo(
-    () => ({
-      play: t("voice.play"),
-      pause: t("voice.pausePlay"),
-      seek: t("voice.seek"),
-      speed: (speed: number) => t("voice.speedAt", { speed }),
-      expired: t("voice.expired"),
-      showText: t("voice.showText"),
-      hideText: t("voice.hideText"),
-      cantPlay: t("voice.cantPlay"),
-      retry: t("common.retry"),
-    }),
-    [t],
-  );
-}
-
-/**
- * An audio file (an mp3 an agent made, a recording someone sent): the voice message's player, streamed from the
- * download as media (never run as a page), at the speed voice messages share. No wave of its own, a flat line; its
- * length read from the audio. `caption`: its name and actions on a message.
- */
-export function FileAudio({
-  artifactId,
-  version,
-  caption,
-  className,
-}: {
-  artifactId: string;
-  version: number;
-  caption?: ReactNode;
-  className?: string;
-}) {
-  const { org } = useOrg();
-  const api = useApi();
-  const speed = useVoiceSpeed();
-  const labels = useAudioLabels();
-  return (
-    <VoicePlayer
-      key={`${artifactId}:${version}`}
-      className={className ? `file-audio ${className}` : "file-audio"}
-      src={api.artifacts.fileUrl(org.id, artifactId, { version })}
-      peaks={NO_PEAKS}
-      durationMs={0}
-      labels={labels}
-      speed={speed}
-      onSpeed={setVoiceSpeed}
-      caption={caption}
-    />
-  );
-}
-const NO_PEAKS: readonly number[] = [];
-
 /** Images up to this size get a thumbnail in the chat card (bigger ones only in the viewer). */
 export const MAX_THUMB_BYTES = 8 * 1024 * 1024;
 
@@ -171,6 +107,7 @@ export function FileVideo({
   actions,
   fallback,
   tip,
+  ratio,
 }: {
   content: ArtifactFileContent;
   artifactId: string;
@@ -179,6 +116,8 @@ export function FileVideo({
   actions?: ReactNode;
   fallback: ReactNode;
   tip?: string;
+  /** Its width over its height, when the server read them (`pictureRatio`): the tile's shape before it loads. */
+  ratio?: number | undefined;
 }) {
   const { org } = useOrg();
   const api = useApi();
@@ -191,6 +130,7 @@ export function FileVideo({
         <VideoPlayer
           src={api.artifacts.fileUrl(org.id, artifactId, { version })}
           name={content.name}
+          ratio={ratio}
           labels={labels}
           onOpen={onOpen}
           actions={actions}
@@ -204,8 +144,8 @@ export function FileVideo({
 
 /**
  * An uploaded file in the viewer (its name, size and Baixar are in the viewer's header): an inline preview only for
- * raster images and PDF (a blob of exactly that type, never the file's own origin), videos and audio in our players (a
- * media element never runs the file as a page), and the text of small text files, read-only (JSON formatted, as a code
+ * raster images and PDF (a blob of exactly that type, never the file's own origin), videos in our player and audio in
+ * the voice-message player (a media element never runs the file as a page), and the text of small text files, read-only (JSON formatted, as a code
  * block reads it, code highlighted, Markdown drawn).
  */
 export function FileView({
@@ -228,10 +168,11 @@ export function FileView({
   // An Office file is drawn from the server's reading of it (ADR 0198), never from its bytes here.
   const read = previewKind(content.contentType, content.name);
   const kind = isOfficePreview(read) ? null : read;
-  // A video streams from the download: any size plays. The rest load whole, up to the preview limit.
-  const canPreview = kind !== null && (kind === "video" || content.size <= MAX_PREVIEW_BYTES);
-  const { url, failed } = usePreviewUrl(artifactId, version, content.contentType, canPreview && kind !== "video");
-  const [videoFailed, setVideoFailed] = useState(false);
+  // A video or an audio file streams from the download: any size plays. The rest load whole, up to the preview limit.
+  const streams = kind === "video" || kind === "audio";
+  const canPreview = kind !== null && (streams || content.size <= MAX_PREVIEW_BYTES);
+  const { url, failed } = usePreviewUrl(artifactId, version, content.contentType, canPreview && !streams);
+  const [mediaFailed, setMediaFailed] = useState(false);
   const videoLabels = useVideoLabels();
 
   // A spreadsheet, a presentation or a Word document the server reads for the apps to draw (ADR 0198).
@@ -243,7 +184,7 @@ export function FileView({
   if (kind === "video") {
     return (
       <div className="file-view file-view--image">
-        {videoFailed ? (
+        {mediaFailed ? (
           <p className="small muted">{t("files.previewFailed")}</p>
         ) : (
           <VideoPlayer
@@ -252,7 +193,7 @@ export function FileView({
             src={api.artifacts.fileUrl(org.id, artifactId, { version })}
             name={content.name}
             labels={videoLabels}
-            onFailed={() => setVideoFailed(true)}
+            onFailed={() => setMediaFailed(true)}
             handoff={artifactId}
           />
         )}
@@ -260,10 +201,16 @@ export function FileView({
     );
   }
 
-  if (isAudioFile(content.name, content.contentType)) {
+  // Audio plays in the voice-message player, from the download in parts.
+  if (kind === "audio") {
     return (
       <div className="file-view file-view--audio">
-        <FileAudio artifactId={artifactId} version={version} />
+        <FileAudio
+          artifactId={artifactId}
+          version={version}
+          content={content}
+          fallback={<p className="small muted">{t("files.previewFailed")}</p>}
+        />
       </div>
     );
   }

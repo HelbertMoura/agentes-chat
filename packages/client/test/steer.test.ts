@@ -6,9 +6,11 @@ import {
   continuedRunIdOf,
   emptySteer,
   emptyStreams,
+  keptSteer,
   RealtimeConnection,
   reconcileRuns,
   reconcileSteer,
+  STEER_KEPT,
   seedSteerMessages,
   steerStateIn,
   steerStateOf,
@@ -225,6 +227,12 @@ describe("what became of a message sent while an agent works", () => {
     expect(r.m1?.agents).toEqual([["ada", "seen"]]);
   });
 
+  test("into a run parked on an outage, its receipt says the AI isn't answering, never that it answers", () => {
+    const at = { channelId: "c1", threadId: null, agentId: "ada", runId: "r1", messageId: "m1" };
+    const r = applyReceiptEvent({}, { type: "agent.run.steered", ...at, outage: true });
+    expect(r.m1?.agents).toEqual([["ada", "outage"]]);
+  });
+
   test("run.continued and meta.canceled.continuedRunId mark the stopped reply", () => {
     const stopped = {
       id: "m9",
@@ -351,5 +359,21 @@ describe("the live work: what it read, when it read it", () => {
     } as Ev);
     expect(s.runs.r1).toBeUndefined();
     expect(s.runs.r2).toMatchObject({ status: "thinking", agentId: "ada", threadId: "m1", triggerMessageId: "m9" });
+  });
+});
+
+describe("a long session", () => {
+  afterEach(() => steerStore.reset());
+
+  test("keeps the latest messages' runs and continuations, not every one ever listed", () => {
+    const many = Array.from({ length: STEER_KEPT + 1 }, (_, i) => person(`m${i}`, [`r${i}`]));
+    steerStore.seed("c1", many);
+    const seeded = Object.keys(steerStore.get().seeded);
+    // Past the mark, the oldest half goes: the newest stay, the first ones listed don't.
+    expect(seeded).toHaveLength(STEER_KEPT / 2);
+    expect(seeded.at(-1)).toBe(`m${STEER_KEPT}`);
+    expect(steerStore.get().seeded.m0).toBeUndefined();
+    const within = { ...emptySteer, live: {}, seeded: { a: { channelId: "c1", runs: [] } }, continued: {} };
+    expect(keptSteer(within)).toBe(within);
   });
 });

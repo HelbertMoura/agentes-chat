@@ -5,7 +5,7 @@ import {
   extensionOf,
   fileIcon,
   formatBytes,
-  isAudioFile,
+  hasThumbnail,
   isCodeName,
   pictureRatio,
   previewKind,
@@ -29,7 +29,8 @@ import { canCopyImage, contextMenuHandler, copyImage, type MenuEntry } from "@/l
 import { Markdown } from "@/lib/markdown";
 import { useToast } from "@/lib/toast";
 import { useArtifactDownload, useDeleteArtifact } from "./ArtifactActions";
-import { FileAudio, FileVideo, MAX_THUMB_BYTES, usePreviewUrl } from "./FileView";
+import { FileAudio } from "./FileAudio";
+import { FileVideo, MAX_THUMB_BYTES, usePreviewUrl } from "./FileView";
 import { HtmlFrame } from "./HtmlFrame";
 import { MermaidDiagram } from "./Mermaid";
 import { PdfCover } from "./PdfCover";
@@ -50,9 +51,10 @@ const COVER_CHARS = 1200;
  * on hover, and the desktop app's right click has the same actions. A picture is only the picture, as is a video its
  * player: their name and size are in their tip and in the viewer's header. A picture alone on its message shows whole inside its tile
  * (CSS: `.artifact-cards > :only-child`), in its own proportions when its size is known (`pictureRatio`). Every tile
- * has its size before what it holds loads (`LoadingTile`).
+ * has its size before what it holds loads (`LoadingTile`). A picture or a video whose card carries its file's facts
+ * (`quickFile`) draws from them at once, while its details load. `alone`: the only one on its message, drawn bigger.
  */
-export function ArtifactCard({ artifact: ref }: { artifact: ArtifactRef }) {
+export function ArtifactCard({ artifact: ref, alone = false }: { artifact: ArtifactRef; alone?: boolean }) {
   const { t, i18n } = useTranslation();
   const { org } = useOrg();
   const api = useApi();
@@ -62,7 +64,8 @@ export function ArtifactCard({ artifact: ref }: { artifact: ArtifactRef }) {
   const remove = useDeleteArtifact();
   const toast = useToast();
   const query = useArtifact(org.id, ref.deleted ? null : ref.id, ref.version);
-  const a = query.data;
+  const full = query.data;
+  const a = full ?? quickFile(ref);
   const navigate = useNavigate();
   // A live file is the file as it is now (ADR 0196 §7), whichever version the message named: its head's preview.
   const live = Boolean(a && isLiveFileKind(a.kind));
@@ -91,7 +94,7 @@ export function ArtifactCard({ artifact: ref }: { artifact: ArtifactRef }) {
   // A live file opens on its own page, as it is now (ADR 0196 §9); the rest in the viewer, at the version they name.
   const open = () => {
     if (live) openLivePage(navigate, org.id, a.id);
-    else viewer.open(a.id, a.shownVersion < a.version ? a.shownVersion : undefined);
+    else viewer.open(a.id, full ? (a.shownVersion < a.version ? a.shownVersion : undefined) : a.shownVersion);
   };
   // A live file downloads as it is now (its versions are checkpoints behind it, ADR 0196 §7).
   const save = () => void download.save(a, undefined, live ? undefined : a.shownVersion, a.content);
@@ -112,19 +115,24 @@ export function ArtifactCard({ artifact: ref }: { artifact: ArtifactRef }) {
           { kind: "item", id: "copy-image", label: t("contextMenu.copyImage"), icon: "image", run: copyPicture },
         ] as const)
       : []),
-    ...(a.inDrive !== false
+    // Sharing and deleting go by what the file's details say (who may, where it lives): only once they loaded.
+    ...(full && full.inDrive !== false
       ? ([
-          { kind: "item", id: "share", label: t("share.button"), icon: "personAdd", run: () => share.open(a) },
+          { kind: "item", id: "share", label: t("share.button"), icon: "personAdd", run: () => share.open(full) },
         ] as const)
       : []),
-    {
-      kind: "item",
-      id: "copy-link",
-      label: t("contextMenu.copyLink"),
-      icon: "link",
-      run: () => share.copyLink(a, a.shownVersion < a.version ? a.shownVersion : undefined),
-    },
-    ...(a.canDelete
+    ...(full
+      ? ([
+          {
+            kind: "item",
+            id: "copy-link",
+            label: t("contextMenu.copyLink"),
+            icon: "link",
+            run: () => share.copyLink(full, full.shownVersion < full.version ? full.shownVersion : undefined),
+          },
+        ] as const)
+      : []),
+    ...(full?.canDelete
       ? ([
           { kind: "separator" },
           {
@@ -133,7 +141,7 @@ export function ArtifactCard({ artifact: ref }: { artifact: ArtifactRef }) {
             label: t("artifacts.delete"),
             icon: "trash",
             danger: true,
-            run: () => remove.ask(a),
+            run: () => remove.ask(full),
           },
         ] as const)
       : []),
@@ -174,6 +182,7 @@ export function ArtifactCard({ artifact: ref }: { artifact: ArtifactRef }) {
           artifactId={a.id}
           version={a.shownVersion}
           onOpen={open}
+          ratio={pictureRatio(content) ?? pictureRatio(ref)}
           tip={`${a.title} · ${meta}`}
           actions={<TileActions title={a.title} actions={actions} onDownload={save} />}
           // A video this browser can't play is a file's tile.
@@ -193,41 +202,31 @@ export function ArtifactCard({ artifact: ref }: { artifact: ArtifactRef }) {
         {share.dialog}
       </>
     );
-  // An audio file plays right there, its name (which opens the viewer) and actions under the player.
-  if (isAudioFile(content.name, content.contentType))
+  if (kind === "audio")
     return (
       <>
-        <FileAudio
-          artifactId={a.id}
-          version={a.shownVersion}
-          className="artifact-audio"
-          caption={
-            // biome-ignore lint/a11y/noStaticElementInteractions: right click only; the name and the buttons are the accessible ways
-            <div
-              className="artifact-audio__foot"
-              onContextMenu={contextMenuHandler(() => [{ kind: "header", label: a.title }, ...actions()])}
-            >
-              <button type="button" className="artifact-audio__name" onClick={open}>
-                <span className="artifact-tile__title">{a.title}</span>
-                <span className="artifact-tile__meta tabular">{meta}</span>
-              </button>
-              <span className="artifact-audio__acts">
-                <TileActions title={a.title} actions={actions} onDownload={save} />
-              </span>
-            </div>
-          }
+        <AudioAttachment
+          artifact={a}
+          content={content}
+          meta={meta}
+          icon={icon}
+          actions={actions}
+          onOpen={open}
+          onDownload={save}
         />
         {remove.dialog}
         {share.dialog}
       </>
     );
-  if (kind === "image" && content.size <= MAX_THUMB_BYTES)
+  if (kind === "image" && (hasThumbnail(content.contentType) || content.size <= MAX_THUMB_BYTES))
     return tile({
       media: true,
       ratio: pictureRatio(content) ?? pictureRatio(ref),
       icon: "image",
       meta,
-      cover: <PictureCover content={content} artifactId={a.id} version={a.shownVersion} title={a.title} />,
+      cover: (
+        <PictureCover content={content} artifactId={a.id} version={a.shownVersion} title={a.title} alone={alone} />
+      ),
     });
   if (kind === "pdf")
     return tile({
@@ -251,28 +250,24 @@ export function ArtifactCard({ artifact: ref }: { artifact: ArtifactRef }) {
  */
 function LoadingTile({ title = "", ratio }: { title?: string; ratio?: number }) {
   const kind = previewKindOfName(title);
-  // An audio file's player, still, with its name: what `FileAudio` draws once its details are here.
-  if (isAudioFile(title))
+  if (kind === "audio")
     return (
-      <div className="ac-voice file-audio artifact-audio artifact-audio--loading" aria-busy="true">
-        <div className="ac-voice__card">
-          <div className="ac-voice__bar">
-            <span className="ac-voice__play" />
-            <span className="ac-voice__wave" />
-          </div>
-          <div className="artifact-audio__foot">
-            <span className="artifact-audio__name">
-              <span className="artifact-tile__title">{title}</span>
-              <span className="artifact-tile__meta">{" "}</span>
-            </span>
-          </div>
+      <div className="artifact-audio" aria-busy="true">
+        <div className="ac-voice">
+          <div className="ac-voice__card artifact-audio__wait" />
+        </div>
+        <div className="artifact-audio__foot" aria-hidden="true">
+          <span className="artifact-audio__label ac-iconline">
+            <Icon name={fileIcon(title)} size={16} />
+            <span className="artifact-audio__title">{title || "\u00a0"}</span>
+          </span>
         </div>
       </div>
     );
   if (kind === "video")
     return (
       <div className="artifact-tile artifact-tile--loading" data-kind="video" aria-busy="true">
-        <span className="ac-video ac-video--tile">
+        <span className="ac-video ac-video--tile" {...ratioProps(ratio)}>
           <span className="ac-video__media" />
         </span>
       </div>
@@ -298,7 +293,7 @@ function LoadingTile({ title = "", ratio }: { title?: string; ratio?: number }) 
   );
 }
 
-/** A tile in a picture's proportions: alone on its message it is that shape (CSS: `[data-ratio]`). */
+/** A tile in a picture's proportions: alone on its message it is that shape (CSS: `[data-ratio]`); a video's always. */
 const ratioProps = (ratio: number | undefined) =>
   ratio ? { "data-ratio": true, style: { "--ratio": String(ratio) } as CSSProperties } : {};
 
@@ -340,7 +335,7 @@ function metaOf(t: TFunction, content: ArtifactContent, version: number) {
 }
 
 interface TileProps {
-  artifact: Artifact;
+  artifact: Pick<Artifact, "kind" | "title">;
   icon: IconName;
   meta: string;
   cover: ReactNode;
@@ -403,6 +398,68 @@ function Tile({ artifact: a, icon, meta, cover, media, ratio, actions, onOpen, o
 }
 
 /** Download, then More (the right click's other actions), as small ghost buttons. */
+/**
+ * An audio file on a message plays in place, in the voice-message player, with its name under it (which opens it) and
+ * the tile's actions. One this browser can't play is its file's tile.
+ */
+function AudioAttachment({
+  artifact: a,
+  content,
+  meta,
+  icon,
+  actions,
+  onOpen,
+  onDownload,
+}: Pick<TileProps, "meta" | "icon" | "actions" | "onOpen" | "onDownload"> & {
+  artifact: Pick<Artifact, "id" | "kind" | "title"> & { shownVersion: number };
+  content: ArtifactFileContent;
+}) {
+  const { t } = useTranslation();
+  const [failed, setFailed] = useState(false);
+  if (failed)
+    return (
+      <Tile
+        artifact={a}
+        actions={actions}
+        onOpen={onOpen}
+        onDownload={onDownload}
+        icon={icon}
+        meta={meta}
+        cover={<TypeCover content={content} />}
+      />
+    );
+  return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: right click only; its name and its buttons are the accessible ways
+    <div
+      className="artifact-audio"
+      onContextMenu={contextMenuHandler(() => [{ kind: "header", label: a.title }, ...actions()])}
+    >
+      <FileAudio
+        artifactId={a.id}
+        version={a.shownVersion}
+        content={content}
+        fallback={null}
+        onFailed={() => setFailed(true)}
+      />
+      <div className="artifact-audio__foot">
+        <span className="artifact-audio__label ac-iconline">
+          <Icon name={icon} size={16} />
+          <button
+            type="button"
+            className="artifact-audio__name"
+            aria-label={t("artifacts.open", { title: a.title })}
+            onClick={onOpen}
+          >
+            <span className="artifact-audio__title">{a.title}</span>
+            <span className="tabular">{meta}</span>
+          </button>
+        </span>
+        <TileActions title={a.title} actions={actions} onDownload={onDownload} />
+      </div>
+    </div>
+  );
+}
+
 function TileActions({
   title,
   actions,
@@ -529,6 +586,52 @@ function PictureCover({
   artifactId,
   version,
   title,
+  alone = false,
+}: {
+  content: ArtifactFileContent;
+  artifactId: string;
+  version: number;
+  title: string;
+  alone?: boolean;
+}) {
+  const { t } = useTranslation();
+  const { org } = useOrg();
+  const api = useApi();
+  // What the server can't make small (a picture it can't decode): the file itself, as before, when not too big.
+  const [whole, setWhole] = useState(!hasThumbnail(content.contentType));
+  if (whole)
+    return content.size <= MAX_THUMB_BYTES ? (
+      <WholePicture content={content} artifactId={artifactId} version={version} title={title} />
+    ) : (
+      <TypeCover content={content} />
+    );
+  const src = (width: 480 | 960) => api.artifacts.thumbUrl(org.id, artifactId, { version, width });
+  return (
+    <span className="artifact-tile__picture">
+      <img
+        src={src(480)}
+        srcSet={`${src(480)} 480w, ${src(960)} 960w`}
+        sizes={alone ? "400px" : "206px"}
+        alt={t("files.imageAlt", { title })}
+        loading="lazy"
+        decoding="async"
+        // Loaded after it showed (a picture just sent, not one the browser kept): it comes in softly.
+        ref={(img) => {
+          if (img && !img.complete)
+            img.addEventListener("load", () => img.setAttribute("data-fresh", ""), { once: true });
+        }}
+        onError={() => setWhole(true)}
+      />
+    </span>
+  );
+}
+
+/** A picture's whole file, for one the server doesn't make small. */
+function WholePicture({
+  content,
+  artifactId,
+  version,
+  title,
 }: {
   content: ArtifactFileContent;
   artifactId: string;
@@ -545,6 +648,26 @@ function PictureCover({
       {url && <img src={url} alt={t("files.imageAlt", { title })} data-fresh={fresh.current || undefined} />}
     </span>
   );
+}
+
+/**
+ * A card's picture or video as its facts tell it (`ArtifactRef`, servers from 2026-11 on): enough to draw its tile at
+ * once, never what its actions need (who may share or delete it), which come with its details.
+ */
+function quickFile(ref: ArtifactRef) {
+  const { name, contentType, size, version } = ref;
+  if (ref.deleted || !name || !contentType || size === undefined || !version) return null;
+  const kind = previewKind(contentType);
+  if (kind !== "video" && !(kind === "image" && hasThumbnail(contentType))) return null;
+  const content: ArtifactFileContent = {
+    kind: "file",
+    name,
+    contentType,
+    size,
+    sha256: "",
+    ...(ref.width && ref.height ? { width: ref.width, height: ref.height } : {}),
+  };
+  return { id: ref.id, kind: "file" as const, title: ref.title ?? name, version, shownVersion: version, content };
 }
 
 /** An uploaded file's cover: a CSV as its table, a small text file as its first lines, anything else its type. */

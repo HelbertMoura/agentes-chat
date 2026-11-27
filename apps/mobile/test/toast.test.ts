@@ -9,7 +9,7 @@ describe("toasts", () => {
 
   test("drawn in TrueSheet's overlay, above every sheet, and only while one shows", () => {
     expect(toast).toContain('import { TrueSheetOverlay } from "@lodev09/react-native-true-sheet";');
-    // Never over the app lock (ADR 0220).
+    // Never over the app lock (ADR 0260).
     expect(toast).toMatch(/\{toasts\.shown && !lock\.locked && !lock\.covered \? \(\s*<ToastLayer>/);
     // A root of its own for the gestures there, as tall as the toast: a touch elsewhere goes to what is under it. Its
     // sides are 12 from the window's, or from the half past the iPhone Duo's fold (fold-room.test.ts).

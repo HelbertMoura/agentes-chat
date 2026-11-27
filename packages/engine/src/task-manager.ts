@@ -13,11 +13,12 @@ import {
 import { ACCESS_COLUMNS, managesAgentSql, ownsAgent, ownsAgentSql } from "./audience";
 import { runAuthorityById } from "./authority";
 import type { ModelScope } from "./brains/select";
-import { TtlCache } from "./cache";
+import { caches, TtlCache } from "./cache";
 import { computerQueue as lineOfComputer, seesRunSql } from "./computer-queue";
 import { isAgentOnlyDm } from "./dms";
 import { NotFoundError } from "./errors";
 import { type CanceledReturn, canceledReturns, type PendingReturn, pendingReturns } from "./follow-through";
+import { type ShownMaintenance, shownMaintenance } from "./machines";
 import { replyExcerpt } from "./messages";
 import { requireActiveMembership } from "./organizations";
 import { pendingIds } from "./recovery";
@@ -89,6 +90,10 @@ export interface TaskWait {
   since: string | null;
   /** The caller may press Continuar agora (`mayContinuePause`; the server checks again). */
   canContinue: boolean;
+  /** Its computer is away for what we do to it (a move, a restart…): it comes back by itself. */
+  moving?: boolean;
+  /** What we do to it (`shownMaintenance`), said instead of offline. */
+  maintenance?: ShownMaintenance;
 }
 
 /** Work one agent asked of another, in their private conversation (`ask_agent`, `tell_agent`, ADR 0034, ADR 0095). */
@@ -278,6 +283,9 @@ type Row = {
   owner_role_id: string | null;
   machine_id: string | null;
   machine_name: string | null;
+  /** What we last said we do to its computer (`moving_at`, `maintenance`): a wait that began so says it while shown. */
+  machine_said_at: Date | string | null;
+  machine_maintenance: schema.MachineMaintenanceRecord | string | null;
   requester_id: string | null;
   requester_name: string | null;
   asker_agent_id: string | null;
@@ -316,6 +324,7 @@ interface StoredWait {
   waitKey?: string;
   /** Ms. */
   since?: number;
+  moving?: boolean;
 }
 
 /** Who answers for the row's agent: a person or a role (ADR 0085, addendum of 2026-11-21). */
@@ -390,6 +399,7 @@ async function visibleRuns(
         r.started_at, r.created_at, r.finished_at, r.error, c.kind, c.name, c.dm_key, t.title,
         array_to_json(r.pending_message_ids || r.after_message_ids) as pending, r.background, r.brain,
         a.owner_user_id, a.owner_role_id, a.machine_id, mc.name as machine_name,
+        mc.moving_at as machine_said_at, mc.maintenance as machine_maintenance,
         trig.author_user_id as requester_id, ru.name as requester_name, trig.author_agent_id as asker_agent_id,
         ${which.active ? sql`consult.question` : sql`null`} as question,
         rt.id as routine_id, rt.name as routine_name, w.title as work_title, w.plan as work_plan,
@@ -400,7 +410,7 @@ async function visibleRuns(
           // An ended run's wait is never read, and reading it would detoast every candidate's transcript (a large
           // jsonb) before the sort keeps the last few.
           which.active
-            ? sql`coalesce(r.transcript->'waitingForBrain', case when r.status = 'running' and r.waiting_machine_id is not null
+            ? sql`coalesce(coalesce(r.state, r.transcript)->'waitingForBrain', case when r.status = 'running' and r.waiting_machine_id is not null
           then '{"code":"busy"}'::jsonb end)`
             : sql`null`
         } as wait, pause.data as wait_pause, r.waiting_machine_id,
@@ -444,7 +454,7 @@ async function visibleRuns(
         select s.data->'pause' as data from ${agentRunSteps} s
         where s.run_id = r.id and s.kind = 'error' and s.data->>'reason' = 'usage_wait'
         order by s.seq desc limit 1
-      ) pause on ${which.active ? sql`r.transcript->'waitingForBrain'->>'code' = 'usage_pause'` : sql`false`}
+      ) pause on ${which.active ? sql`coalesce(r.state, r.transcript)->'waitingForBrain'->>'code' = 'usage_pause'` : sql`false`}
       where r.org_id = ${orgId}::uuid and ${status} and ${seesSql(userId, orgId)}
       order by ${which.active ? sql`r.created_at desc` : sql`r.finished_at desc`}, r.id desc
       limit ${limit}`),
@@ -564,13 +574,20 @@ async function handedFrom(db: Database, userId: string, orgId: string, runIds: s
 
 /**
  * The workspace's open asks as edges, by the run that asked: the run each waits on, or the ask itself while no run took
- * it yet (`waking`: its wake waits for room, or a stretch holds it). A stop takes those too.
+ * it yet (`waking`: its wake waits for room, or a stretch holds it). A stop takes those too. Kept a moment for every
+ * viewer (`caches.orgReads`).
  */
 async function openAsks(db: Database, orgId: string) {
-  const rows = await db
-    .select({ id: agentConsultations.id, asker: agentConsultations.askerRunId, target: agentConsultations.targetRunId })
-    .from(agentConsultations)
-    .where(and(eq(agentConsultations.orgId, orgId), eq(agentConsultations.status, "open")));
+  const rows = (await caches.orgReads.getOrLoad(`${orgId}:asks`, () =>
+    db
+      .select({
+        id: agentConsultations.id,
+        asker: agentConsultations.askerRunId,
+        target: agentConsultations.targetRunId,
+      })
+      .from(agentConsultations)
+      .where(and(eq(agentConsultations.orgId, orgId), eq(agentConsultations.status, "open"))),
+  )) as { id: string; asker: string; target: string | null }[];
   const edges = new Map<string, string[]>();
   for (const r of rows) edges.set(r.asker, [...(edges.get(r.asker) ?? []), r.target ?? r.id]);
   return { edges, waking: rows.flatMap((r) => (r.target ? [] : [r.id])) };
@@ -641,6 +658,7 @@ function waitOf(r: Row): TaskWait | null {
   const wait = parsed(r.wait);
   if (r.status !== "waiting_input" || !wait?.code) return null;
   const pause = parsed(r.wait_pause);
+  const maintenance = waitMaintenance(r, wait.moving);
   return {
     code: wait.code,
     key: str(wait.waitKey),
@@ -652,7 +670,22 @@ function waitOf(r: Row): TaskWait | null {
     resetsAt: str(wait.resetsAt),
     since: typeof wait.since === "number" ? new Date(wait.since).toISOString() : null,
     canContinue: false,
+    ...(maintenance ? { moving: true, maintenance } : {}),
   };
+}
+
+/** The wait began away for what we do to its computer (`wait.moving`) and that is still said (`shownMaintenance`). */
+function waitMaintenance(r: Pick<Row, "machine_said_at" | "machine_maintenance">, moving: boolean | undefined) {
+  if (!moving || !r.machine_said_at) return null;
+  // Away: the wait began so, and the runs' own wake tells it when it is back.
+  return shownMaintenance({
+    kind: "managed",
+    deletedAt: null,
+    online: false,
+    lastSeenAt: null,
+    movingAt: new Date(r.machine_said_at),
+    maintenance: parsed(r.machine_maintenance),
+  });
 }
 
 const planOf = (raw: { state: string }[] | string | null) => {
@@ -806,9 +839,9 @@ export async function taskManager(
 }
 
 const IN_LINE = sql`r.waiting_machine_id is not null and (r.status = 'running'
-  or (r.status = 'waiting_input' and r.transcript->'waitingForBrain'->>'code' = 'busy'))`;
+  or (r.status = 'waiting_input' and coalesce(r.state, r.transcript)->'waitingForBrain'->>'code' = 'busy'))`;
 /** The computer a running turn is on: the one it asked for room (`roomAsk`), as the line's view counts it. */
-const RUNS_ON = sql`r.transcript->'roomAsk'->>'machineId'`;
+const RUNS_ON = sql`coalesce(r.state, r.transcript)->'roomAsk'->>'machineId'`;
 
 /**
  * Each task's place in its computer's line, from the line's own view (`computerQueue` in computer-queue.ts, ADR 0032
@@ -832,8 +865,11 @@ async function computerLines(db: Database, userId: string, orgId: string, machin
   return places;
 }
 
-/** The workspace's computers with a turn running or waiting for room. */
-async function computerSummaries(db: Database, orgId: string): Promise<ComputerSummary[]> {
+/** The workspace's computers with a turn running or waiting for room, kept a moment for every viewer. */
+const computerSummaries = (db: Database, orgId: string) =>
+  caches.orgReads.getOrLoad(`${orgId}:computers`, () => loadComputerSummaries(db, orgId)) as Promise<ComputerSummary[]>;
+
+async function loadComputerSummaries(db: Database, orgId: string): Promise<ComputerSummary[]> {
   const rows = rowsOf<{ id: string; name: string; working: number | string; in_line: number | string }>(
     await db.execute(sql`select m.id, m.name,
         (select count(*) from ${agentRuns} r join ${agents} a on a.id = r.agent_id

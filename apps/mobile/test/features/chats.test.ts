@@ -8,11 +8,13 @@ import i18next from "i18next";
 import {
   appBadgeCount,
   buildConversations,
+  closedUnread,
   hiddenAgentIds,
   homeViewOf,
   isListedThread,
   isListKind,
   isQuietGeneral,
+  keptWhenClosed,
   missionState,
   missionsWaiting,
   missionWaitingItems,
@@ -130,6 +132,25 @@ describe("the list", () => {
     expect(rowsOfKind(rows, "channels").map((r) => r.key)).toEqual(["c:c1", "c:c2"]);
     expect(rowsOfKind(rows, "people")).toEqual([]);
     expect(unreadConversations(rows)).toBe(1);
+  });
+});
+
+describe("a personal workspace's group conversations by their agents (ADR 0159, amendment of 2026-11-26)", () => {
+  const rows = (personal: boolean, c: Partial<Channel>) =>
+    buildConversations({ channels: [{ ...channel("c1", "Viagem pra Lisboa"), ...c }], dms: [], threads: [], personal });
+  const face = (personal: boolean, c: Partial<Channel>) => {
+    const row = rows(personal, c)[0];
+    return row?.kind === "channel" ? row.face : "not a channel";
+  };
+
+  test("a server that lists the channel's agents: they are its face, with how many it has", () => {
+    expect(face(true, { agentIds: ["a1", "a2"], agentCount: 5 })).toEqual({ agentIds: ["a1", "a2"], count: 5 });
+    expect(face(true, { agentIds: [], agentCount: 0 })).toEqual({ agentIds: [], count: 0 });
+  });
+
+  test("an older server (no agentIds) or a team's workspace: a channel with its #", () => {
+    expect(face(true, {})).toBeUndefined();
+    expect(face(false, { agentIds: ["a1"], agentCount: 1 })).toBeUndefined();
   });
 });
 
@@ -717,7 +738,7 @@ describe("Conversas by sector (a team's Setores)", () => {
       channelId: "geral",
       name: "geral",
       topic: "",
-      categoryId: null,
+      groupId: null,
       last: null,
       at: "2026-11-22T09:00:00Z",
       unread: 0,
@@ -747,6 +768,59 @@ describe("Conversas by sector (a team's Setores)", () => {
     expect(homeViewOf("sectors")).toBe("sectors");
     expect(homeViewOf(null)).toBe("recent");
     expect(homeViewOf("anything")).toBe("recent");
+  });
+
+  test("a sector holds its channels after its agents (ADR 0240); channels in none stay in Canais", () => {
+    const agent = (id: string, at: string, over: { unread?: number; working?: boolean } = {}) =>
+      ({
+        kind: "dm",
+        key: `dm:${id}`,
+        channelId: `c-${id}`,
+        with: { type: "agent", id, name: id, handle: id },
+        last: null,
+        at,
+        unread: over.unread ?? 0,
+        working: over.working ?? false,
+      }) as const;
+    const channel = (
+      id: string,
+      groupId: string | null,
+      at: string,
+      over: { unread?: number; mentions?: number } = {},
+    ) =>
+      ({
+        kind: "channel",
+        key: `ch:${id}`,
+        channelId: id,
+        name: id,
+        topic: "",
+        groupId,
+        last: null,
+        at,
+        unread: over.unread ?? 0,
+        mentions: over.mentions ?? 0,
+      }) as const;
+    const rows = [
+      agent("ada", "5"),
+      agent("bento", "4", { unread: 2 }),
+      agent("clara", "3", { working: true }),
+      channel("suporte-n1", "sup", "2", { unread: 3 }),
+      channel("bugs", "sup", "1"),
+      channel("geral", null, "6"),
+      channel("old", "gone", "0"),
+    ];
+    const groups = [{ id: "sup", name: "Suporte", agentIds: ["ada", "bento", "clara"] }];
+    const sections = sectorSections(rows, groups);
+    expect(sections.map((s) => [s.key, s.rows.map((r) => r.key), s.channelsFrom])).toEqual([
+      ["sector:sup", ["dm:ada", "dm:bento", "dm:clara", "ch:suporte-n1", "ch:bugs"], 3],
+      // A channel whose sector isn't listed shows with the ones in none.
+      ["channels", ["ch:geral", "ch:old"], 0],
+    ]);
+    // Closed: one line that keeps who wrote to me, who works and the unread channels, and one count for them all.
+    const sector = sections[0]?.rows ?? [];
+    expect(sector.filter(keptWhenClosed).map((r) => r.key)).toEqual(["dm:bento", "dm:clara", "ch:suporte-n1"]);
+    expect(closedUnread(sector)).toBe(5);
+    expect(closedUnread([channel("muted", "sup", "1", { mentions: 1 })])).toBe(1);
   });
 
   test("the view is a bar button with the system's menu, only in a team; an agent's row says its role", () => {

@@ -21,7 +21,7 @@ import {
   seatPlace,
   seatState,
   type ToolContext,
-  UNASKED_SEAT_MESSAGE,
+  updateComputerDevice,
   viewerScope,
 } from "../src";
 import { addMember, type Fixture, setup } from "./fixtures";
@@ -44,8 +44,11 @@ const ACCESS = {
   tools: { claude: true, codex: true, commands: true, browser: true, desktop: true, terminal: true },
 };
 
-/** The workspace's own computer with its runner connected; `system`: each agent is its own OS user there. */
-async function home(system = true) {
+/**
+ * The workspace's own computer with its runner connected; `system`: each agent is its own OS user there. `kind`
+ * `connected`: one a person paired, the workspace's own only once marked so.
+ */
+async function home(system = true, kind: "host" | "connected" = "host") {
   f = await setup({ machines: true, reply: () => ({ chunks: ["ok"] }) });
   const hub = f.machineHub as MachineHub;
   await ensureRightHand(f.db, f.org.id);
@@ -62,7 +65,7 @@ async function home(system = true) {
   };
   await f.db
     .update(schema.machines)
-    .set({ kind: "host", executors, access: ACCESS as never })
+    .set({ kind, executors, access: ACCESS as never })
     .where(eq(schema.machines.id, paired.machineId));
   const ran: { command: string; agent: string | undefined }[] = [];
   const runner = fakeRunner(hub, {
@@ -211,8 +214,8 @@ test("a background task runs in the asker's seat, and what follows it names that
   for (const r of requests().slice(before)) expect(r.agent?.id).not.toBe(lodi.id);
 });
 
-test("a channel mention works in the shared seat, and a routine in its creator's own DM has no seat", async () => {
-  const { lodi, ran, requests } = await home();
+test("a channel mention and a routine in its creator's own DM both work in the shared seat", async () => {
+  const { lodi, ran } = await home();
   const channel = await lodiRun(lodi.id, f.owner.id, { channelId: f.general.id });
   expect((await runCode(channel)).isError).toBeFalsy();
   expect(await seatState(f.db, { ...channel, id: channel.runId })).toBe("shared");
@@ -221,16 +224,12 @@ test("a channel mention works in the shared seat, and a routine in its creator's
   const shared = await seatId(SHARED_SEAT);
   expect(ran.map((r) => r.agent)).toEqual([shared]);
 
-  // A routine's run may carry what it read from outside: it gets neither its creator's seat nor the shared one.
+  // A routine's run may carry what it read from outside: it works in the shared seat, never its creator's.
   const routine = await lodiRun(lodi.id, f.owner.id, { routine: true });
-  const before = requests().length;
-  const said = await runCode(routine);
-  expect(said.isError).toBe(true);
-  expect(said.content).toContain(UNASKED_SEAT_MESSAGE);
-  expect(requests().length).toBe(before);
-  expect(await seatState(f.db, { ...routine, id: routine.runId })).toBe("none");
+  expect((await runCode(routine)).isError).toBeFalsy();
+  expect(await seatState(f.db, { ...routine, id: routine.runId })).toBe("shared");
   expect(await seatOf(f.db, f.org.id, f.owner.id, false)).toBeNull();
-  expect(ran.some((r) => r.agent === lodi.id)).toBe(false);
+  expect(ran.map((r) => r.agent)).toEqual([shared, shared]);
 });
 
 test("a computer that runs every agent as one user gives each person a place there, driven only by who connected it", async () => {
@@ -272,6 +271,31 @@ test("a computer that runs every agent as one user gives each person a place the
   expect(await stream(f.owner.id, terminal)).toMatchObject({ machineId, agent: { id: await seatId(f.owner.id) } });
   expect((await computerDriving(f.db, bia.id, f.org.id, lodi.id)).refusal).toBe("pairer");
   expect((await computerDriving(f.db, f.owner.id, f.org.id, lodi.id)).refusal).toBeNull();
+});
+
+test("a connected computer marked the workspace's and open to everyone is the right hand's computer", async () => {
+  const { hub, lodi, machineId, ran, runner } = await home(false, "connected");
+  const mine = await lodiRun(lodi.id, f.owner.id);
+  const noHome = "this workspace has no computer of its own connected";
+  expect(JSON.stringify((await runCode(mine)).content)).toContain(noHome);
+
+  const update = (input: Parameters<typeof updateComputerDevice>[4]) =>
+    updateComputerDevice({ db: f.db, pubsub: f.pubsub, hub }, f.owner.id, f.org.id, machineId, input);
+  // The workspace's, but kept to the person who connected it: a seat there would open it to every member.
+  await update({ belongsToWorkspace: true });
+  expect(JSON.stringify((await runCode(mine)).content)).toContain(noHome);
+
+  const framesBefore = runner.sent.length;
+  await update({ audience: { mode: "everyone", userIds: [], roleIds: [] } });
+  // Its runner hears whom it serves now.
+  expect(runner.sent.slice(framesBefore).some((frame) => frame.type === "agents")).toBe(true);
+  expect((await runCode(mine)).isError).toBeFalsy();
+  expect(ran.map((r) => r.agent)).toEqual([await seatId(f.owner.id)]);
+
+  // Connected by a member who is no admin: whoever runs it would read every member's right hand there.
+  const member = await addMember(f.db, f.org.id, "member", "Pat Example");
+  await f.db.update(schema.machines).set({ pairedByUserId: member.id }).where(eq(schema.machines.id, machineId));
+  expect(JSON.stringify((await runCode(mine)).content)).toContain(noHome);
 });
 
 test("the hub refuses the agent's own id for anything but its locked chat turn", async () => {

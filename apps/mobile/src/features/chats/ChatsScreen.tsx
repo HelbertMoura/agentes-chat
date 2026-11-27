@@ -9,8 +9,10 @@ import { Stack, useIsFocused } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Platform, View } from "react-native";
+import { markFirstRows } from "@/lib/perf";
 import { readValueSync, STORED, writeValue } from "@/lib/storage";
 import { useOrg } from "@/providers/org";
+import { useRealtime } from "@/providers/realtime";
 import {
   type HeaderAction,
   LargeTitleScreen,
@@ -24,7 +26,7 @@ import {
 } from "@/ui";
 import { router } from "@/ui/navigation";
 import { workByAgent } from "../agents/logic";
-import { useRowMenus } from "../categories/menus";
+import { useRowMenus } from "../channel-sectors/menus";
 import { SetupNotice } from "../computer/SetupWait";
 import { chatHref } from "../links/logic";
 import { useOpenStart } from "../me/useStart";
@@ -32,6 +34,7 @@ import { useOpenDm } from "../new/useOpenDm";
 import { OutageNotices } from "../outages/OutageNotice";
 import { useMachineOutages } from "../outages/queries";
 import { RightHandAsk } from "../right-hand/Pin";
+import { teamArrivals } from "../right-hand/team-arrivals";
 import { FirstUse } from "../shared/FirstUse";
 import { useDirectory, useMeId, useOrgId, usePullRefresh } from "../shared/hooks";
 import { pickOne } from "../shared/PickerSheet";
@@ -48,15 +51,18 @@ import { DeletingNotice } from "./DeletingNotice";
 import { FirstAgentEmpty, Greeting, GreetingSky } from "./Greeting";
 import { useHomeEntrance, useWake } from "./HomeEntrance";
 import { HomeRow } from "./HomeRow";
-import { CollapsibleSection, LandRow, SeeAllRow, useCollapsedSections } from "./HomeSection";
+import { CollapsibleSection, LandRow, SectorLine, SeeAllRow, useCollapsedSections } from "./HomeSection";
 import { HomeServerError, HomeServerNotice } from "./HomeServerError";
 import { HomeWidgets } from "./HomeWidgets";
+import { InvitedNotice } from "./InvitedNotice";
 import {
   agentStarters,
   type ConversationRow,
+  closedUnread,
   type HomeSectorSection,
   type HomeView,
   homeViewOf,
+  keptWhenClosed,
   type ListKind,
   pinnedRows,
   RECENT_MAX,
@@ -76,6 +82,11 @@ import { useWaitingItems } from "./useWaitingItems";
 
 /** Faces of the home that move, the pinned ones at work first, then the first rows (a long list stays light). */
 const LIVE_ROWS = 6;
+/**
+ * A section of Setores up to this long glides its rows to their new places as they reorder; a longer one (a workspace
+ * with hundreds of channels) jumps, or each new message would start a native transition on every row.
+ */
+const MOVING_ROWS = 30;
 /**
  * The team peeking past the list's end (`TeamPeek`) where the list reports a pull there: iOS bounces past its end;
  * Android's list stops at it (as in a conversation, `ChatPeek`).
@@ -165,6 +176,13 @@ function Home() {
   const focused = useIsFocused();
   // What the person chose to open when the app starts goes over Conversas, once (ADR 0108).
   useOpenStart(focused);
+  // A team just made from Lodi's card: its conversations come in once, the next time Conversas shows.
+  const [fresh, setFresh] = useState<ReadonlySet<string>>(() => new Set());
+  useEffect(() => {
+    if (!focused) return;
+    const keys = teamArrivals.takeFresh();
+    if (keys.size > 0) setFresh(keys);
+  }, [focused]);
   const tabHeader = useTabHeader();
   // Beside "+", where the AI accounts' limits stand (ADR 0063 addendum 2026-11-18).
   const quotaRing = useQuotaRing();
@@ -242,11 +260,14 @@ function Home() {
     [muteChannel],
   );
 
+  // Who is working: with the socket open, every run's start and end comes as `agent.status` and reads it again; the
+  // poll is for a socket that isn't there.
+  const socketOpen = useRealtime().status === "open";
   useEffect(() => {
-    if (!focused) return;
+    if (!focused || socketOpen) return;
     const timer = setInterval(() => void qc.invalidateQueries({ queryKey: keys.working(orgId) }), WORKING_POLL_MS);
     return () => clearInterval(timer);
-  }, [focused, qc, orgId]);
+  }, [focused, socketOpen, qc, orgId]);
 
   const outages = useMachineOutages();
   const offline = useMemo(() => waitingComputerByAgent(outages.outages), [outages.outages]);
@@ -312,6 +333,10 @@ function Home() {
   const empty = !list.loading && !failed && pinned.rows.length === 0 && !teamListed;
   // The first load: the rows arrive over the stand-ins (a refetch plays nothing).
   const load = useFirstLoad(list.loading);
+  const hasRows = list.rows.length > 0;
+  useEffect(() => {
+    if (hasRows) markFirstRows();
+  }, [hasRows]);
 
   // The first Conversas after the splash is already in place under it (the splash's ring opens on it): only the right
   // hand's face wakes, once it is in view.
@@ -382,6 +407,7 @@ function Home() {
       ) : (
         <>
           <ConfirmEmailNotice />
+          <InvitedNotice />
           <SetupNotice />
           <OutageNotices />
         </>
@@ -425,41 +451,63 @@ function Home() {
                 />
               </LandRow>
               {view === "sectors"
-                ? sectors.map((section) => (
-                    <CollapsibleSection
-                      key={section.key}
-                      title={sectionTitle(section)}
-                      count={section.rows.length}
-                      {...(section.group
-                        ? {
-                            mark: (
-                              <RoleMark color={section.group.color ?? "graphite"} icon={section.group.icon} size={20} />
-                            ),
-                          }
-                        : {})}
-                      collapsed={sectorsFold.collapsed.includes(section.key)}
-                      onToggle={() => sectorsFold.toggle(section.key)}
-                    >
-                      {section.rows.map((r, i) => (
-                        <LandRow key={r.key} land={load.landing} index={2 + i} moves>
-                          <HomeRow
-                            row={r}
-                            facts={factsOf(r, agentStates.get(r.key))}
-                            divider={i > 0}
-                            live={rowMoves(
-                              !sectorsFold.collapsed.includes(section.key),
-                              factsOf(r, agentStates.get(r.key)),
-                            )}
-                            pinLabel={menus.pinLabelOf(r)}
-                            onHold={menus.openRowMenu}
-                            holdLabel={holdLabel}
-                            holdActions={menus.rowActionsOf}
-                            onMute={muteRow}
-                          />
-                        </LandRow>
-                      ))}
-                    </CollapsibleSection>
-                  ))
+                ? sectors.map((section) => {
+                    const closed = sectorsFold.collapsed.includes(section.key);
+                    const rowOf = (r: ConversationRow, i: number, kept = false) => (
+                      <LandRow
+                        key={r.key}
+                        land={load.landing}
+                        fresh={fresh.has(r.key)}
+                        index={2 + i}
+                        moves={section.rows.length <= MOVING_ROWS}
+                      >
+                        {/* A sector's channels follow its agents under a hairline from edge to edge (ADR 0240). */}
+                        {!kept && i > 0 && i === section.channelsFrom ? <SectorLine /> : null}
+                        <HomeRow
+                          row={r}
+                          facts={factsOf(r, agentStates.get(r.key))}
+                          divider={!kept && i > 0 && i !== section.channelsFrom}
+                          live={rowMoves(!closed, factsOf(r, agentStates.get(r.key)))}
+                          pinLabel={menus.pinLabelOf(r)}
+                          onHold={menus.openRowMenu}
+                          holdLabel={holdLabel}
+                          holdActions={menus.rowActionsOf}
+                          onMute={muteRow}
+                        />
+                      </LandRow>
+                    );
+                    const unread = closedUnread(section.rows);
+                    return (
+                      <CollapsibleSection
+                        key={section.key}
+                        title={sectionTitle(section)}
+                        count={section.rows.length}
+                        {...(section.group
+                          ? {
+                              mark: (
+                                <RoleMark
+                                  color={section.group.color ?? "graphite"}
+                                  icon={section.group.icon}
+                                  size={20}
+                                />
+                              ),
+                              // Closed, a sector keeps what calls on me in sight, and one count for its DMs and channels.
+                              kept: section.rows.filter(keptWhenClosed).map((r, i) => rowOf(r, i, true)),
+                              unread: {
+                                count: unread,
+                                hot: section.rows.some(
+                                  (r) => (r.kind === "dm" && r.unread > 0) || (r.kind === "channel" && r.mentions > 0),
+                                ),
+                              },
+                            }
+                          : {})}
+                        collapsed={closed}
+                        onToggle={() => sectorsFold.toggle(section.key)}
+                      >
+                        {section.rows.map((r, i) => rowOf(r, i))}
+                      </CollapsibleSection>
+                    );
+                  })
                 : null}
               {view === "sectors" ? null : (
                 <CollapsibleSection
@@ -483,7 +531,7 @@ function Home() {
                       // Swiped left: Fixar no topo (or Tirar do topo) and a channel's Silenciar; held: the menu
                       // (`HomeRow`). The row's key is on the box that travels: a conversation that goes to the top with
                       // a new message moves there, and the ones it passes move down.
-                      <LandRow key={r.key} land={load.landing} index={2 + i} moves>
+                      <LandRow key={r.key} land={load.landing} fresh={fresh.has(r.key)} index={2 + i} moves>
                         <HomeRow
                           row={r}
                           facts={factsOf(r, agentStates.get(r.key))}

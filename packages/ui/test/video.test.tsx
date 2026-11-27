@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, setSystemTime, test } from "bun:test";
 import { setupDom } from "../testing/dom";
 
 setupDom();
@@ -79,6 +79,67 @@ describe("VideoPlayer", () => {
     expect(failed).toBe(1);
   });
 
+  test("its link went stale while the page stayed open: it loads once more and goes on from there", async () => {
+    let failed = 0;
+    player({ onFailed: () => failed++ });
+    const [v] = videos() as [HTMLVideoElement];
+    const video = fake(v, { ready: true, time: 42, playing: true });
+    let ready = 1;
+    let loads = 0;
+    Object.defineProperties(v, {
+      error: { configurable: true, get: () => ({ code: 2 }) },
+      readyState: { configurable: true, get: () => ready },
+      load: {
+        configurable: true,
+        value: () => {
+          loads++;
+          ready = 0;
+          v.currentTime = 0;
+        },
+      },
+    });
+    fireEvent.error(v);
+    expect([loads, failed]).toEqual([1, 0]);
+    await act(async () => {
+      ready = 1;
+      fireEvent.loadedMetadata(v);
+    });
+    expect(v.currentTime).toBe(42);
+    expect(video.plays.count).toBe(1);
+    // A second failure right after is the caller's, who shows the file instead.
+    fireEvent.error(v);
+    expect([loads, failed]).toEqual([1, 1]);
+  });
+
+  test("a page left open for hours: each fresh link that expires in turn is asked for again", () => {
+    let failed = 0;
+    player({ onFailed: () => failed++ });
+    const [v] = videos() as [HTMLVideoElement];
+    fake(v, { ready: true, time: 42, playing: true });
+    let loads = 0;
+    Object.defineProperties(v, {
+      error: { configurable: true, get: () => ({ code: 2 }) },
+      load: { configurable: true, value: () => loads++ },
+    });
+    try {
+      for (const at of ["09:00", "10:10", "11:20"]) {
+        setSystemTime(new Date(`2026-01-05T${at}:00Z`));
+        fireEvent.error(v);
+      }
+      expect([loads, failed]).toEqual([3, 0]);
+      setSystemTime(new Date("2026-01-05T11:20:30Z"));
+      fireEvent.error(v);
+      expect([loads, failed]).toEqual([3, 1]);
+    } finally {
+      setSystemTime();
+    }
+  });
+
+  test("crossOrigin reaches the element, so its frames can be read back from a canvas", () => {
+    player({ crossOrigin: "anonymous" });
+    expect(document.querySelector("video")?.getAttribute("crossorigin")).toBe("anonymous");
+  });
+
   test("speed goes 1×, 1.5×, 2× and back", () => {
     player();
     const speed = () => screen.getByRole("button", { name: /^Velocidade/, hidden: true });
@@ -137,6 +198,24 @@ describe("a file's comments on the player (ADR 0208)", () => {
   });
 });
 
+describe("a slider's knob", () => {
+  test("travels inside its track, and the volume's box that slides open has room for it at both ends", () => {
+    player();
+    const knobs = Array.from(document.querySelectorAll<HTMLElement>(".ac-video__knob"));
+    expect(knobs.length).toBe(2);
+    // The volume starts full: at its end, never `left: 100%`, which put half the knob past the track.
+    for (const k of knobs) expect(k.style.left).toBe("");
+    expect(knobs[1]?.style.getPropertyValue("--at")).toBe("1");
+    expect(rule(".ac-video__knob")).toContain("left: calc(var(--knob) / 2 + var(--at, 0) * (100% - var(--knob)));");
+    // On hover the knob grows by a quarter and keeps a 2px ring: 9.5px from its centre, which sits 6px inside the
+    // track's end, so the rail keeps at least 3.5px of the clipping box on each side.
+    const side = Number(/margin: 0 (\d+)px;/.exec(rule(".ac-video__volume .ac-video__rail"))?.[1] ?? 0);
+    expect(side).toBeGreaterThanOrEqual(4);
+    const open = Number(/width: (\d+)px;/.exec(rule(".ac-video__sound:focus-within .ac-video__volume"))?.[1]);
+    expect(open).toBe(56 + 2 * side);
+  });
+});
+
 describe("full screen", () => {
   const setFull = (el: Element | null) => {
     Object.defineProperty(document, "fullscreenElement", { configurable: true, value: el });
@@ -174,6 +253,24 @@ describe("full screen", () => {
     // The viewer and menus the corner opens would land behind the full screen.
     expect(rule(".ac-video[data-full] .ac-video__acts")).toContain("display: none");
     expect(rule(".ac-video[data-full]")).toContain("box-shadow: none");
+  });
+
+  test("a tile whose size the server read has the video's shape from the first paint, an upright one upright", () => {
+    player({ ratio: 9 / 16 });
+    const root = document.querySelector(".ac-video") as HTMLElement;
+    expect(root.hasAttribute("data-ratio")).toBe(true);
+    expect(root.style.getPropertyValue("--ratio")).toBe(String(9 / 16));
+    const shaped = rule(".ac-video--tile[data-ratio]:not([data-full]) .ac-video__media");
+    expect(shaped).toContain("width: min(320px, calc(360px * var(--ratio)))");
+    expect(shaped).toContain("aspect-ratio: var(--ratio)");
+    expect(shaped).toContain("height: auto");
+    cleanup();
+    // The viewer fills its box whatever the video's shape; a tile with no size read keeps the 16:9 box.
+    player({ variant: "viewer", ratio: 9 / 16 });
+    expect(document.querySelector(".ac-video")?.hasAttribute("data-ratio")).toBe(false);
+    cleanup();
+    player();
+    expect(document.querySelector(".ac-video")?.hasAttribute("data-ratio")).toBe(false);
   });
 });
 

@@ -1,6 +1,6 @@
 {
-  "id": "69cbdaff-6e97-42cc-ba03-982bba5bd008",
-  "prevId": "3fd4f81a-9139-4e2e-80a2-c01415321955",
+  "id": "f3225a6f-6d76-4c9a-8cfe-19322f29c8c1",
+  "prevId": "6e2f0791-3fd3-4d5c-9ecf-50d4de82511f",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -782,6 +782,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'{}'::jsonb"
+        },
+        "plan_key_fallback": {
+          "name": "plan_key_fallback",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         },
         "gifs": {
           "name": "gifs",
@@ -2301,92 +2308,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.two_factors": {
-      "name": "two_factors",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "secret": {
-          "name": "secret",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "backup_codes": {
-          "name": "backup_codes",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "verified": {
-          "name": "verified",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
-        "failed_verification_count": {
-          "name": "failed_verification_count",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "locked_until": {
-          "name": "locked_until",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "two_factors_user_id_users_id_fk": {
-          "name": "two_factors_user_id_users_id_fk",
-          "tableFrom": "two_factors",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "two_factors_userId_unique": {
-          "name": "two_factors_userId_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "user_id"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.users": {
       "name": "users",
       "schema": "",
@@ -2464,13 +2385,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
-        },
-        "two_factor_enabled": {
-          "name": "two_factor_enabled",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
         },
         "created_at": {
           "name": "created_at",
@@ -11782,6 +11696,69 @@
           "notNull": true,
           "default": "'everyone'"
         },
+        "manage_mode": {
+          "name": "manage_mode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'admins'"
+        },
+        "manage_user_ids": {
+          "name": "manage_user_ids",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::text[]"
+        },
+        "manage_role_ids": {
+          "name": "manage_role_ids",
+          "type": "uuid[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::uuid[]"
+        },
+        "use_mode": {
+          "name": "use_mode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'everyone'"
+        },
+        "use_user_ids": {
+          "name": "use_user_ids",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::text[]"
+        },
+        "use_role_ids": {
+          "name": "use_role_ids",
+          "type": "uuid[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::uuid[]"
+        },
+        "reply_mode": {
+          "name": "reply_mode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'owner'"
+        },
+        "reply_user_ids": {
+          "name": "reply_user_ids",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::text[]"
+        },
+        "reply_role_ids": {
+          "name": "reply_role_ids",
+          "type": "uuid[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::uuid[]"
+        },
         "use_order": {
           "name": "use_order",
           "type": "integer",
@@ -13347,78 +13324,6 @@
           ]
         }
       },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.plan_limit_alerts": {
-      "name": "plan_limit_alerts",
-      "schema": "",
-      "columns": {
-        "org_id": {
-          "name": "org_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "account_key": {
-          "name": "account_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "window_key": {
-          "name": "window_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "resets_at": {
-          "name": "resets_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "alerted_at": {
-          "name": "alerted_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "rearmed_at": {
-          "name": "rearmed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "plan_limit_alerts_org_id_organizations_id_fk": {
-          "name": "plan_limit_alerts_org_id_organizations_id_fk",
-          "tableFrom": "plan_limit_alerts",
-          "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "plan_limit_alerts_org_id_account_key_window_key_pk": {
-          "name": "plan_limit_alerts_org_id_account_key_window_key_pk",
-          "columns": [
-            "org_id",
-            "account_key",
-            "window_key"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -24753,6 +24658,91 @@
           "value": "\"instance_telemetry\".\"id\" = 1"
         }
       },
+      "isRLSEnabled": false
+    },
+    "public.server_processes": {
+      "name": "server_processes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "seen_at": {
+          "name": "seen_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rss_bytes": {
+          "name": "rss_bytes",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "heap_used_bytes": {
+          "name": "heap_used_bytes",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "heap_total_bytes": {
+          "name": "heap_total_bytes",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_loop_p_99_ms": {
+          "name": "event_loop_p_99_ms",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "event_loop_max_ms": {
+          "name": "event_loop_max_ms",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "heap_snapshot_at": {
+          "name": "heap_snapshot_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "heap_snapshot_file": {
+          "name": "heap_snapshot_file",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.org_roles": {

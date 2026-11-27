@@ -74,6 +74,45 @@ export async function appliedMigrations(db: Database): Promise<AppliedMigration[
   return list.map((r) => ({ hash: r.hash, createdAt: Number(r.created_at) }));
 }
 
+/**
+ * Migrations this build first shipped under an earlier number and later moved after the newest upstream one (a fork's
+ * own tables, numbered again when upstream's migrations took their place), by the sha256 of the SQL that was applied.
+ * A database that ran them under the old number has their rows where upstream's now are: `forgetMovedMigrations`
+ * drops those rows before the guard, so drizzle runs upstream's migrations in between and then these again at their
+ * new place. A row is theirs by its hash and its old journal date together, never the new place's own row. Their SQL
+ * there stands being run twice (`IF NOT EXISTS`, a duplicate constraint skipped).
+ */
+export const MOVED_MIGRATIONS: readonly { tag: string; movedTo: string; hash: string; when: number }[] = [
+  {
+    tag: "0323_two_factor",
+    movedTo: "0365_two_factor",
+    hash: "d9745270c09f6c66aa040133f8bda06d9863c24927af20b49034aef869147924",
+    when: 1795432975656,
+  },
+  {
+    tag: "0324_plan_limit_alerts",
+    movedTo: "0366_plan_limit_alerts",
+    hash: "246a5bbdec312d24eecb74e592e5d47e35524e59eb50d18438f009532be6467d",
+    when: 1795434346002,
+  },
+];
+
+/** Forgets the rows of migrations applied under their old number (`MOVED_MIGRATIONS`); how many it forgot. */
+export async function forgetMovedMigrations(db: Database, moved = MOVED_MIGRATIONS): Promise<number> {
+  if (moved.length === 0) return 0;
+  const exists = (await db.execute(sql`select to_regclass('drizzle.__drizzle_migrations') as t`)) as unknown;
+  const rows = (Array.isArray(exists) ? exists : (exists as { rows: { t: unknown }[] }).rows) as { t: unknown }[];
+  if (!rows[0]?.t) return 0;
+  const result = (await db.execute(
+    sql`delete from drizzle.__drizzle_migrations where ${sql.join(
+      moved.map((m) => sql`(hash = ${m.hash} and created_at = ${m.when})`),
+      sql` or `,
+    )} returning id`,
+  )) as unknown;
+  const gone = (Array.isArray(result) ? result : (result as { rows: unknown[] }).rows) as unknown[];
+  return gone.length;
+}
+
 /** Boot guard: throws (before anything is migrated) when the database and this build disagree. */
 export async function assertMigrationsMatch(db: Database, migrationsFolder: string) {
   const problem = checkMigrations(await appliedMigrations(db), knownMigrations(migrationsFolder));

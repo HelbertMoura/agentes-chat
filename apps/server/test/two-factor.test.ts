@@ -18,7 +18,7 @@ import {
 } from "./harness";
 
 /**
- * Two-step sign-in with an authenticator app (ADR 0219): once it is on, no way of signing in makes a session without
+ * Two-step sign-in with an authenticator app (ADR 0259): once it is on, no way of signing in makes a session without
  * a code from the app or a recovery code, and the ways that copy a session already proven ask for none.
  */
 

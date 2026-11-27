@@ -251,7 +251,7 @@
    * column, Google's, its words from its start and the room after them the column's.
    */
   const PILLS =
-    ".ac-btn:not(.ac-btn--icon,.ac-btn--glyph,.ac-btn--loading),.ac-token,.ac-chip,.ac-countchip,[class*='pill'],[class*='chip']:not(.cal-chip),[class*='__tag'],[class*='-tag']";
+    ".ac-btn:not(.ac-btn--icon,.ac-btn--glyph,.ac-btn--loading),.ac-token,.ac-chip,.ac-countchip,[class*='pill'],[class*='chip']:not(.cal-chip,.ac-menu),[class*='__tag'],[class*='-tag']";
   /**
    * A card: a row with a surface of its own that starts with an icon and ends with what can be done about it (a button,
    * a link) or another icon. Pills are the `pad` rule's.
@@ -2580,8 +2580,9 @@
         const s = style(row);
         if (!s.display.includes("flex") || s.flexDirection !== "row" || s.flexWrap !== "wrap" || s.direction === "rtl")
           continue;
-        const toEnd = ["flex-end", "end", "right"].includes(s.justifyContent);
-        if (!toEnd && !["normal", "flex-start", "start", "left"].includes(s.justifyContent)) continue;
+        // Chrome 158 serializes `flex-end` and `flex-start` as `flow-end` and `flow-start`; older ones keep them.
+        const toEnd = ["flex-end", "flow-end", "end", "right"].includes(s.justifyContent);
+        if (!toEnd && !["normal", "flex-start", "flow-start", "start", "left"].includes(s.justifyContent)) continue;
         const kids = flow(row);
         if (kids.length < 2) continue;
         const r = row.getBoundingClientRect();

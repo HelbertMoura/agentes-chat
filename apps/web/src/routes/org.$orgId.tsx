@@ -1,6 +1,7 @@
 import { useMe } from "@agenteschat/client";
 import { membershipIn, settingUp } from "@agenteschat/client/lib/guards";
 import { can } from "@agenteschat/client/lib/permissions";
+import { MorphRoom } from "@agenteschat/ui";
 import { createFileRoute, Outlet, redirect, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { requireUserIn } from "@/app/guards";
@@ -17,9 +18,11 @@ import { DesktopDragStrip } from "@/components/DesktopDragStrip";
 import { MenuBarActions } from "@/components/DesktopMenus";
 import { DesktopTitleBar } from "@/components/DesktopTitleBar";
 import { DetailsHost } from "@/components/DetailsHost";
+import { InvitedBanner } from "@/components/InvitedBanner";
 import { InviteDialogProvider } from "@/components/invite/InviteDialog";
 import { LeaveChannelDialog } from "@/components/LeaveChannelDialog";
-import { RefetchBar } from "@/components/Loading";
+import { useHoldBannerWaits } from "@/components/lodi-cursor/arrivals";
+import { LodiCursor } from "@/components/lodi-cursor/LodiCursor";
 import { OutageNotices } from "@/components/MachineOutages";
 import { NavDrawerProvider, NavScrim, ShellBar } from "@/components/NavDrawer";
 import { NoticeIsland } from "@/components/NoticeIsland";
@@ -27,6 +30,7 @@ import { PushOpens } from "@/components/NotificationOpen";
 import { NotMember } from "@/components/NotMember";
 import { NewAgentProvider } from "@/components/new-agent/new-agent-context";
 import { OrgProvider } from "@/components/org-context";
+import { ReconnectPill } from "@/components/ReconnectPill";
 import { RemoveMemberProvider } from "@/components/RemoveMember";
 import { Sidebar } from "@/components/Sidebar";
 import { BootSplash } from "@/components/Sky";
@@ -37,6 +41,7 @@ import { HeaderSearchProvider } from "@/hooks/useWorkspaceSearch";
 import { useServerLocale } from "@/i18n";
 import { inDesktopApp } from "@/lib/desktop";
 import { preloadDialogs } from "@/lib/lazy-dialog";
+import { prefetchShell } from "@/lib/prefetch";
 import { notePlace } from "@/lib/return-to";
 import { rememberPlace, showWorkspace } from "@/lib/start";
 import { STORAGE_KEYS, storage } from "@/lib/storage";
@@ -58,6 +63,8 @@ export const Route = createFileRoute("/org/$orgId")({
       throw redirect({ to: "/onboarding" });
     return { me, membership };
   },
+  // The shell's lists start with the page's own reads (`prefetchShell`), not after its code loads.
+  loader: ({ context: { queryClient, api }, params: { orgId } }) => prefetchShell(queryClient, api, orgId),
   component: OrgLayout,
   // Opening the workspace takes a moment (the session check): the sky rises meanwhile.
   pendingComponent: BootSplash,
@@ -76,6 +83,7 @@ function OrgLayout() {
   const focused =
     (/\/agents\/new\/?$/.test(path) && can(membership, "create_agents")) ||
     (LIVE_FILE_PATH.test(path) && PRESENTING.test(href));
+  const bannerWaits = useHoldBannerWaits();
   // Notifications in this browser (ADR 0071), when already on: the server hears of them again, quietly.
   useWebPushRefresh(me.user.id);
   useServerLocale(me.user);
@@ -148,9 +156,10 @@ function OrgLayout() {
                     {/* One new agent's dialog for every way in (ADR 0164): the sidebar, the pages and the menus. */}
                     <NewAgentProvider>
                       <div className="shell">
-                        <RefetchBar />
                         <CommandMenu />
+                        <LodiCursor />
                         <LeaveChannelDialog />
+                        <ReconnectPill />
                         {!focused && (
                           <>
                             <NavScrim />
@@ -163,13 +172,16 @@ function OrgLayout() {
                     says so (ADR 0088 §7), in the Criar agente flow too: its work stopped, nothing else is news. */}
                         <div className={focused ? "shell__work shell__work--bare" : "shell__work"}>
                           {membership.deletion && <DeletingBanner />}
+                          {/* Coming or going, the page glides under them: nothing pushes it in one frame. */}
                           {!focused && !membership.deletion && (
-                            <>
+                            <MorphRoom pace="panel" className="shell__notices">
                               <ConfirmEmailBanner />
-                              <HoldBanner />
+                              <InvitedBanner />
+                              {/* Lodi's cursor shows a new team land first, then the page glides under the banner. */}
+                              {!bannerWaits && <HoldBanner />}
                               <ComputerSetupNotice />
                               <OutageNotices />
-                            </>
+                            </MorphRoom>
                           )}
                           <div className="shell__pages">
                             <ComputerDialogProvider>

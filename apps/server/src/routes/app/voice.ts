@@ -2,6 +2,7 @@ import { SPEECH_PROVIDERS } from "@agenteschat/adapters";
 import {
   acceptVoiceClip,
   isAgentesCloud,
+  type LocalSpeech,
   MAX_MESSAGE_LENGTH,
   NotFoundError,
   pinnedOwner,
@@ -12,12 +13,12 @@ import {
   type VoiceDeps,
   voiceAllowed,
   voiceClipAudio,
+  voiceNeedsPlan,
   voiceOn,
 } from "@agenteschat/engine";
 import { createRoute, z } from "@hono/zod-openapi";
-import type { Context } from "hono";
 import { bodyLimit } from "hono/body-limit";
-import { rangedResponse } from "../../http/byte-range";
+import { storedResponse } from "../../http/byte-range";
 import { apiError, errorResponse } from "../../http/errors";
 import { type AppDeps, body, createAppRouter, errors, json, OrgParams, requireSession, security } from "./context";
 
@@ -33,14 +34,6 @@ const ChannelParams = OrgParams.extend({ channelId: z.uuid() });
 const ClipParams = OrgParams.extend({ clipId: z.uuid() });
 // The count is the engine's to refuse (`message.too_many_attachments`), as for a typed message.
 const AttachmentIds = z.array(z.uuid());
-
-function audioResponse(c: Context, audio: Uint8Array, contentType: string) {
-  return rangedResponse(audio, c.req.header("range"), {
-    "content-type": contentType,
-    "cache-control": "private, max-age=300",
-    "x-content-type-options": "nosniff",
-  });
-}
 
 /**
  * Voice messages (ADR 0100): the app sends the finished recording and shows it at once; the message arrives over the
@@ -111,7 +104,7 @@ export function voiceRoutes(deps: AppDeps) {
       responses: {
         202: json(z.object({ clipId: z.uuid() }), "Stored; its words are on the way"),
         ...errors,
-        409: errorResponse("Voice messages are off (`voice.unavailable`)"),
+        409: errorResponse("Voice messages are off (`voice.unavailable`), or come with a plan (`voice.plan`)"),
         413: errorResponse("The recording is too large (`voice.too_large`)"),
         429: errorResponse("Too many (`voice_limit`, `rate_limited`)"),
       },
@@ -159,7 +152,9 @@ export function voiceRoutes(deps: AppDeps) {
       } catch (error) {
         if (error instanceof ValidationError) {
           if (error.code === "voice.limit") return apiError(c, 429, "voice_limit", error.message);
-          if (error.code === "voice.unavailable") return apiError(c, 409, error.code, error.message);
+          if (error.code === "voice.unavailable" || error.code === "voice.plan") {
+            return apiError(c, 409, error.code, error.message);
+          }
           if (error.code === "voice.too_large") return apiError(c, 413, error.code, error.message);
         }
         throw error;
@@ -175,16 +170,28 @@ export function voiceRoutes(deps: AppDeps) {
       security,
       summary: "Whether this person may start recording now",
       request: { params: OrgParams },
-      responses: { 200: json(z.object({ allowed: z.boolean() })), ...errors },
+      responses: {
+        200: json(
+          z.object({
+            allowed: z.boolean(),
+            reason: z.enum(["plan"]).optional().openapi({
+              description: "`plan`: the workspace has no plan in force (a billing hold), and voice comes with one.",
+            }),
+          }),
+        ),
+        ...errors,
+      },
     }),
     async (c) => {
       const { orgId } = c.req.valid("param");
       const userId = c.get("user").id;
       await requirePermission(deps.db, userId, orgId, "read");
       const v = deps.extras?.voice;
-      const allowed = Boolean(v) && (await voiceOn(voice(), orgId)) && (await voiceAllowed(voice(), userId, orgId));
+      if (!v || !(await voiceOn(v, orgId))) return c.json({ allowed: false }, 200);
+      if (await voiceNeedsPlan(deps.db, orgId)) return c.json({ allowed: false, reason: "plan" as const }, 200);
+      const allowed = await voiceAllowed(v, userId, orgId);
       // The app asks just before recording: a server of one's own that loads its model on demand starts now.
-      if (allowed) for (const engine of voice().engines()) engine.warm?.(orgId);
+      if (allowed) for (const engine of v.engines()) engine.warm?.(orgId);
       return c.json({ allowed }, 200);
     },
   );
@@ -211,7 +218,11 @@ export function voiceRoutes(deps: AppDeps) {
       const audio = await voiceClipAudio(voice(), c.get("user").id, orgId, clipId);
       if ("expired" in audio) return apiError(c, 410, "voice.expired", "This recording is no longer kept");
       if ("url" in audio) return c.redirect(audio.url, 302);
-      return audioResponse(c, audio.body, audio.contentType);
+      return storedResponse(audio, c.req.header("range"), {
+        "content-type": audio.contentType,
+        "cache-control": "private, max-age=300",
+        "x-content-type-options": "nosniff",
+      });
     },
   );
 
@@ -229,6 +240,32 @@ const KeyView = z
   })
   .openapi("SpeechKey");
 
+const LocalStatus = z.discriminatedUnion("state", [
+  z.object({ state: z.literal("off") }),
+  z.object({ state: z.literal("downloading"), doneBytes: z.number(), totalBytes: z.number() }),
+  z.object({ state: z.literal("starting") }),
+  z.object({ state: z.literal("ready") }),
+  z.object({
+    state: z.literal("failed"),
+    reason: z.enum(["download", "disk", "start"]),
+    detail: z.string().openapi({ description: "What stopped it, in the network's or the helper's own words." }),
+  }),
+]);
+
+const LocalView = z
+  .object({
+    fit: z.enum(["fits", "memory", "disk", "platform"]).openapi({
+      description:
+        "`memory`: under 8 GB (a container's limit counts) or one CPU. `disk`: under `needDiskBytes` free. `platform`: no build for this computer, or no files folder to keep it in.",
+    }),
+    memoryBytes: z.number(),
+    freeDiskBytes: z.number().nullable(),
+    needDiskBytes: z.number(),
+    sizeBytes: z.number().openapi({ description: "The whole download." }),
+    status: LocalStatus,
+  })
+  .openapi("LocalSpeech");
+
 const SaveKey = z.object({
   provider: z.enum(SPEECH_PROVIDERS),
   apiKey: z.string().trim().min(8).max(512).optional().openapi({
@@ -245,6 +282,7 @@ export function speechKeyRoutes(deps: AppDeps) {
   const { db, config } = deps;
   const app = createAppRouter(deps);
   app.use("/speech-key", requireSession(deps.auth));
+  app.use("/speech-local", requireSession(deps.auth));
 
   const ownerOnly = async (userId: string): Promise<SpeechSettings> => {
     const speech = deps.extras?.speech;
@@ -309,6 +347,52 @@ export function speechKeyRoutes(deps: AppDeps) {
       responses: { 200: json(KeyView), 401: errors[401], 404: errors[404] },
     }),
     async (c) => c.json(await (await ownerOnly(c.get("user").id)).remove(), 200),
+  );
+
+  const localOnly = async (userId: string): Promise<LocalSpeech> => {
+    await ownerOnly(userId);
+    const local = deps.extras?.speechLocal;
+    if (!local) throw new NotFoundError();
+    return local;
+  };
+
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/speech-local",
+      tags: ["System"],
+      summary: "Speech to text on this server's own computer: whether it fits, and how its setup goes",
+      description: `${notFound} Polled while it downloads (\`status.doneBytes\` of \`totalBytes\`).`,
+      security,
+      responses: { 200: json(LocalView), 401: errors[401], 404: errors[404] },
+    }),
+    async (c) => c.json(await (await localOnly(c.get("user").id)).view(), 200),
+  );
+
+  app.openapi(
+    createRoute({
+      method: "put",
+      path: "/speech-local",
+      tags: ["System"],
+      summary: "Download the speech model to this server's computer and turn it on (or go on with the download)",
+      description: `${notFound} Answers at once; the download goes on in the background. Nothing starts when \`fit\` isn't \`fits\`.`,
+      security,
+      responses: { 200: json(LocalView), 401: errors[401], 404: errors[404] },
+    }),
+    async (c) => c.json(await (await localOnly(c.get("user").id)).install(), 200),
+  );
+
+  app.openapi(
+    createRoute({
+      method: "delete",
+      path: "/speech-local",
+      tags: ["System"],
+      summary: "Stop the download or the speech model on this computer, and remove its files",
+      description: notFound,
+      security,
+      responses: { 200: json(LocalView), 401: errors[401], 404: errors[404] },
+    }),
+    async (c) => c.json(await (await localOnly(c.get("user").id)).remove(), 200),
   );
 
   return app;

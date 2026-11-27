@@ -54,6 +54,8 @@ export interface VideoPlayerProps {
   name: string;
   /** Its width in the message (one shape, the video whole in it). */
   width?: number;
+  /** Its height there: 16:9 for `width` unless the caller knows the video's own shape (`videoBox`). */
+  height?: number;
   /** An inline video's tap: opens it in the picture viewer, where it plays. */
   onOpen?: () => void;
   /** It can't play on this device (a format it lacks): the caller shows the file's card instead. */
@@ -66,8 +68,17 @@ export interface VideoPlayerProps {
  * plays it at once with the platform's controls (play, the timeline to drag, full screen and back out of it, AirPlay),
  * so it feels like every other video on the phone, with no controls of ours to get stuck behind.
  */
-export function VideoPlayer({ source, name, width = 300, onOpen, onFailed }: VideoPlayerProps) {
-  return <InlineVideo source={source} name={name} width={width} onOpen={onOpen} onFailed={onFailed} />;
+export function VideoPlayer({ source, name, width = 300, height, onOpen, onFailed }: VideoPlayerProps) {
+  return (
+    <InlineVideo
+      source={source}
+      name={name}
+      width={width}
+      height={height ?? videoHeight(width)}
+      onOpen={onOpen}
+      onFailed={onFailed}
+    />
+  );
 }
 
 /** In a message: the first frame, the play key and the length; nothing plays here. */
@@ -75,12 +86,14 @@ function InlineVideo({
   source,
   name,
   width,
+  height,
   onOpen,
   onFailed,
 }: {
   source: VideoPlayerProps["source"];
   name: string;
   width: number;
+  height: number;
   onOpen?: (() => void) | undefined;
   onFailed?: (() => void) | undefined;
 }) {
@@ -106,11 +119,7 @@ function InlineVideo({
       disabled={!onOpen}
       accessibilityRole="button"
       accessibilityLabel={`${t("mobile.files.video.play")}: ${name}${length ? `, ${length}` : ""}`}
-      style={[
-        styles.inline,
-        { width, height: videoHeight(width), backgroundColor: c.sunken, borderColor: c.line2 },
-        cardCorners,
-      ]}
+      style={[styles.inline, { width, height, backgroundColor: c.sunken, borderColor: c.line2 }, cardCorners]}
     >
       <StillVideo player={player} contentFit="contain" />
       <View style={styles.center} pointerEvents="none">

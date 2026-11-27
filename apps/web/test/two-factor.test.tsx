@@ -8,7 +8,7 @@ import { createFakeApi, ORG_ID, seedState } from "./fake-api";
 import { createFakeAuth } from "./fake-auth";
 import { renderApp, screen, settle } from "./render";
 
-/** Configurações › Sua conta › Verificação em duas etapas (ADR 0219). */
+/** Configurações › Sua conta › Verificação em duas etapas (ADR 0259). */
 
 afterEach(() => {
   cleanup();

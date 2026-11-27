@@ -1,5 +1,5 @@
 import type { ArtifactDetail } from "@agenteschat/client";
-import { formatBytes, mediaKindOfArtifact, pictureRatio } from "@agenteschat/client/lib/files";
+import { formatBytes, mediaKindOfArtifact, pictureRatio, previewKindOfName } from "@agenteschat/client/lib/files";
 import { keepWhole } from "@agenteschat/client/lib/format";
 import { Image } from "expo-image";
 import { useMemo, useState } from "react";
@@ -15,11 +15,10 @@ import { LiveFileCard } from "../live-files/LiveFileCard";
 import { opensLive } from "../live-files/routes";
 import { useColors, useOrgId } from "../shared/hooks";
 import { AttachmentTile } from "./AttachmentTile";
-import { AudioFile } from "./AudioFile";
+import { FileVoice } from "./FileVoice";
 import { ImageStack, type StackImage } from "./ImageStack";
 import { isLocalMedia, type LocalFile, localRatio } from "./local-files";
 import {
-  AUDIO_EXT,
   extensionOf,
   extLabel,
   type FileInfo,
@@ -29,12 +28,12 @@ import {
   isLocalPdf,
   singleImageBox,
   VIDEO_EXT,
+  videoBox,
   videoClock,
-  videoHeight,
 } from "./logic";
 import { openFile, useOpenFile } from "./open";
 import { LocalPdfPage } from "./pdf-preview";
-import { pictureDrawn, pictureFade, rememberLocalCopy, useArtifacts, useRemoteFile } from "./source";
+import { pictureDrawn, pictureFade, rememberLocalCopy, useArtifacts, usePicture, useRemoteFile } from "./source";
 import { VideoFirstFrame, VideoPlayer } from "./VideoPlayer";
 
 /**
@@ -42,8 +41,7 @@ import { VideoFirstFrame, VideoPlayer } from "./VideoPlayer";
  * (`ImageStack`), tapping opens the viewer at that picture. Any other attachment: a tile across the row
  * (`AttachmentTile`: what it holds drawn small, its name, whole, with its kind and size under it), with the pictures
  * beside them as tiles of only the picture, two to a row (as on the web's phone width). A video shows its first frame in
- * the pictures' shape and opens in the same viewer as they do; an audio file plays right there (`AudioFile`).
- * `align="end"`: the viewer's own message, its files sit on
+ * the pictures' shape and opens in the same viewer as they do. `align="end"`: the viewer's own message, its files sit on
  * the right.
  */
 
@@ -79,7 +77,7 @@ export function MessageFiles({ files, align = "start" }: { files: MessageFile[];
   // A live file is its own card: a preview of it as it is now, opening its screen (ADR 0196 §9).
   const liveFiles: ArtifactDetail[] = [];
   const videos: { file: MessageFile; detail: ArtifactDetail | undefined }[] = [];
-  const audios: { file: MessageFile; detail: ArtifactDetail | undefined }[] = [];
+  const sounds: { file: MessageFile; detail: ArtifactDetail | undefined }[] = [];
   const others: { file: MessageFile; detail: ArtifactDetail | undefined; failed: boolean }[] = [];
   live.forEach((file, i) => {
     const q = queries[i];
@@ -95,10 +93,12 @@ export function MessageFiles({ files, align = "start" }: { files: MessageFile[];
     // Until it loads, a name like "print.png" already says it's a picture (no jump into the grid).
     const isImage = detail ? fileInfo(detail).view === "image" : !q?.isError && IMAGE_EXT.has(extensionOf(file.title));
     const isVideo = detail ? fileInfo(detail).view === "video" : !q?.isError && VIDEO_EXT.has(extensionOf(file.title));
-    const isAudio = detail ? fileInfo(detail).view === "audio" : !q?.isError && AUDIO_EXT.has(extensionOf(file.title));
+    const isAudio = detail
+      ? fileInfo(detail).view === "audio"
+      : !q?.isError && previewKindOfName(file.title) === "audio";
     if (isImage) images.push({ file, detail });
     else if (isVideo) videos.push({ file, detail });
-    else if (isAudio) audios.push({ file, detail });
+    else if (isAudio) sounds.push({ file, detail });
     else others.push({ file, detail, failed: Boolean(q?.isError) });
   });
   const removed = files.filter((f) => f.deleted);
@@ -156,7 +156,7 @@ export function MessageFiles({ files, align = "start" }: { files: MessageFile[];
       {videos.map(({ file, detail }) => (
         <InlineVideo key={file.id} file={file} detail={detail} width={blockWidth} siblings={media} />
       ))}
-      {audios.map(({ file, detail }) => (
+      {sounds.map(({ file, detail }) => (
         <InlineAudio key={file.id} file={file} detail={detail} width={blockWidth} />
       ))}
       {blocks.map((b) =>
@@ -208,6 +208,56 @@ export function MessageFiles({ files, align = "start" }: { files: MessageFile[];
   );
 }
 
+/**
+ * An audio file on a message plays in place, in the voice-message player, with its name under it, which opens it. One
+ * this phone can't play is its file's card.
+ */
+function InlineAudio({
+  file,
+  detail,
+  width,
+}: {
+  file: MessageFile;
+  detail: ArtifactDetail | undefined;
+  width: number;
+}) {
+  const { t } = useTranslation();
+  const title = detail?.title || file.title;
+  const size = detail?.content.kind === "file" ? detail.content.size : undefined;
+  const { i18n } = useTranslation();
+  return (
+    <View style={[styles.audio, { width }]}>
+      <FileVoice
+        id={file.id}
+        version={file.version}
+        wave={detail?.content.kind === "file" ? detail.content.wave : undefined}
+        fallback={
+          <AttachmentTile
+            file={file}
+            detail={detail}
+            failed={false}
+            picture={false}
+            width={width}
+            single
+            siblings={[]}
+          />
+        }
+      />
+      <PressScale
+        haptic={false}
+        onPress={() => openFile({ id: file.id, version: file.version, title: file.title, detail })}
+        accessibilityRole="button"
+        accessibilityLabel={t("artifacts.open", { title })}
+        style={styles.audioName}
+      >
+        <Text variant="caption" tone="muted">
+          {size === undefined ? title : `${title} · ${formatBytes(i18n.language, size)}`}
+        </Text>
+      </PressScale>
+    </View>
+  );
+}
+
 function InlineImage({
   file,
   box: { width, height },
@@ -225,10 +275,8 @@ function InlineImage({
   const c = useColors();
   // The message's own version, from the first frame: switched to the details' once they came, the link and the cache
   // key changed, and the picture went blank and faded in again.
-  const version = file.version;
-  const key = `${file.id}@${version ?? "latest"}`;
-  const link = useRemoteFile(orgId, file.id, version);
-  const [failed, setFailed] = useState(false);
+  const picture = usePicture(orgId, file.id, file.version);
+  const { key, source, failed } = picture;
   return (
     <PressScale
       haptic={false}
@@ -238,20 +286,20 @@ function InlineImage({
       accessibilityHint={t("mobile.files.openImage")}
       style={[styles.shot, { width, height, backgroundColor: c.sunken, borderColor: c.line2 }, cardCorners]}
     >
-      {link.data && !failed ? (
+      {source && !failed ? (
         <Image
-          source={{ uri: link.data.uri, headers: link.data.headers, cacheKey: key }}
+          source={source}
           recyclingKey={key}
           cachePolicy="memory-disk"
           contentFit="contain"
           transition={pictureFade(key)}
           onLoad={() => pictureDrawn(key)}
           style={StyleSheet.absoluteFill}
-          onError={() => setFailed(true)}
+          onError={picture.onError}
           accessible={false}
         />
       ) : null}
-      {failed || link.isError ? (
+      {failed ? (
         <View style={styles.center}>
           <Icon name="image" size={22} color={c.faint} />
         </View>
@@ -281,11 +329,13 @@ function InlineVideo({
   const c = useColors();
   const link = useRemoteFile(orgId, file.id, file.version, { once: true });
   const [failed, setFailed] = useState(false);
+  // Its own shape from the first frame when the server read its size (its file's details, else its ref).
+  const box = videoBox(
+    width,
+    pictureRatio(detail?.content.kind === "file" ? detail.content : null) ?? pictureRatio(file),
+  );
   const source = useMemo(() => (link.data ? { uri: link.data.uri, headers: link.data.headers } : null), [link.data]);
   const openLooked = useOpenFile();
-  if (failed || link.isError)
-    return <AttachmentTile file={file} detail={detail} width={width} single siblings={siblings} />;
-  const info = detail ? fileInfo(detail) : null;
   // In the same viewer as the pictures: one place where media opens. Its details may not be here yet (slow, or their
   // read failed): the tap still opens, reading them first, never a press that does nothing.
   const open = () => {
@@ -293,6 +343,9 @@ function InlineVideo({
     if (detail) openFile({ ...ref, detail }, siblings);
     else void openLooked(ref, siblings);
   };
+  if (failed || link.isError)
+    return <AttachmentTile file={file} detail={detail} width={width} single siblings={siblings} />;
+  const info = detail ? fileInfo(detail) : null;
   return (
     <View>
       {source ? (
@@ -300,7 +353,8 @@ function InlineVideo({
           key={`${file.id}@${file.version ?? "latest"}`}
           source={source}
           name={info?.name || file.title}
-          width={width}
+          width={box.width}
+          height={box.height}
           onOpen={open}
           onFailed={() => setFailed(true)}
         />
@@ -310,48 +364,9 @@ function InlineVideo({
           onPress={open}
           accessibilityRole="button"
           accessibilityLabel={info?.name || file.title}
-          style={[
-            styles.shot,
-            { width, height: videoHeight(width), backgroundColor: c.sunken, borderColor: c.line2 },
-            cardCorners,
-          ]}
+          style={[styles.shot, { ...box, backgroundColor: c.sunken, borderColor: c.line2 }, cardCorners]}
         />
       )}
-    </View>
-  );
-}
-
-/**
- * An audio file on a message: the voice message's player, its name and line under it; a tap there opens the file screen
- * (Enviar cópia, the Drive). Played at the version the message names.
- */
-function InlineAudio({
-  file,
-  detail,
-  width,
-}: {
-  file: MessageFile;
-  detail: ArtifactDetail | undefined;
-  width: number;
-}) {
-  const line = useFileLine();
-  const info = detail ? fileInfo(detail) : null;
-  const openLooked = useOpenFile();
-  // Its details may not be here yet: the tap still opens, reading them first.
-  const open = () => {
-    const ref = { id: file.id, version: file.version, title: file.title };
-    if (detail) openFile({ ...ref, detail });
-    else void openLooked(ref);
-  };
-  return (
-    <View style={{ width }}>
-      <AudioFile
-        fileId={file.id}
-        version={file.version}
-        name={info?.name || file.title}
-        {...(info ? { line: line(info) } : {})}
-        onOpen={open}
-      />
     </View>
   );
 }
@@ -415,12 +430,7 @@ export function LocalFiles({
         <LocalMedia file={lone} box={singleImageBox(blockWidth, localRatio(lone))} sending={sending} />
       ) : null}
       {videos.map((f) => (
-        <LocalMedia
-          key={f.uri}
-          file={f}
-          box={{ width: blockWidth, height: videoHeight(blockWidth) }}
-          sending={sending}
-        />
+        <LocalMedia key={f.uri} file={f} box={videoBox(blockWidth, localRatio(f))} sending={sending} />
       ))}
       {others.length > 0 ? (
         <View style={[styles.grid, { width: blockWidth }, align === "end" && styles.gridEnd]}>
@@ -573,6 +583,9 @@ function RemovedCard() {
 }
 
 const styles = StyleSheet.create({
+  audio: { gap: 4 },
+  // Under the player, in line with its card's inner edge.
+  audioName: { paddingHorizontal: 12 },
   wrap: { alignSelf: "stretch", gap: 8 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: GAP },
   gridEnd: { justifyContent: "flex-end" },

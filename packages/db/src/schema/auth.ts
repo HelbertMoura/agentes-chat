@@ -34,12 +34,18 @@ export const users = pgTable("users", {
   deletionDueAt: timestamp({ withTimezone: true }),
   deletionRequestedAt: timestamp({ withTimezone: true }),
   /**
+   * The last confirmation or reset email to the account's address could never be delivered (`suppressed`: the mail
+   * provider stopped mailing it after a bounce; `rejected`: the address was refused); null once one goes. Set by the
+   * `email.send` job. Not a Better Auth field.
+   */
+  emailUndelivered: text().$type<"suppressed" | "rejected">(),
+  /**
    * The person's own area, asked once during the onboarding: an id of `WORK_AREAS`
    * (`@agenteschat/client/lib/work-area`) or `skipped`; null until asked. About the person, not a workspace, read by
    * the operator API's account (which kinds of people stay). Not a Better Auth field.
    */
   workArea: text(),
-  /** Whether signing in takes a code from an authenticator app too (Better Auth's two-factor plugin, ADR 0219). */
+  /** Whether signing in takes a code from an authenticator app too (Better Auth's two-factor plugin, ADR 0259). */
   twoFactorEnabled: boolean().notNull().default(false),
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
@@ -103,7 +109,7 @@ export const verifications = pgTable(
 );
 
 /**
- * An account's authenticator app (ADR 0219), Better Auth's two-factor model: the TOTP secret and the recovery codes,
+ * An account's authenticator app (ADR 0259), Better Auth's two-factor model: the TOTP secret and the recovery codes,
  * both encrypted with the sessions' secret, never returned to a client. `verified` is false between "Turn on" and the
  * first code the app shows; `failedVerificationCount` and `lockedUntil` hold the account's lockout after wrong codes.
  * Belongs to a person, not a workspace.

@@ -4,6 +4,7 @@ import type { ChatPrefs } from "../lib/chat-look";
 import { humanCheckHeaders } from "../lib/human-check";
 import type { OnboardingStepId } from "../lib/onboarding";
 import { type LodiPrefs, lodiPrefsOf } from "../lib/right-hand-prefs";
+import { browserTimezone } from "../lib/routines";
 import { CLOUD_SERVER, withoutTrailingSlashes } from "../lib/server";
 import { createLiveApi } from "../live/api";
 import { consultSeeds } from "../realtime/consults";
@@ -23,6 +24,7 @@ import type {
   AccountLoginStart,
   AccountLoginStatus,
   AccountOrderGroup,
+  AccountPermissions,
   ActiveRun,
   Agent,
   AgentAccess,
@@ -74,10 +76,10 @@ import type {
   CalendarRange,
   Channel,
   ChannelCard,
-  ChannelCategory,
   ChannelMember,
   ChannelOverride,
   Choices,
+  CliFetch,
   CliInstall,
   CodeSent,
   CommandApproval,
@@ -114,6 +116,7 @@ import type {
   FeedbackFile,
   FeedbackOffer,
   FileConversationRef,
+  FileWave,
   ForeignMailbox,
   FormerAgent,
   GifKey,
@@ -130,6 +133,8 @@ import type {
   ImportedSource,
   ImportPlan,
   Instance,
+  IntegrationApp,
+  IntegrationAppSecrets,
   Invitation,
   InvitationPreview,
   InvitationState,
@@ -151,6 +156,7 @@ import type {
   JoinClaim,
   JoinRequest,
   LearnedSkill,
+  LocalSpeech,
   Machine,
   MachineAccess,
   MachineAccount,
@@ -165,6 +171,7 @@ import type {
   Memory,
   Message,
   MessageCard,
+  MessageCards,
   MessagePin,
   Mission,
   MissionBrain,
@@ -216,6 +223,7 @@ import type {
   Routine,
   RoutineHook,
   RoutineRun,
+  RoutineRunCall,
   RuleInfo,
   Run,
   RunConsultation,
@@ -234,9 +242,11 @@ import type {
   SignInOptions,
   Skill,
   SkillDetail,
+  SkillDraft,
   SkillPick,
   SkillSettings,
   SkillSourceUpdate,
+  SkillSuggestion,
   SpeechKey,
   StartChoice,
   StorageConfig,
@@ -246,6 +256,8 @@ import type {
   SurfaceLink,
   SurfaceLinkCode,
   SurfaceLinks,
+  SurfaceNudge,
+  SurfacePage,
   TaskManagerView,
   TaskOutput,
   TaskSteps,
@@ -549,6 +561,9 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       update: (orgId, itemId, patch) =>
         request<VaultItem>(`${org(orgId)}/vault/items/${enc(itemId)}`, { method: "PATCH", json: patch }),
       remove: (orgId, itemId) => request<void>(`${org(orgId)}/vault/items/${enc(itemId)}`, { method: "DELETE" }),
+      setAccessMany: (orgId, ids, access) =>
+        request(`${org(orgId)}/vault/items/bulk/access`, { method: "PUT", json: { ids, access } }),
+      removeMany: (orgId, ids) => request(`${org(orgId)}/vault/items/bulk/delete`, { json: { ids } }),
       importCsv: (orgId, input) => request<VaultImportResult>(`${org(orgId)}/vault/import`, { json: input }),
       importKeys: (orgId, input) => request<VaultKeysImportResult>(`${org(orgId)}/vault/keys`, { json: input }),
       move: (orgId, itemId, scope) =>
@@ -595,6 +610,7 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       instance: () => request<Instance>("/api/instance"),
       telemetry: () => nullOn(404, () => request<ServerTelemetry>("/api/app/telemetry")),
       setTelemetry: (enabled) => request<ServerTelemetry>("/api/app/telemetry", { method: "PUT", json: { enabled } }),
+      reportVitals: (report) => request<void>("/api/app/client-vitals", { json: report }),
       previewProblemReport: (input) =>
         request<ProblemReportPreview>("/api/app/problem-reports/preview", { json: input }),
       sendProblemReport: (input) => request<{ id: string }>("/api/app/problem-reports/send", { json: input }),
@@ -622,6 +638,9 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       speechKey: () => nullOn(404, () => request<SpeechKey>("/api/app/speech-key")),
       saveSpeechKey: (input) => request<SpeechKey>("/api/app/speech-key", { method: "PUT", json: input }),
       removeSpeechKey: () => request<SpeechKey>("/api/app/speech-key", { method: "DELETE" }),
+      speechLocal: () => nullOn(404, () => request<LocalSpeech>("/api/app/speech-local")),
+      installSpeechLocal: () => request<LocalSpeech>("/api/app/speech-local", { method: "PUT", json: {} }),
+      removeSpeechLocal: () => request<LocalSpeech>("/api/app/speech-local", { method: "DELETE" }),
     },
     account: {
       authConfig: () => request<AuthConfig>("/api/app/auth-config"),
@@ -659,10 +678,19 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       mintCode: (orgId) => request<SurfaceLinkCode>(`${org(orgId)}/surface-link/code`, { json: {} }),
       confirm: (linkId) => request<SurfaceLink>(`/api/app/me/surface-links/${enc(linkId)}/confirm`, { json: {} }),
       remove: (linkId) => request<void>(`/api/app/me/surface-links/${enc(linkId)}`, { method: "DELETE" }),
+      setNudge: (linkId, input) =>
+        request<SurfaceNudge>(`/api/app/me/surface-links/${enc(linkId)}/nudge`, { method: "PATCH", json: input }),
+      setPin: (linkId, pin) =>
+        request<void>(`/api/app/me/surface-links/${enc(linkId)}/pin`, { method: "PUT", json: { pin } }),
       undo: (token) =>
         request<{ unlinked: boolean; surface: string; display: string | null }>("/api/app/surface-undo", {
           json: { token },
         }),
+      openPage: (token) => request<SurfacePage>("/api/app/surface-page/open", { json: { token } }),
+      decidePage: (token, decision, pin) =>
+        request<SurfacePage>("/api/app/surface-page/decide", { json: { token, decision, ...(pin ? { pin } : {}) } }),
+      emailPin: (token) => request<void>("/api/app/surface-page/pin-email", { json: { token } }),
+      pinFromEmail: (token, pin) => request<{ surface: string }>("/api/app/surface-pin", { json: { token, pin } }),
     },
     push: {
       webKey: async () =>
@@ -778,7 +806,7 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       acceptInvitation: (token, mail) =>
         request<{ orgId: string }>(
           `/api/app/invitations/${enc(token)}/accept${mail ? `?${new URLSearchParams({ mail })}` : ""}`,
-          { json: {} },
+          { json: { timeZone: browserTimezone() ?? undefined } },
         ),
       settings: (orgId) => request<OrgSettings>(`${org(orgId)}/settings`),
       updateSettings: (orgId, input) =>
@@ -938,6 +966,8 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         request<Agent>(`${org(orgId)}/agents/${enc(agentId)}`, { method: "PATCH", json: input }),
       confirmSetup: (orgId, agentId, step) =>
         request<Agent>(`${org(orgId)}/agents/${enc(agentId)}/setup/${enc(step)}`, { json: {} }),
+      closeSetup: (orgId, agentId) =>
+        request<Agent>(`${org(orgId)}/agents/${enc(agentId)}/setup`, { method: "PATCH", json: { closed: true } }),
       mailLoss: async (orgId, agentId, audience) =>
         (
           await request<{ mailboxes: ForeignMailbox[] }>(`${org(orgId)}/agents/${enc(agentId)}/audience/mail-loss`, {
@@ -1076,7 +1106,7 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       exportUrl: (orgId) => `${base}${org(orgId)}/export`,
     },
     voice: {
-      allowed: (orgId) => request<{ allowed: boolean }>(`${org(orgId)}/voice/allowed`),
+      allowed: (orgId) => request<{ allowed: boolean; reason?: "plan" }>(`${org(orgId)}/voice/allowed`),
       send: (orgId, channelId, input) => {
         const form = new FormData();
         const name = input.blob.type.startsWith("audio/webm") ? "voice.webm" : "voice.m4a";
@@ -1095,21 +1125,6 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
     chat: {
       channels: async (orgId) => (await request<{ channels: Channel[] }>(`${org(orgId)}/channels`)).channels,
       createChannel: (orgId, input) => request<Channel>(`${org(orgId)}/channels`, { json: input }),
-      categories: async (orgId) =>
-        (await request<{ categories: ChannelCategory[] }>(`${org(orgId)}/channel-categories`)).categories,
-      createCategory: (orgId, input) => request<ChannelCategory>(`${org(orgId)}/channel-categories`, { json: input }),
-      renameCategory: (orgId, categoryId, name) =>
-        request<ChannelCategory>(`${org(orgId)}/channel-categories/${enc(categoryId)}`, {
-          method: "PATCH",
-          json: { name },
-        }),
-      deleteCategory: (orgId, categoryId) =>
-        request<void>(`${org(orgId)}/channel-categories/${enc(categoryId)}`, { method: "DELETE" }),
-      placeCategory: (orgId, categoryId, beforeCategoryId) =>
-        request<void>(`${org(orgId)}/channel-categories/${enc(categoryId)}/place`, {
-          method: "PUT",
-          json: { beforeCategoryId },
-        }),
       place: (orgId, channelId, input) =>
         request<void>(`${org(orgId)}/channels/${enc(channelId)}/place`, { method: "PUT", json: input }),
       join: (orgId, channelId) => request<void>(`${org(orgId)}/channels/${enc(channelId)}/join`, { json: {} }),
@@ -1186,10 +1201,11 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         })) ?? null,
       messages: async (orgId, channelId, options = {}) => {
         const path = `${org(orgId)}/channels/${enc(channelId)}/messages`;
-        const { threadId, before, after, around, limit } = options;
-        const query = { threadId, before, after, around, limit };
-        const { messages } = await request<{ messages: Message[] }>(path, { query });
+        const { threadId, before, after, around, limit, onCards } = options;
+        const query = { threadId, before, after, around, limit, include: onCards ? "cards" : undefined };
+        const { messages, cards } = await request<{ messages: Message[]; cards?: MessageCards }>(path, { query });
         steerStore.seed(channelId, messages);
+        if (cards) onCards?.(cards);
         return messages;
       },
       post: async (orgId, channelId, input) => {
@@ -1211,6 +1227,7 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
           json: { ...(reason ? { reason } : {}), ...(via ? { via } : {}) },
         }),
       cancel: (orgId, id) => request<Approval>(`${org(orgId)}/approvals/${enc(id)}/cancel`, { json: {} }),
+      runNow: (orgId, id) => request<Approval>(`${org(orgId)}/approvals/${enc(id)}/run-now`, { json: {} }),
       decideMany: (orgId, input) =>
         request<{ approvals: Approval[]; skipped: string[] }>(`${org(orgId)}/approvals/decide`, { json: input }),
       rules: async (orgId, agentId) =>
@@ -1284,6 +1301,8 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       listAll: async (orgId) => (await request<{ memories: Memory[] }>(`${org(orgId)}/memories`)).memories,
       listTeam: async (orgId) => (await request<{ memories: Memory[] }>(`${org(orgId)}/team-memories`)).memories,
       makeTeam: (orgId, id) => request<Memory>(`${org(orgId)}/memories/${enc(id)}/team`, { json: {} }),
+      forgetRightHandLearned: (orgId) =>
+        request<{ forgotten: number }>(`${org(orgId)}/right-hand/forget-learned`, { json: {} }),
       list: async (orgId, agentId, filter) =>
         (
           await request<{ memories: Memory[] }>(`${org(orgId)}/agents/${enc(agentId)}/memories`, {
@@ -1325,6 +1344,7 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       list: (orgId) => request<DevicesList>(`${org(orgId)}/devices`),
       updateComputer: (orgId, machineId, input) =>
         request<ComputerDevice>(`${org(orgId)}/devices/computers/${enc(machineId)}`, { method: "PATCH", json: input }),
+      setHelp: (orgId, on) => request<{ on: boolean }>(`${org(orgId)}/devices/help`, { method: "PUT", json: { on } }),
       removeComputer: (orgId, machineId) =>
         request<void>(`${org(orgId)}/devices/computers/${enc(machineId)}`, { method: "DELETE" }),
       updatePhone: (orgId, phoneId, input) =>
@@ -1332,6 +1352,8 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       forgetPhone: (orgId, phoneId) =>
         request<void>(`${org(orgId)}/devices/phones/${enc(phoneId)}`, { method: "DELETE" }),
       stopPhone: (orgId, phoneId) => request<void>(`${org(orgId)}/devices/phones/${enc(phoneId)}/stop`, { json: {} }),
+      powerPhone: (orgId, phoneId, on) =>
+        request<void>(`${org(orgId)}/devices/phones/${enc(phoneId)}/power`, { json: { on } }),
       createLink: (orgId, kind) => request<ConnectLink>(`${org(orgId)}/devices/connect-links`, { json: { kind } }),
       link: (orgId, linkId) => request<ConnectLinkState>(`${org(orgId)}/devices/connect-links/${enc(linkId)}`),
       approveRequest: (orgId, requestId, input) =>
@@ -1402,9 +1424,21 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       askTool: async (orgId, machineId, tool) => {
         await request<unknown>(`${org(orgId)}/machines/${enc(machineId)}/access/ask`, { json: { tool } });
       },
+      refuseFolder: (orgId, machineId, requestId) =>
+        request<{ status: string }>(
+          `${org(orgId)}/machines/${enc(machineId)}/access/requests/${enc(requestId)}/refuse`,
+          { json: {} },
+        ),
+      askFolder: async (orgId, machineId, input) => {
+        await request<unknown>(`${org(orgId)}/machines/${enc(machineId)}/access/pick`, { json: input });
+      },
       checkClis: async (orgId, machineId) => {
         await request<unknown>(`${org(orgId)}/machines/${enc(machineId)}/clis/check`, { json: {} });
       },
+      fetchCli: (orgId, machineId, cli) =>
+        request<{ fetch: CliFetch | null }>(`${org(orgId)}/machines/${enc(machineId)}/clis/${enc(cli)}/fetch`, {
+          json: {},
+        }),
       cliInstall: (orgId, machineId, tool, action) => {
         const path = `${org(orgId)}/machines/${enc(machineId)}/cli-install`;
         if (action === "start") return request<{ install: CliInstall | null }>(path, { json: { tool } });
@@ -1460,7 +1494,17 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
           method: "PUT",
           json: { serves },
         }),
-      accountOrder: (orgId) => request<{ groups: AccountOrderGroup[] }>(`${org(orgId)}/ai-accounts/order`),
+      accountOrder: (orgId) =>
+        request<{ groups: AccountOrderGroup[]; keyFallback?: boolean; canConfigure?: boolean }>(
+          `${org(orgId)}/ai-accounts/order`,
+        ),
+      setAccountPermissions: (orgId, accountId, input) =>
+        request<{ permissions: AccountPermissions; agentIds: string[] }>(
+          `${org(orgId)}/ai-accounts/${enc(accountId)}/permissions`,
+          { method: "PUT", json: input },
+        ),
+      setKeyFallback: (orgId, on) =>
+        request<{ on: boolean }>(`${org(orgId)}/ai-accounts/key-fallback`, { method: "PUT", json: { on } }),
       moveAccountInOrder: (orgId, accountId, index) =>
         request<AccountOrderGroup>(`${org(orgId)}/ai-accounts/${enc(accountId)}/order`, {
           method: "PUT",
@@ -1483,6 +1527,26 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       createToken: (orgId, input) => request<CreatedPersonalToken>(`${org(orgId)}/tokens`, { json: input }),
       revokeToken: (orgId, grantId) => request<void>(`${org(orgId)}/tokens/${enc(grantId)}`, { method: "DELETE" }),
     },
+    integrationApps: {
+      list: async (orgId) => (await request<{ apps: IntegrationApp[] }>(`${org(orgId)}/integration-apps`)).apps,
+      create: (orgId, input) => request<IntegrationAppSecrets>(`${org(orgId)}/integration-apps`, { json: input }),
+      update: (orgId, appId, input) =>
+        request<IntegrationAppSecrets>(`${org(orgId)}/integration-apps/${enc(appId)}`, {
+          method: "PATCH",
+          json: input,
+        }),
+      newToken: (orgId, appId) =>
+        request<IntegrationAppSecrets>(`${org(orgId)}/integration-apps/${enc(appId)}/token`, { json: {} }),
+      revokeToken: async (orgId, appId) =>
+        (
+          await request<{ app: IntegrationApp }>(`${org(orgId)}/integration-apps/${enc(appId)}/token`, {
+            method: "DELETE",
+          })
+        ).app,
+      newWebhookSecret: (orgId, appId) =>
+        request<IntegrationAppSecrets>(`${org(orgId)}/integration-apps/${enc(appId)}/webhook-secret`, { json: {} }),
+      remove: (orgId, appId) => request<void>(`${org(orgId)}/integration-apps/${enc(appId)}`, { method: "DELETE" }),
+    },
     skills: {
       list: async (orgId) => (await request<{ skills: Skill[] }>(`${org(orgId)}/skills`)).skills,
       get: (orgId, id) => request<SkillDetail>(`${org(orgId)}/skills/${enc(id)}`),
@@ -1497,6 +1561,20 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         (
           await request<{ skills: SkillDetail[] }>(`${org(orgId)}/skills/import`, {
             json: { url, paths, ...(forAgentId ? { forAgentId } : {}), ...(personal ? { personal } : {}) },
+          })
+        ).skills,
+      importPickedFile: async (orgId, fileId, paths, forAgentId, personal) =>
+        (
+          await request<{ skills: SkillDetail[] }>(`${org(orgId)}/skills/import`, {
+            json: { fileId, paths, ...(forAgentId ? { forAgentId } : {}), ...(personal ? { personal } : {}) },
+          })
+        ).skills,
+      importPickedZip: async (orgId, zipBase64, paths, personal, upload) =>
+        (
+          await request<{ skills: SkillDetail[] }>(`${org(orgId)}/skills/import`, {
+            json: { zipBase64, paths, ...(personal ? { personal } : {}) },
+            signal: upload?.signal,
+            onUploadProgress: upload?.onProgress,
           })
         ).skills,
       update: (orgId, id, patch) =>
@@ -1527,6 +1605,18 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       settings: (orgId) => request<SkillSettings>(`${org(orgId)}/skill-settings`),
       saveSettings: (orgId, input) =>
         request<SkillSettings>(`${org(orgId)}/skill-settings`, { method: "PUT", json: input }),
+      draft: (orgId, input) => request<SkillDraft>(`${org(orgId)}/skills/draft`, { json: input }),
+      saveDraft: (orgId, input) => request<SkillDetail>(`${org(orgId)}/skills/drafted`, { json: input }),
+      rewrite: (orgId, id, words) =>
+        request<SkillDetail>(`${org(orgId)}/skills/${enc(id)}/rewrite`, { json: { words } }),
+      suggestions: async (orgId, agentId) =>
+        (await request<{ suggestions: SkillSuggestion[] }>(`${org(orgId)}/agents/${enc(agentId)}/skill-suggestions`))
+          .suggestions,
+      learns: async (orgId, agentId) =>
+        (await request<{ learnsSkills?: boolean }>(`${org(orgId)}/agents/${enc(agentId)}/skills`)).learnsSkills ?? true,
+      setLearns: (orgId, agentId, on) =>
+        request<void>(`${org(orgId)}/agents/${enc(agentId)}/learns-skills`, { method: "PUT", json: { on } }),
+      zipUrl: (orgId, id) => `${base}${org(orgId)}/skills/${enc(id)}/download`,
     },
     access: {
       get: (orgId, agentId, options) =>
@@ -1591,6 +1681,8 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         request<{ id: string }>(`${org(orgId)}/artifacts/${enc(id)}/reply`, {
           json: { text, clientId },
         }),
+      setWave: (orgId, id, version, wave) =>
+        request<FileWave>(`${org(orgId)}/artifacts/${enc(id)}/wave`, { method: "PUT", query: { version }, json: wave }),
       blockState: (orgId, id, version) =>
         request<BlockState>(`${org(orgId)}/blocks/${enc(id)}/state`, { query: { version } }),
       setBlockState: (orgId, id, version, values) =>
@@ -1618,6 +1710,8 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         const qs = params.toString();
         return `${base}${org(orgId)}/artifacts/${enc(id)}/file${qs ? `?${qs}` : ""}`;
       },
+      thumbUrl: (orgId, id, { version, width }) =>
+        `${base}${org(orgId)}/artifacts/${enc(id)}/thumb?version=${version}&w=${width}`,
       upload: (orgId, file, options = {}, upload) => {
         const form = new FormData();
         form.append("file", file, file.name);
@@ -1871,6 +1965,9 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       takeOver: (orgId, id) => request<Routine>(`${org(orgId)}/routines/${enc(id)}/take-over`, { json: {} }),
       continueUsage: (orgId, id) => request<Routine>(`${org(orgId)}/routines/${enc(id)}/continue`, { json: {} }),
       runs: async (orgId, id) => (await request<{ runs: RoutineRun[] }>(`${org(orgId)}/routines/${enc(id)}/runs`)).runs,
+      runCalls: async (orgId, id, runId) =>
+        (await request<{ calls: RoutineRunCall[] }>(`${org(orgId)}/routines/${enc(id)}/runs/${enc(runId)}/calls`))
+          .calls,
       parseRule: (orgId, phrase, timezone) =>
         request<RuleInfo>(`${org(orgId)}/routines/parse-rule`, { json: { phrase, ...(timezone ? { timezone } : {}) } }),
       describeRule: (orgId, rule) => request<RuleInfo>(`${org(orgId)}/routines/describe-rule`, { json: { rule } }),
@@ -1882,8 +1979,10 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       hook: (orgId, id) => request<RoutineHook>(`${org(orgId)}/routines/${enc(id)}/hook`),
       newHookAddress: (orgId, id) =>
         request<RoutineHook>(`${org(orgId)}/routines/${enc(id)}/hook/address`, { json: {} }),
-      newHookSecret: (orgId, id) =>
-        request<{ secret: string; hook: RoutineHook }>(`${org(orgId)}/routines/${enc(id)}/hook/secret`, { json: {} }),
+      newHookSecret: (orgId, id, pasted) =>
+        request<{ secret: string; hook: RoutineHook }>(`${org(orgId)}/routines/${enc(id)}/hook/secret`, {
+          json: pasted === undefined ? {} : { secret: pasted },
+        }),
       removeHookSecret: (orgId, id) =>
         request<RoutineHook>(`${org(orgId)}/routines/${enc(id)}/hook/secret`, { method: "DELETE" }),
       testHook: (orgId, id) =>
@@ -2037,6 +2136,7 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         request<Proposal>(`${org(orgId)}/proposals/${enc(id)}/accept`, { json: text === undefined ? {} : { text } }),
       refuse: (orgId, id) => request<Proposal>(`${org(orgId)}/proposals/${enc(id)}/refuse`, { json: {} }),
       ask: (orgId, id) => request<Proposal>(`${org(orgId)}/proposals/${enc(id)}/ask`, { json: {} }),
+      undo: (orgId, id) => request<Proposal>(`${org(orgId)}/proposals/${enc(id)}/undo`, { json: {} }),
     },
     repositories: {
       get: async (orgId, agentId) =>

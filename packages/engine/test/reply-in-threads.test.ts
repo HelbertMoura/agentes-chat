@@ -1,5 +1,6 @@
 import { afterEach, expect, setDefaultTimeout, test } from "bun:test";
 import { eq, schema, sql } from "@agenteschat/db";
+import { runMigration } from "@agenteschat/db/testing";
 import { type ModelRequest, ProviderError } from "@agenteschat/providers";
 import {
   activeRunsIn,
@@ -11,6 +12,7 @@ import {
   createAgentRuns,
   createChannel,
   createJobHandlers,
+  createOrganization,
   deliverNoticeToRun,
   drainOutbox,
   EARLY_CHECK_JOB,
@@ -31,7 +33,7 @@ import {
   wakeForAccessDecision,
 } from "../src";
 import type { Transcript } from "../src/executor";
-import { addMember, type Fixture, setup } from "./fixtures";
+import { addMember, addUser, type Fixture, setup } from "./fixtures";
 import { pairMachine } from "./machine-fixtures";
 
 /**
@@ -128,7 +130,7 @@ test("asked in the main timeline: the reply goes under the message, which stays 
   expect(view).toMatchObject({ replyCount: 1, openedByReplyAt: reply?.createdAt.toISOString() });
 });
 
-test("off, as by default: the reply stays in the main timeline and no thread opens", async () => {
+test("off: the reply stays in the main timeline and no thread opens", async () => {
   f = await setup({ reply: () => ({ chunks: ["Conferi."] }) });
   const asking = await say("@dev confere as lojas");
   await drainOutbox(f.db, f.handlers);
@@ -138,6 +140,50 @@ test("off, as by default: the reply stays in the main timeline and no thread ope
   const [reply] = await postsOf();
   expect(reply?.threadId).toBeNull();
   expect(await threadRow(asking.id)).toBeUndefined();
+});
+
+test("on by default for a channel made with another person; existing channels too; a DM never", async () => {
+  f = await setup({ reply: () => ({ chunks: ["Conferi."] }) });
+  const dmBefore = await openDm(f.db, f.owner.id, f.org.id, { agentId: f.agent.id });
+  // Test databases keep the old default (packages/db/test/pglite.ts); the migration sets production's.
+  await runMigration(f.db, "channels_reply_in_threads_by_default");
+  const row = async (id: string) => (await f.db.select().from(schema.channels).where(eq(schema.channels.id, id)))[0];
+  expect((await row(f.general.id))?.replyInThreads).toBe(true);
+  expect((await row(dmBefore.id))?.replyInThreads).toBe(false);
+
+  // Made with no one but its creator, it starts in the main timeline; made with another person, in threads.
+  const solo = await createChannel(f.db, f.owner.id, f.org.id, { name: "solo", members: [{ agentId: f.agent.id }] });
+  expect(solo.replyInThreads).toBe(false);
+  const bia = await addMember(f.db, f.org.id, "member", "bia");
+  const vendas = await createChannel(f.db, f.owner.id, f.org.id, {
+    name: "vendas",
+    members: [{ userId: bia.id }, { agentId: f.agent.id }],
+  });
+  expect(vendas.replyInThreads).toBe(true);
+  const members = await f.db.select().from(schema.channelMembers).where(eq(schema.channelMembers.channelId, vendas.id));
+  expect(members.map((m) => m.userId ?? m.agentId).sort()).toEqual([bia.id, f.agent.id, f.owner.id].sort());
+  const asking = await say("@dev confere as lojas", { channelId: vendas.id });
+  await drainOutbox(f.db, f.handlers);
+  expect((await postsOf()).at(-1)).toMatchObject({ channelId: vendas.id, threadId: asking.id });
+
+  await threadsOn(false, vendas.id);
+  expect((await row(vendas.id))?.replyInThreads).toBe(false);
+
+  await say("oi", { channelId: dmBefore.id });
+  await drainOutbox(f.db, f.handlers);
+  expect((await postsOf()).at(-1)).toMatchObject({ channelId: dmBefore.id, threadId: null });
+});
+
+test("a personal workspace's channels start in the main timeline, #general and one made with family alike", async () => {
+  f = await setup({ reply: () => ({ chunks: ["Conferi."] }) });
+  await runMigration(f.db, "channels_reply_in_threads_by_default");
+  const me = await addUser(f.db, "eu");
+  const { organization: home, general } = await createOrganization(f.db, me.id, { name: "Pessoal", mode: "personal" });
+  expect(general.replyInThreads).toBe(false);
+  const family = await addUser(f.db, "bia");
+  await f.db.insert(schema.organizationMembers).values({ orgId: home.id, userId: family.id, role: "member" });
+  const casa = await createChannel(f.db, me.id, home.id, { name: "casa", members: [{ userId: family.id }] });
+  expect(casa.replyInThreads).toBe(false);
 });
 
 test("its cards, files, question cards and live events land in the thread too", async () => {

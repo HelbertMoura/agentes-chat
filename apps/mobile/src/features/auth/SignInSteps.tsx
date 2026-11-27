@@ -122,7 +122,7 @@ export function PasswordStep() {
         },
         flow?.options?.pass,
       );
-      // The account's second step (ADR 0219): its code, on a screen of its own.
+      // The account's second step (ADR 0259): its code, on a screen of its own.
       if (!refused && code) {
         void writeValue(LAST_EMAIL, email);
         router.push(twoFactorStepHref("email") as never);
@@ -191,7 +191,7 @@ export function PasswordStep() {
 }
 
 /**
- * The second step of a sign-in (ADR 0219): the six digits the authenticator app shows, or a recovery code. Right, the
+ * The second step of a sign-in (ADR 0259): the six digits the authenticator app shows, or a recovery code. Right, the
  * app is signed in (the session arrives with the answer); a challenge that ended (too many tries, ten minutes) goes
  * back to sign in again.
  */

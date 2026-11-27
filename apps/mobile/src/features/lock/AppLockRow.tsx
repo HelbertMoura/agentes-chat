@@ -6,7 +6,7 @@ import { LOCK_AFTER_CHOICES, type LockAfter } from "./logic";
 import { setLockAfter, turnAppLock, useAppLock, useLockAvailability } from "./store";
 
 /**
- * Você › Preferências: "Bloquear com biometria", for this phone only (ADR 0220). Offered where the phone has
+ * Você › Preferências: "Bloquear com biometria", for this phone only (ADR 0260). Offered where the phone has
  * biometrics or a screen lock; turning it on asks for that proof once.
  */
 export function AppLockRow() {

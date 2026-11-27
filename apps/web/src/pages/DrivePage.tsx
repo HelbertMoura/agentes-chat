@@ -1,9 +1,7 @@
 import type { Artifact, ArtifactFilters, ArtifactKind, DriveFolder } from "@agenteschat/client";
 import { isLiveFileKind, keys as queryKeys, useApi, useArtifacts, useChannels } from "@agenteschat/client";
-import { ARTIFACT_KINDS, KIND_ICON } from "@agenteschat/client/lib/artifacts";
+import { ARTIFACT_KINDS } from "@agenteschat/client/lib/artifacts";
 import {
-  DRIVE_GROUPS,
-  DRIVE_SORTS,
   type DriveGroup,
   type DriveSection,
   type DriveSort,
@@ -24,18 +22,12 @@ import {
   Checkbox,
   cx,
   EmptyState,
-  FilterBar,
-  FilterChip,
-  type FilterOption,
   GroupHeading,
   Icon,
   Kbd,
-  Menu,
-  MenuRadioGroup,
-  MenuSeparator,
   PageHeader,
+  Refreshing,
   SearchField,
-  Segmented,
   Toolbar,
   useMatchMedia,
 } from "@agenteschat/ui";
@@ -56,6 +48,7 @@ import {
   useFolderActions,
 } from "@/components/drive/DriveFolders";
 import { DriveCard, DriveRow, type ItemProps } from "@/components/drive/DriveItems";
+import { DriveDisplay, DriveFilters } from "@/components/drive/DriveToolbar";
 import { DriveTrash } from "@/components/drive/DriveTrash";
 import { DropOverlay, UploadProgress } from "@/components/drive/DriveUploads";
 import { useActorFilterOptions } from "@/components/filters";
@@ -395,6 +388,7 @@ export function DrivePage({
             : []),
         ]
       : null;
+  const newFolderHere = () => arrange.newFolder(folder);
   const filePicker = useFilePicker({ label: t("files.upload"), onFiles: upload, multiple: true });
   /** Right click or the menu key on the Drive's empty space: what makes something here. */
   const pageMenu = entityMenu((): MenuEntry[] =>
@@ -405,7 +399,7 @@ export function DrivePage({
             id: "new-folder",
             label: t("drive.newFolder"),
             icon: "plus",
-            run: () => arrange.newFolder(folder),
+            run: newFolderHere,
           },
           { kind: "item", id: "upload", label: t("files.upload"), icon: "upload", run: filePicker.open },
         ]
@@ -413,13 +407,6 @@ export function DrivePage({
   );
 
   const authorOptions = useActorFilterOptions();
-  const channelOptions: FilterOption[] = (channels.data ?? []).map((c) => ({ value: c.id, label: `#${c.name}` }));
-  const clearOf = (name: string) => t("filters.clear", { name });
-  const chipText = {
-    searchLabel: t("filters.search"),
-    searchPlaceholder: t("filters.searchPlaceholder"),
-    noResults: t("filters.noResults"),
-  };
   const itemProps = (a: Artifact): ItemProps => ({
     artifact: a,
     selected: selected.has(a.id),
@@ -502,14 +489,10 @@ export function DrivePage({
     );
   };
 
-  const kindOptions: FilterOption[] = ARTIFACT_KINDS.filter((k) => (counts.get(k) ?? 0) > 0 || kinds.includes(k)).map(
-    (k) => ({
-      value: k,
-      label: t(`drive.kindMany.${k}`),
-      leading: <Icon name={KIND_ICON[k]} size={16} />,
-      count: counts.get(k) ?? 0,
-    }),
-  );
+  const kindCounts = ARTIFACT_KINDS.filter((k) => (counts.get(k) ?? 0) > 0 || kinds.includes(k)).map((k) => ({
+    kind: k,
+    count: counts.get(k) ?? 0,
+  }));
 
   return (
     <div className={cx("page drive drive-drop", drop.over && "drive-drop--over")} {...drop.props} {...pageMenu}>
@@ -555,15 +538,10 @@ export function DrivePage({
                 >
                   {t("artifacts.trash")}
                 </Button>
-                {uploads && (
-                  <Button variant="ghost" icon="plus" onClick={() => arrange.newFolder(folder)}>
-                    {t("drive.newFolder")}
-                  </Button>
-                )}
                 {uploads && !(list.isSuccess && rows.length === 0 && subfolders.length === 0 && !filtered) && (
                   <>
-                    {/* A spreadsheet, a presentation or a canvas (ADR 0196 §9); Upload stays the one primary. */}
-                    <NewFileMenu iconOnly={phone} />
+                    {/* A folder or a live file (ADR 0196 §9); Upload stays the one primary. */}
+                    <NewFileMenu iconOnly={phone} onNewFolder={newFolderHere} />
                     <UploadButton
                       size="md"
                       label={t("files.upload")}
@@ -612,221 +590,40 @@ export function DrivePage({
                 />
               }
               actions={
-                <>
-                  <Menu
-                    align="end"
-                    label={t("drive.arrange")}
-                    trigger={
-                      // On a phone its icon alone, so the search keeps its words whole beside it.
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        icon="layers"
-                        iconOnly={phone}
-                        aria-label={t("drive.arrangeValue", { group: t(`drive.group.${group}`) })}
-                      >
-                        {t(`drive.group.${group}`)}
-                      </Button>
-                    }
-                  >
-                    <MenuRadioGroup
-                      label={t("drive.groupBy")}
-                      value={group}
-                      onValueChange={(v) => setGroup(v as DriveGroup)}
-                      options={DRIVE_GROUPS.map((g) => ({ value: g, label: t(`drive.group.${g}`) }))}
-                    />
-                    <MenuSeparator />
-                    <MenuRadioGroup
-                      label={t("drive.sortBy")}
-                      value={sort}
-                      onValueChange={(v) => setSort(v as DriveSort)}
-                      options={DRIVE_SORTS.map((s) => ({ value: s, label: t(`drive.sort.${s}`) }))}
-                    />
-                  </Menu>
-                  <Segmented<DriveView>
-                    size="sm"
-                    label={t("drive.view")}
-                    value={view}
-                    onValueChange={setView}
-                    className="drive-view"
-                    options={[
-                      {
-                        value: "grid",
-                        label: (
-                          <>
-                            <Icon name="grid" size={16} />
-                            <span className="ac-visually-hidden">{t("drive.viewGrid")}</span>
-                          </>
-                        ),
-                      },
-                      {
-                        value: "list",
-                        label: (
-                          <>
-                            <Icon name="list" size={16} />
-                            <span className="ac-visually-hidden">{t("drive.viewList")}</span>
-                          </>
-                        ),
-                      },
-                    ]}
-                  />
-                </>
+                <DriveDisplay
+                  view={view}
+                  onView={setView}
+                  group={group}
+                  onGroup={setGroup}
+                  sort={sort}
+                  onSort={setSort}
+                  iconOnly={phone}
+                />
               }
             >
-              <Segmented<DriveWho>
-                label={t("drive.who")}
-                value={who}
-                onValueChange={setWho}
-                options={[
-                  { value: "all", label: t("drive.everyone") },
-                  {
-                    value: "agents",
-                    label: (
-                      <>
-                        <Icon name="agent" size={16} />
-                        {t("drive.agents")}
-                      </>
-                    ),
-                  },
-                  {
-                    value: "people",
-                    label: (
-                      <>
-                        <Icon name="person" size={16} />
-                        {t("drive.people")}
-                      </>
-                    ),
-                  },
-                ]}
-              />
-              <FilterBar
-                label={t("drive.filters")}
-                clearText={t("drive.clear")}
-                onClear={clearFilters}
-                filters={[
-                  {
-                    key: "channel",
-                    active: channelIds.length > 0,
-                    node: (
-                      <FilterChip
-                        label={t("drive.channel")}
-                        icon="channel"
-                        multiple
-                        options={channelOptions}
-                        value={channelIds}
-                        onChange={setChannelIds}
-                        valueText={(o) => o.label}
-                        countText={(count) => t("filters.channels", { count })}
-                        clearLabel={clearOf(t("drive.channel"))}
-                        {...chipText}
-                      />
-                    ),
-                  },
-                  {
-                    key: "author",
-                    active: authors.length > 0,
-                    node: (
-                      <FilterChip
-                        label={t("drive.author")}
-                        icon="person"
-                        multiple
-                        options={authorOptions}
-                        value={authors}
-                        onChange={setAuthors}
-                        valueText={(o) => o.label}
-                        countText={(count) => t("filters.people", { count })}
-                        clearLabel={clearOf(t("drive.author"))}
-                        {...chipText}
-                      />
-                    ),
-                  },
-                  ...(kindOptions.length > 0
-                    ? [
-                        {
-                          key: "kind",
-                          active: kinds.length > 0,
-                          node: (
-                            <FilterChip
-                              label={t("drive.kind")}
-                              icon="file"
-                              multiple
-                              options={kindOptions}
-                              value={kinds}
-                              onChange={(v) => setKinds(v as ArtifactKind[])}
-                              countText={(count) => t("filters.kinds", { count })}
-                              clearLabel={clearOf(t("drive.kind"))}
-                              {...chipText}
-                            />
-                          ),
-                        },
-                      ]
-                    : []),
-                ]}
+              <DriveFilters
+                who={who}
+                onWho={setWho}
+                authors={authors}
+                onAuthors={setAuthors}
+                actors={authorOptions}
+                kinds={kinds}
+                onKinds={setKinds}
+                kindCounts={kindCounts}
+                channelIds={channelIds}
+                onChannels={setChannelIds}
+                channels={(channels.data ?? []).map((c) => ({ id: c.id, name: c.name }))}
               />
             </Toolbar>
 
-            {filtered && list.isSuccess && rows.length > 0 && (
-              <div className="drive-summary">
-                <span>{t("drive.count", { count: total })}</span>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  icon="close"
-                  onClick={() => {
-                    setQ("");
-                    clearFilters();
-                  }}
-                >
-                  {t("drive.clear")}
-                </Button>
-              </div>
-            )}
-
-            {list.isLoading && <LoadingList count={5} trailing />}
-            {list.isError && !list.data && <ErrorState error={list.error} onRetry={() => void list.refetch()} />}
-            {list.isSuccess && rows.length === 0 && subfolders.length === 0 && !filtered && folder && (
-              <EmptyState
-                size="panel"
-                title={t("drive.folderEmptyTitle")}
-                actions={
-                  uploads && (
-                    <UploadButton size="md" label={t("files.upload")} busy={uploader.busy} multiple onFiles={upload} />
-                  )
-                }
-              >
-                {t(uploads ? "drive.folderEmptyText" : "drive.folderEmptyViewer")}
-              </EmptyState>
-            )}
-            {list.isSuccess && rows.length === 0 && subfolders.length === 0 && !filtered && !folder && (
-              <EmptyState
-                size="page"
-                agent={look}
-                title={t("drive.emptyTitle")}
-                actions={
-                  uploads && (
-                    <>
-                      <UploadButton
-                        size="md"
-                        label={t("files.upload")}
-                        busy={uploader.busy}
-                        multiple
-                        onFiles={upload}
-                        variant="primary"
-                      />
-                      <NewFileMenu align="start" />
-                    </>
-                  )
-                }
-              >
-                {t(uploads ? "drive.emptyText" : "drive.emptyViewer")}
-              </EmptyState>
-            )}
-            {list.isSuccess && rows.length === 0 && subfolders.length === 0 && filtered && (
-              <EmptyState
-                size="panel"
-                title={t("drive.noResults")}
-                actions={
+            <Refreshing busy={list.isPlaceholderData} label={t("common.loading")}>
+              {filtered && list.isSuccess && rows.length > 0 && (
+                <div className="drive-summary">
+                  <span>{t("drive.count", { count: total })}</span>
                   <Button
+                    size="sm"
+                    variant="ghost"
+                    icon="close"
                     onClick={() => {
                       setQ("");
                       clearFilters();
@@ -834,76 +631,145 @@ export function DrivePage({
                   >
                     {t("drive.clear")}
                   </Button>
-                }
-              >
-                {t("drive.noResultsHint")}
-              </EmptyState>
-            )}
-
-            {subfolders.length > 0 && view === "grid" && (
-              <section className="drive-group" aria-label={t("drive.folders")}>
-                <GroupHeading className="drive-group__head" title={t("drive.folders")} count={subfolders.length} />
-                <div className={cx("drive-folders", pickedCount > 0 && "drive--selecting")}>
-                  {subfolders.map((f) => (
-                    <FolderCard key={f.id} {...folderProps(f)} />
-                  ))}
-                </div>
-              </section>
-            )}
-            <LivePresenceScope ids={liveIds}>
-              {rows.length > 0 && view === "grid" && (
-                <div className={cx("ac-groups", pickedCount > 0 && "drive--selecting")}>
-                  {sections.map((s) => (
-                    <section key={s.key || "all"} className="drive-group">
-                      {sectionHead(s)}
-                      <div className="drive-grid">
-                        {s.items.map((a) => (
-                          <DriveCard key={a.id} {...itemProps(a)} onDelete={(x) => remover.ask(x)} />
-                        ))}
-                      </div>
-                    </section>
-                  ))}
                 </div>
               )}
-              {(rows.length > 0 || subfolders.length > 0) && view === "list" && (
-                <div className={cx("drive-table", pickedCount > 0 && "drive--selecting")}>
-                  <div className="drive-table__head">
-                    <Checkbox
-                      className="drive-check"
-                      checked={
-                        shownCount > 0 && pickedCount === shownCount ? true : pickedCount > 0 ? "indeterminate" : false
-                      }
-                      onCheckedChange={(on) => (on ? selectAll() : clearSelection())}
-                      aria-label={t("drive.selectAll", { count: shownCount })}
-                    />
-                    <span aria-hidden="true">{t("drive.name")}</span>
-                    <span aria-hidden="true">{t("drive.by")}</span>
-                    <span className="drive-row__where" aria-hidden="true">
-                      {t("drive.where")}
-                    </span>
-                    <span aria-hidden="true">{t("drive.when")}</span>
-                    <span />
+
+              {list.isLoading && <LoadingList count={5} trailing />}
+              {list.isError && !list.data && <ErrorState error={list.error} onRetry={() => void list.refetch()} />}
+              {list.isSuccess && rows.length === 0 && subfolders.length === 0 && !filtered && folder && (
+                <EmptyState
+                  size="panel"
+                  title={t("drive.folderEmptyTitle")}
+                  actions={
+                    uploads && (
+                      <>
+                        <UploadButton
+                          size="md"
+                          label={t("files.upload")}
+                          busy={uploader.busy}
+                          multiple
+                          onFiles={upload}
+                        />
+                        <NewFileMenu align="start" onNewFolder={newFolderHere} />
+                      </>
+                    )
+                  }
+                >
+                  {t(uploads ? "drive.folderEmptyText" : "drive.folderEmptyViewer")}
+                </EmptyState>
+              )}
+              {list.isSuccess && rows.length === 0 && subfolders.length === 0 && !filtered && !folder && (
+                <EmptyState
+                  size="page"
+                  agent={look}
+                  title={t("drive.emptyTitle")}
+                  actions={
+                    uploads && (
+                      <>
+                        <UploadButton
+                          size="md"
+                          label={t("files.upload")}
+                          busy={uploader.busy}
+                          multiple
+                          onFiles={upload}
+                          variant="primary"
+                        />
+                        <NewFileMenu align="start" onNewFolder={newFolderHere} />
+                      </>
+                    )
+                  }
+                >
+                  {t(uploads ? "drive.emptyText" : "drive.emptyViewer")}
+                </EmptyState>
+              )}
+              {list.isSuccess && rows.length === 0 && subfolders.length === 0 && filtered && (
+                <EmptyState
+                  size="panel"
+                  title={t("drive.noResults")}
+                  actions={
+                    <Button
+                      onClick={() => {
+                        setQ("");
+                        clearFilters();
+                      }}
+                    >
+                      {t("drive.clear")}
+                    </Button>
+                  }
+                >
+                  {t("drive.noResultsHint")}
+                </EmptyState>
+              )}
+
+              {subfolders.length > 0 && view === "grid" && (
+                <section className="drive-group" aria-label={t("drive.folders")}>
+                  <GroupHeading className="drive-group__head" title={t("drive.folders")} count={subfolders.length} />
+                  <div className={cx("drive-folders", pickedCount > 0 && "drive--selecting")}>
+                    {subfolders.map((f) => (
+                      <FolderCard key={f.id} {...folderProps(f)} />
+                    ))}
                   </div>
-                  {subfolders.length > 0 && (
-                    <ul className="drive-list" aria-label={t("drive.folders")}>
-                      {subfolders.map((f) => (
-                        <FolderRow key={f.id} {...folderProps(f)} />
-                      ))}
-                    </ul>
-                  )}
-                  {sections.map((s) => (
-                    <section key={s.key || "all"} className="drive-group">
-                      {sectionHead(s)}
-                      <ul className="drive-list">
-                        {s.items.map((a) => (
-                          <DriveRow key={a.id} {...itemProps(a)} onDelete={(x) => remover.ask(x)} />
+                </section>
+              )}
+              <LivePresenceScope ids={liveIds}>
+                {rows.length > 0 && view === "grid" && (
+                  <div className={cx("ac-groups", pickedCount > 0 && "drive--selecting")}>
+                    {sections.map((s) => (
+                      <section key={s.key || "all"} className="drive-group">
+                        {sectionHead(s)}
+                        <div className="drive-grid">
+                          {s.items.map((a) => (
+                            <DriveCard key={a.id} {...itemProps(a)} onDelete={(x) => remover.ask(x)} />
+                          ))}
+                        </div>
+                      </section>
+                    ))}
+                  </div>
+                )}
+                {(rows.length > 0 || subfolders.length > 0) && view === "list" && (
+                  <div className={cx("drive-table", pickedCount > 0 && "drive--selecting")}>
+                    <div className="drive-table__head">
+                      <Checkbox
+                        className="drive-check"
+                        checked={
+                          shownCount > 0 && pickedCount === shownCount
+                            ? true
+                            : pickedCount > 0
+                              ? "indeterminate"
+                              : false
+                        }
+                        onCheckedChange={(on) => (on ? selectAll() : clearSelection())}
+                        aria-label={t("drive.selectAll", { count: shownCount })}
+                      />
+                      <span aria-hidden="true">{t("drive.name")}</span>
+                      <span aria-hidden="true">{t("drive.by")}</span>
+                      <span className="drive-row__where" aria-hidden="true">
+                        {t("drive.where")}
+                      </span>
+                      <span aria-hidden="true">{t("drive.when")}</span>
+                      <span />
+                    </div>
+                    {subfolders.length > 0 && (
+                      <ul className="drive-list" aria-label={t("drive.folders")}>
+                        {subfolders.map((f) => (
+                          <FolderRow key={f.id} {...folderProps(f)} />
                         ))}
                       </ul>
-                    </section>
-                  ))}
-                </div>
-              )}
-            </LivePresenceScope>
+                    )}
+                    {sections.map((s) => (
+                      <section key={s.key || "all"} className="drive-group">
+                        {sectionHead(s)}
+                        <ul className="drive-list">
+                          {s.items.map((a) => (
+                            <DriveRow key={a.id} {...itemProps(a)} onDelete={(x) => remover.ask(x)} />
+                          ))}
+                        </ul>
+                      </section>
+                    ))}
+                  </div>
+                )}
+              </LivePresenceScope>
+            </Refreshing>
 
             {list.hasNextPage && rows.length > 0 && (
               <div className="drive-more">

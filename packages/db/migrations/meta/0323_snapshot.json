@@ -1,5 +1,5 @@
 {
-  "id": "3fd4f81a-9139-4e2e-80a2-c01415321955",
+  "id": "6e2f0791-3fd3-4d5c-9ecf-50d4de82511f",
   "prevId": "3b9b0ad8-42ea-4a5c-a2fd-e5618d9adce6",
   "version": "7",
   "dialect": "postgresql",
@@ -2301,92 +2301,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.two_factors": {
-      "name": "two_factors",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "secret": {
-          "name": "secret",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "backup_codes": {
-          "name": "backup_codes",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "verified": {
-          "name": "verified",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
-        "failed_verification_count": {
-          "name": "failed_verification_count",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "locked_until": {
-          "name": "locked_until",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "two_factors_user_id_users_id_fk": {
-          "name": "two_factors_user_id_users_id_fk",
-          "tableFrom": "two_factors",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "two_factors_userId_unique": {
-          "name": "two_factors_userId_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "user_id"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.users": {
       "name": "users",
       "schema": "",
@@ -2464,13 +2378,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
-        },
-        "two_factor_enabled": {
-          "name": "two_factor_enabled",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
         },
         "created_at": {
           "name": "created_at",
@@ -24681,6 +24588,91 @@
           "value": "\"instance_telemetry\".\"id\" = 1"
         }
       },
+      "isRLSEnabled": false
+    },
+    "public.server_processes": {
+      "name": "server_processes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "seen_at": {
+          "name": "seen_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rss_bytes": {
+          "name": "rss_bytes",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "heap_used_bytes": {
+          "name": "heap_used_bytes",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "heap_total_bytes": {
+          "name": "heap_total_bytes",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_loop_p_99_ms": {
+          "name": "event_loop_p_99_ms",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "event_loop_max_ms": {
+          "name": "event_loop_max_ms",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "heap_snapshot_at": {
+          "name": "heap_snapshot_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "heap_snapshot_file": {
+          "name": "heap_snapshot_file",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.org_roles": {

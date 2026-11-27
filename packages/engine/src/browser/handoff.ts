@@ -55,7 +55,7 @@ import { enqueue } from "../outbox";
 import { isRightHand, isRightHandId } from "../right-hand";
 import {
   machineScope,
-  noSeatMessage,
+  NO_SEAT_MESSAGE,
   SHARED_SEAT,
   screenPersonOf,
   seatUserOf,
@@ -982,7 +982,7 @@ export function createBrowserHandoffToolSource(
     const person = await screenPersonOf(ctx.db, ctx);
     /** The person whose own seat it is: only they are asked onto it. Null for an agent's screen and the shared seat's. */
     const own = seatUserOf(person);
-    if (person === false) return { content: noSeatMessage(ctx), isError: true };
+    if (person === false) return { content: NO_SEAT_MESSAGE, isError: true };
     if (person && screen === "browser") {
       return {
         content: `Nothing was asked: your browser here shows on your desktop, so ask there with ${DESKTOP_ASK_PERSON_TOOL}.`,
@@ -1189,7 +1189,7 @@ export function createBrowserHandoffToolSource(
       "browser",
       BROWSER_SCOPE,
       BROWSER_TOOL_INFO.browser_ask_person.label,
-      "Hand a person the step only they can do in your browser (sign in, scan a QR code with their phone, type a code sent to them, solve a captcha, confirm on their phone) and wait until they're done. Open the page and get to that step first, so it is ready for them, and call it as soon as the task reaches it: it is never a reason to stop or to say you can't. Write what to do in one short sentence in the language the people use. Before asking, try what you can yourself (a password you were given through request_secret goes in with browser_type_secret; a link or a code the site sent to a mailbox you can read, you get there yourself). End your turn after calling it: you are woken with the result, then read the page again and check.",
+      "Hand a person the step only they can do in your browser (sign in, scan a QR code with their phone, type a code sent to them, solve a captcha, confirm on their phone) and wait until they're done. Open the page and get to that step first, so it is ready for them, and call it as soon as the task reaches it: it is never a reason to stop or to say you can't. Write what to do in one short sentence in the language the people use. Before asking, try what you can yourself (a password you were given through request_secret goes in with browser_type_secret; a link or a code the site sent to a mailbox you can read, you get there yourself). Passkeys and security keys don't work in your browser: when a site asks for one, ask the person to choose another way to sign in (like a password and a code). End your turn after calling it: you are woken with the result, then read the page again and check.",
     ),
     desktop: tool(
       "desktop",

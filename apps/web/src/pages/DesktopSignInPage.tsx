@@ -6,7 +6,8 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@/auth/context";
 import { AgentAvatar } from "@/components/AgentAvatar";
 import { AuthShell } from "@/components/AuthLayout";
-import { BROWSER_SIGN_IN_PATH } from "@/lib/desktop";
+import { OpenAppButton, useBackToApp } from "@/components/BackToApp";
+import { APP_FRONT_LINK, BROWSER_SIGN_IN_PATH } from "@/lib/desktop";
 
 /**
  * In the browser, for the Mac app's window (ADR 0036): goes to the provider, and
@@ -14,9 +15,10 @@ import { BROWSER_SIGN_IN_PATH } from "@/lib/desktop";
  * confirm it matches the code on their computer. The hand-over happens only after
  * that explicit confirmation, so a link that jumps straight here signs no one in.
  * A refusal (`error`, the provider's or the server's) comes back here too: why, and
- * back to the app to try again, never the provider once more. An account with two-step sign-in (ADR 0219) comes back
+ * back to the app to try again, never the provider once more. An account with two-step sign-in (ADR 0259) comes back
  * waiting for its code: the sign-in page asks for it, then comes back here to confirm.
  * `access`: an early-access link's token the app's window had, for the sign-up this makes.
+ * `back`: the app takes its link back (`APP_FRONT_LINK`): once done, the page hands the person back to it.
  */
 export function DesktopSignInPage({
   provider,
@@ -24,12 +26,14 @@ export function DesktopSignInPage({
   done,
   error,
   access,
+  back = false,
 }: {
   provider?: SignInProvider;
   request?: string;
   done: boolean;
   error?: string;
   access?: string;
+  back?: boolean;
 }) {
   const { t } = useTranslation();
   const auth = useAuth();
@@ -57,9 +61,10 @@ export function DesktopSignInPage({
       return;
     }
     if (!done) {
-      const back = `${BROWSER_SIGN_IN_PATH}?${new URLSearchParams({ provider, request, done: "1" })}`;
-      const refused = `${BROWSER_SIGN_IN_PATH}?${new URLSearchParams({ provider, request })}`;
-      void auth.signInSocial(provider, back, access, refused).then((r) => {
+      const keep: Record<string, string> = back ? { back: "1" } : {};
+      const after = `${BROWSER_SIGN_IN_PATH}?${new URLSearchParams({ provider, request, done: "1", ...keep })}`;
+      const refused = `${BROWSER_SIGN_IN_PATH}?${new URLSearchParams({ provider, request, ...keep })}`;
+      void auth.signInSocial(provider, after, access, refused).then((r) => {
         if (!r.ok) setState("expired");
       });
       return;
@@ -71,7 +76,9 @@ export function DesktopSignInPage({
         setState("confirm");
       }
     });
-  }, [auth, provider, request, done, error, access]);
+  }, [auth, provider, request, done, error, access, back]);
+  const toApp = state === "done" && back;
+  useBackToApp(toApp ? APP_FRONT_LINK : null);
 
   const confirm = async () => {
     if (!request || working) return;
@@ -83,7 +90,7 @@ export function DesktopSignInPage({
   const name = provider ? t(`auth.provider.${provider}`) : "";
   const [title, lead] =
     state === "done"
-      ? [t("auth.desktop.done"), t("auth.desktop.doneLead")]
+      ? [t("auth.desktop.done"), t(toApp ? "auth.desktop.back" : "auth.desktop.doneLead")]
       : state === "confirm"
         ? [t("auth.desktop.confirm"), t("auth.desktop.confirmLead")]
         : state === "expired"
@@ -118,6 +125,12 @@ export function DesktopSignInPage({
             <button type="button" className="auth__quiet" onClick={() => setState("expired")} disabled={working}>
               {t("auth.desktop.confirmNo")}
             </button>
+          </div>
+        )}
+        {/* Done: back to the app on its own, this the way by hand. Expired or refused: the way back to try again. */}
+        {back && (state === "done" || state === "expired" || state === "refused") && (
+          <div className="auth__step">
+            <OpenAppButton link={APP_FRONT_LINK} />
           </div>
         )}
       </div>

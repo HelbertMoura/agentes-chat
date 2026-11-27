@@ -5,7 +5,7 @@ import type { AppLocale } from "@agenteschat/i18n/locale";
 import { plainLines } from "@agenteschat/ui/markdown";
 import { runAuthority } from "./authority";
 import { confidentialThreadSql, threadIsConfidential } from "./confidential";
-import { answersHandOffs, consultationOrigin } from "./consultations";
+import { answersHandOffs, consultationOrigin, settleHandedWorkTrace } from "./consultations";
 import { getChannelCached } from "./context";
 import type { ContextDeps } from "./context/summaries";
 import { deliverNotice, publishDelivery } from "./delivery";
@@ -16,6 +16,7 @@ import { cutMarked, cutText } from "./format";
 import { linkIssueToWork, setWorkIssueState } from "./issues";
 import { deliverLive, renderSteered } from "./live-steer";
 import { messageLink } from "./message-links";
+import { ownTyped } from "./message-origin";
 import { insertMessage, type Message, messageView, replyExcerpt } from "./messages";
 import { missionOfThread } from "./missions";
 import { enqueue } from "./outbox";
@@ -23,14 +24,24 @@ import { lineLocale } from "./requester";
 import { personCanPost } from "./routine-state";
 import { ACTIVE_RUN_STATUSES, passedOnTo } from "./run-inbox";
 import { deliverNoticeToRun } from "./run-resume";
+import { type RunRow, runColumns, runState } from "./run-state";
 import { type AgentRun, continuableEnd, isTerminal, personStopOf, replyThreadOf, runErrorDetail } from "./runs";
 import { runStretchOf } from "./stretch";
 import { ago, stepLine } from "./talker-snapshot";
 import { nameConversation } from "./thread-assess";
 import { maskCredentials } from "./tool-detail";
 
-const { agentConsultations, agentQuestions, agentRunSteps, agentWorks, agentRuns, messages, threadFollows, users } =
-  schema;
+const {
+  agentConsultations,
+  agentQuestions,
+  agentRunSteps,
+  agentWorks,
+  agentRuns,
+  channels,
+  messages,
+  threadFollows,
+  users,
+} = schema;
 
 export type WorkRow = typeof agentWorks.$inferSelect;
 export type WorkPlanItem = schema.WorkPlanItem;
@@ -70,6 +81,8 @@ export const WORK_JOB_YIELD_MS = 60 * 60_000;
 
 export const WORK_CHECK_IN_JOB = "agent_work.check_in";
 export const WORK_FOLLOW_UP_JOB = "agent_work.follow_up";
+/** A work ended in a channel with a responsible agent: the lead may take its next step (`tellChannelLead`). */
+export const CHANNEL_LEAD_JOB = "channel.lead_turn";
 export const WORK_IN_BACKGROUND_TOOL = "work_in_background";
 export const POST_UPDATE_TOOL = "post_update";
 export const STEER_WORK_TOOL = "steer_work";
@@ -202,10 +215,10 @@ export async function workViews(db: Executor, orgId: string, ids: string[]): Pro
       status: agentRuns.status,
       error: agentRuns.error,
       waitingMachineId: agentRuns.waitingMachineId,
-      code: sql<string | null>`${agentRuns.transcript}->'waitingForBrain'->>'code'`,
+      code: sql<string | null>`${runState}->'waitingForBrain'->>'code'`,
       until: sql<
         string | null
-      >`coalesce(${agentRuns.transcript}->'waitingForBrain'->>'resetsAt', ${agentRuns.transcript}->'waitingForBrain'->>'until')`,
+      >`coalesce(${runState}->'waitingForBrain'->>'resetsAt', ${runState}->'waitingForBrain'->>'until')`,
       createdAt: agentRuns.createdAt,
     })
     .from(agentRuns)
@@ -405,8 +418,8 @@ type RunLike = Pick<
   | "background"
   | "workId"
   | "status"
-  | "transcript"
->;
+> &
+  Partial<Pick<AgentRun, "transcript" | "state">>;
 
 /**
  * Whether a run may become long work (§1): a person is behind it, in a channel or DM people read,
@@ -921,7 +934,7 @@ export async function checkInWork(
   // The fallback belongs to the promise it was queued for: a wait in between restarted the timer (same seq).
   if (input.phase === "fallback" && input.due !== undefined && work.nextUpdateAt.getTime() !== input.due) return "none";
   const [run] = await db
-    .select()
+    .select(runColumns)
     .from(agentRuns)
     .where(and(eq(agentRuns.workId, work.id), eq(agentRuns.orgId, orgId)))
     .orderBy(desc(agentRuns.createdAt))
@@ -954,7 +967,12 @@ export async function checkInWork(
   return (await postFallbackUpdate(deps, work, run, now)) ? "posted" : "none";
 }
 
-async function postFallbackUpdate(deps: { db: Database; pubsub?: PubSub }, work: WorkRow, run: AgentRun, now: Date) {
+async function postFallbackUpdate(
+  deps: { db: Database; pubsub?: PubSub },
+  work: WorkRow,
+  run: Pick<RunRow, "id" | "hop">,
+  now: Date,
+) {
   const [agent] = await deps.db
     .select({ kind: schema.agents.statusKind, subject: schema.agents.statusSubject, runId: schema.agents.statusRunId })
     .from(schema.agents)
@@ -1148,12 +1166,30 @@ export async function endWork(
           ? "continued"
           : "ended",
     );
+    // A channel's responsible agent may take the next step (ADR 0095): judged in a job, off this run's ending. Work
+    // handed off goes back to the agent that handed it (`reportHandOffs`).
+    if ((status === "done" || status === "failed") && !work.consultationId) {
+      const [lead] = await tx
+        .select({ id: channels.leadAgentId })
+        .from(channels)
+        .where(and(eq(channels.orgId, work.orgId), eq(channels.id, work.channelId)));
+      if (lead?.id && lead.id !== work.agentId)
+        await enqueue(tx, {
+          orgId: work.orgId,
+          kind: CHANNEL_LEAD_JOB,
+          payload: { workId: work.id, runId: run.id },
+          // Per end: Continuar ends it again in another run.
+          dedupeKey: `${CHANNEL_LEAD_JOB}:${work.id}:${run.id}`,
+          maxAttempts: 3,
+        });
+    }
     const released = await releaseQueuedWorks(tx, work.orgId);
     return { work: closed ?? work, end, released, status };
   });
   if (!ended) return null;
   if (ended.end && deps.pubsub) await publishMessageCreated(deps.pubsub, messageView(ended.end));
   if (ended.work.issueId) await setWorkIssueState(deps, ended.work, { ended: ended.status }).catch(() => null);
+  await settleHandedWorkTrace(deps, ended.work).catch(() => {});
   await announceWork(deps.pubsub, db, ended.work.orgId, ended.work.id);
   for (const id of ended.released) await announceWork(deps.pubsub, db, ended.work.orgId, id);
   return ended.work;
@@ -1269,9 +1305,12 @@ export async function followUpWork(
     const asks = await tx
       .select({
         id: messages.id,
+        authorType: messages.authorType,
         userId: messages.authorUserId,
         channelId: messages.channelId,
         threadId: messages.threadId,
+        origin: messages.origin,
+        meta: messages.meta,
       })
       .from(messages)
       .where(
@@ -1339,6 +1378,8 @@ export async function followUpWork(
               ...(work.title ? { title: work.title } : {}),
               ...(input.stopped ? { stopped: "1" } : {}),
               ...(home ? {} : { away: "1" }),
+              // Not all typed in our apps (ADR 0250): the run it wakes answers them, never learns from them as theirs.
+              ...(theirs.every(ownTyped) ? {} : { relayed: "1" }),
             },
           },
           trigger: run.trigger === "dm" ? "dm" : "mention",
@@ -1449,7 +1490,11 @@ export async function reconcileWorks(deps: { db: Database; pubsub?: PubSub }): P
     // One bad row never stops the sweep: the next tick tries it again.
     try {
       const [run] = await deps.db
-        .select()
+        .select({
+          ...runColumns,
+          transcript: sql<AgentRun["transcript"]>`case when ${agentRuns.status} in ('done', 'failed', 'canceled')
+            then ${agentRuns.transcript} end`,
+        })
         .from(agentRuns)
         .where(eq(agentRuns.workId, w.id))
         .orderBy(desc(agentRuns.createdAt))
@@ -1605,7 +1650,7 @@ export async function steerWork(
     return { ok: false, reason: "No background work of yours here has that id." };
   if (work.status !== "live" && work.status !== "queued") return { ok: false, reason: "That work already ended." };
   const [target] = await deps.db
-    .select()
+    .select(runColumns)
     .from(agentRuns)
     .where(eq(agentRuns.workId, work.id))
     .orderBy(desc(agentRuns.createdAt))
@@ -1733,7 +1778,7 @@ export async function ensureWorkCard(
   let [work] = await deps.db.select().from(agentWorks).where(eq(agentWorks.id, workId));
   if (!work || work.issueId) return work?.issueId ?? null;
   const [run] = await deps.db
-    .select()
+    .select(runColumns)
     .from(agentRuns)
     .where(eq(agentRuns.workId, work.id))
     .orderBy(desc(agentRuns.createdAt))

@@ -51,7 +51,7 @@ export function ShareInbox() {
     settled.current = link.current;
     // Through one of the share sheet's suggestions, its link names the agent (ADR 0213).
     receiveShare({ ...shared, to: pickedOfShareLink(link.current) });
-    // Behind the app lock (ADR 0220), "Compartilhar com…" opens once the lock opens, never under it.
+    // Behind the app lock (ADR 0260), "Compartilhar com…" opens once the lock opens, never under it.
     whenUnlocked(() => {
       if (where.current !== SHARE_ROUTE) router.push(SHARE_ROUTE);
     });

@@ -76,7 +76,7 @@ export function useUpdateComputer(orgId: string) {
   return useDevicesMutation(
     orgId,
     ({ id, ...input }: ComputerDeviceInput & { id: string }) => api.devices.updateComputer(orgId, id, input),
-    // Its name, who may use it, whose it is, its limit and its spill show at once.
+    // Its name, who may use it, whose it is, its limit and its help show at once.
     ({ id, name, audience, belongsToWorkspace, maxTasks, spill }) => [
       computerEdit(orgId, id, (c) => ({
         ...c,
@@ -87,6 +87,16 @@ export function useUpdateComputer(orgId: string) {
         ...(spill ? { spill: { ...c.spill, ...spill } } : {}),
       })),
     ],
+  );
+}
+
+/** Admins: people's computers may help when the workspace's is full or away (`devicesHelp`), or none may. */
+export function useSetDevicesHelp(orgId: string) {
+  const api = useApi();
+  return useDevicesMutation(
+    orgId,
+    (on: boolean) => api.devices.setHelp(orgId, on),
+    (on) => [edit<DevicesList>(keys.devices(orgId), (list) => ({ ...list, devicesHelp: on }))],
   );
 }
 
@@ -126,6 +136,23 @@ export function useForgetPhone(orgId: string) {
 export function useStopPhone(orgId: string) {
   const api = useApi();
   return useDevicesMutation(orgId, (id: string) => api.devices.stopPhone(orgId, id));
+}
+
+/** Ligar / Desligar a simulator or an emulator: it shows starting, or offline, at once (a refusal puts it back). */
+export function usePowerPhone(orgId: string) {
+  const api = useApi();
+  return useDevicesMutation(
+    orgId,
+    ({ id, on }: { id: string; on: boolean }) => api.devices.powerPhone(orgId, id, on),
+    ({ id, on }) => [
+      phoneEdit(orgId, id, (p) => ({
+        ...p,
+        status: on
+          ? { kind: "preparing", reason: "booting" }
+          : { kind: "offline", lastSeenAt: new Date().toISOString() },
+      })),
+    ],
+  );
 }
 
 export function useApproveRequest(orgId: string) {

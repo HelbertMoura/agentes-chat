@@ -4,7 +4,13 @@ import { vector } from "@electric-sql/pglite-pgvector";
 import { readMigrationFiles } from "drizzle-orm/migrator";
 import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
-import { migrateInSteps, migrationsFolder } from "../src/client";
+import { type Database, migrateInSteps, migrationsFolder } from "../src/client";
+import {
+  assertMigrationsMatch,
+  forgetMovedMigrations,
+  MigrationMismatchError,
+  MOVED_MIGRATIONS,
+} from "../src/migration-guard";
 
 const migrations = readMigrationFiles({ migrationsFolder });
 /** 0215 adds channel_kind's `task`, and 0229 uses it: a server from before 0215 meets both in one update. */
@@ -59,6 +65,43 @@ test("an index of a busy table is built in no transaction, and again when a buil
     );
     await migrateInSteps(db, migrationsFolder);
     expect(await state()).toEqual({ applied: migrations.length, valid: 3 });
+  } finally {
+    await pg.close();
+  }
+}, 180_000);
+
+test("a database that ran our migrations under their old numbers takes upstream's in between, then ours again", async () => {
+  const pg = new PGlite({ extensions: { vector } });
+  const db = drizzle(pg);
+  // Where the old numbers sat: after 0322, in place of upstream's 0323.
+  const before = migrations.findIndex((m) => m.sql.some((s) => s.includes('CREATE TABLE "server_processes"')));
+  expect(before).toBeGreaterThan(0);
+  try {
+    await migrateInSteps(db, migrationsFolder, before);
+    // What that database ran then, as it recorded it: the same tables, under the old SQL's hashes and dates.
+    await pg.exec(`
+      CREATE TABLE "two_factors" ("id" text PRIMARY KEY NOT NULL, "secret" text NOT NULL, "backup_codes" text NOT NULL,
+        "user_id" text NOT NULL REFERENCES "users"("id") ON DELETE cascade, "verified" boolean DEFAULT true NOT NULL,
+        "failed_verification_count" integer DEFAULT 0 NOT NULL, "locked_until" timestamp with time zone,
+        "created_at" timestamp with time zone DEFAULT now() NOT NULL, CONSTRAINT "two_factors_userId_unique" UNIQUE("user_id"));
+      ALTER TABLE "users" ADD COLUMN "two_factor_enabled" boolean DEFAULT false NOT NULL;
+      CREATE TABLE "plan_limit_alerts" ("org_id" uuid NOT NULL REFERENCES "organizations"("id") ON DELETE cascade,
+        "account_key" text NOT NULL, "window_key" text NOT NULL, "resets_at" timestamp with time zone,
+        "alerted_at" timestamp with time zone NOT NULL, "rearmed_at" timestamp with time zone,
+        PRIMARY KEY ("org_id", "account_key", "window_key"));
+      INSERT INTO drizzle.__drizzle_migrations (hash, created_at) VALUES
+        ${MOVED_MIGRATIONS.map((m) => `('${m.hash}', ${m.when})`).join(", ")};
+    `);
+    const typed = db as unknown as Database;
+    await expect(assertMigrationsMatch(typed, migrationsFolder)).rejects.toBeInstanceOf(MigrationMismatchError);
+    expect(await forgetMovedMigrations(typed)).toBe(2);
+    await assertMigrationsMatch(typed, migrationsFolder);
+    await migrateInSteps(db, migrationsFolder);
+    const { rows } = await pg.query<{ n: number }>("select count(*)::int as n from drizzle.__drizzle_migrations");
+    expect(rows[0]?.n).toBe(migrations.length);
+    await assertMigrationsMatch(typed, migrationsFolder);
+    // Nothing else to forget the next time.
+    expect(await forgetMovedMigrations(typed)).toBe(0);
   } finally {
     await pg.close();
   }
