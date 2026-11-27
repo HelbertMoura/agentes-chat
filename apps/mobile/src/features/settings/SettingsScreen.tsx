@@ -19,6 +19,7 @@ import { IntegrationsScreen } from "./IntegrationsScreen";
 import { MediaSettingsScreen } from "./MediaSettingsScreen";
 import { SkillsScreen } from "./SkillsScreen";
 import { StorageScreen } from "./StorageScreen";
+import { VoiceSettingsScreen } from "./VoiceSettingsScreen";
 import { settingsFallback, settingsSplit } from "./split";
 import { WorkspaceScreen } from "./WorkspaceScreen";
 
@@ -29,6 +30,7 @@ import { WorkspaceScreen } from "./WorkspaceScreen";
 const SETTINGS_PAGE_VIEWS = {
   "/settings/general": () => <GeneralScreen />,
   "/settings/media": () => <MediaSettingsScreen />,
+  "/settings/voice": () => <VoiceSettingsScreen />,
   "/me/members": () => <MembersPage />,
   "/settings/invites": () => <InvitesScreen />,
   "/settings/roles": () => <RolesScreen />,
