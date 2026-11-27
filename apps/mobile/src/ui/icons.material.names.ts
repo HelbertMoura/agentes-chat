@@ -67,6 +67,7 @@ export const MATERIAL_NAMES: Record<IconName, string | null> = {
   computerWindows: null,
   computerLinux: null,
   archive: "archive",
+  palette: "palette",
   circle: "circle",
   pause: "pause",
   lock: "lock",

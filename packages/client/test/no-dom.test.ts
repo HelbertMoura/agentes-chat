@@ -32,7 +32,10 @@ const FORBIDDEN: [RegExp, string][] = [
   [/from\s+["']react-dom(\/[^"']*)?["']/, "react-dom"],
   // `@agenteschat/ui/markdown`, `/agent-talk` and `/bounded-map` are plain TypeScript the engine reads too, and
   // `/plan-state` the plan rules Cotas shares with the meters (held below).
-  [/from\s+["']@agenteschat\/ui(?!\/(?:markdown|agent-talk|bounded-map|plan-state)["'])(\/[^"']*)?["']/, "@agenteschat/ui"],
+  [
+    /from\s+["']@agenteschat\/ui(?!\/(?:markdown|agent-talk|bounded-map|plan-state)["'])(\/[^"']*)?["']/,
+    "@agenteschat/ui",
+  ],
   [/from\s+["']@tanstack\/react-router["']/, "@tanstack/react-router (web routing)"],
   [/from\s+["']react-i18next["']/, "react-i18next (each app sets up i18n)"],
   [/from\s+["']@\//, "the web app's @/ alias"],
