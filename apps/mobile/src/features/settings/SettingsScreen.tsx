@@ -19,8 +19,8 @@ import { IntegrationsScreen } from "./IntegrationsScreen";
 import { MediaSettingsScreen } from "./MediaSettingsScreen";
 import { SkillsScreen } from "./SkillsScreen";
 import { StorageScreen } from "./StorageScreen";
-import { VoiceSettingsScreen } from "./VoiceSettingsScreen";
 import { settingsFallback, settingsSplit } from "./split";
+import { VoiceSettingsScreen } from "./VoiceSettingsScreen";
 import { WorkspaceScreen } from "./WorkspaceScreen";
 
 /**
